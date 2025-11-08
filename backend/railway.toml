@@ -1,0 +1,32 @@
+# Railway deployment configuration for Heka Backend
+
+# Build command
+[build]
+command = "pip install -r requirements.txt"
+
+# Start command
+[start]
+command = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+
+# Health check
+[healthcheck]
+path = "/health"
+interval = 30
+timeout = 10
+retries = 3
+
+# Environment variables (set in Railway dashboard)
+# Required:
+# - MONGODB_URL
+# - SECRET_KEY
+# - OPENAI_API_KEY
+# - ALLOWED_ORIGINS
+# Optional:
+# - ENVIRONMENT=production
+# - SENTRY_DSN
+# - STRIPE_SECRET_KEY
+# - STRIPE_PUBLISHABLE_KEY
+# - STRIPE_WEBHOOK_SECRET
+# - SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
+
+
