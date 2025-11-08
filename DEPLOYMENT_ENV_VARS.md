@@ -12,7 +12,7 @@ ENVIRONMENT=production
 DEBUG=false
 
 # MongoDB (MongoDB Atlas)
-MONGODB_URL=mongodb+srv://username:password@cluster.mongodb.net/heka_db
+MONGODB_URL=mongodb+srv://USERNAME:PASSWORD@cluster.mongodb.net/heka_db
 MONGODB_DB_NAME=heka_db
 
 # Security
@@ -31,8 +31,8 @@ OPENAI_MODEL=gpt-4o-mini
 EMAIL_FROM=noreply@heka.app
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
+SMTP_USER=<your-gmail-email-address>
+SMTP_PASSWORD=<your-gmail-app-password>
 
 # Frontend URL (for email links)
 FRONTEND_URL=https://heka.app
