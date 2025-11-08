@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';
@@ -14,10 +14,10 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const inviteToken = searchParams?.get('invite') || sessionStorage.getItem('pending_invitation_token');
+  const inviteToken = searchParams?.get('invite') || (typeof window !== 'undefined' ? sessionStorage.getItem('pending_invitation_token') : null);
   const { login, isLoading } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
 
@@ -123,5 +123,19 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
