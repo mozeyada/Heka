@@ -9,9 +9,9 @@ COPY backend/ /app/
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port
-EXPOSE $PORT
+# Expose port (Railway sets PORT env var at runtime)
+EXPOSE 8000
 
-# Start command
-CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
+# Start command - use shell form to expand PORT environment variable
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
 
