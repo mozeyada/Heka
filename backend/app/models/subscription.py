@@ -1,7 +1,7 @@
 """Subscription model for MongoDB."""
 
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, ClassVar
 from bson import ObjectId
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -81,9 +81,9 @@ class SubscriptionInDB(Subscription):
 
 class UsageLimit(BaseModel):
     """Usage limits per tier."""
-    FREE_TRIAL_ARGS = 5  # 5 arguments during 7-day trial
-    FREE_TRIAL_DAYS = 7
+    FREE_TRIAL_ARGS: ClassVar[int] = 5  # 5 arguments during 7-day trial
+    FREE_TRIAL_DAYS: ClassVar[int] = 7
     
-    BASIC_MONTHLY_ARGS = -1  # Unlimited
-    PREMIUM_MONTHLY_ARGS = -1  # Unlimited
+    BASIC_MONTHLY_ARGS: ClassVar[int] = -1  # Unlimited
+    PREMIUM_MONTHLY_ARGS: ClassVar[int] = -1  # Unlimited
 

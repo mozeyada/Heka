@@ -106,8 +106,11 @@ def sanitize_email(email: str) -> str:
     
     Returns:
         Sanitized email address
+    
+    Raises:
+        ValueError: If email format is invalid
     """
-    from pydantic import EmailStr, ValidationError
+    from email_validator import validate_email, EmailNotValidError
     
     # Basic sanitization
     email = email.strip().lower()
@@ -115,14 +118,12 @@ def sanitize_email(email: str) -> str:
     # Remove null bytes
     email = email.replace('\x00', '')
     
-    # Validate email format
+    # Validate email format using email-validator
     try:
-        # Use Pydantic's EmailStr for validation
-        validated_email = EmailStr(email)
-        return str(validated_email)
-    except ValidationError:
-        raise ValueError("Invalid email format")
-    
-    return email
+        # Validate email format
+        validation_result = validate_email(email, check_deliverability=False)
+        return validation_result.email
+    except EmailNotValidError as e:
+        raise ValueError(f"Invalid email format: {str(e)}")
 
 
