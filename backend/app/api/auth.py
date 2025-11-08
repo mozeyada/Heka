@@ -11,10 +11,9 @@ from app.db.database import get_database
 from app.models.user import UserInDB
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
-from app.main import app
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
-limiter = app.state.limiter
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

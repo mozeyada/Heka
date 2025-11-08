@@ -11,7 +11,7 @@ slowapi==0.1.9
 
 # Database
 motor==3.6.0  # Updated - Async MongoDB driver
-pymongo[srv]==4.10.1  # Updated - MongoDB Python driver with SRV support for Atlas
+pymongo[srv]==4.9.0  # Compatible with motor 3.6.0 (requires pymongo<4.10)
 dnspython==2.7.0  # Updated - Required for mongodb+srv:// connections
 redis==5.2.0  # Updated
 

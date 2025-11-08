@@ -3,21 +3,17 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.config import settings
 from app.db.database import connect_to_mongo, close_mongo_connection, get_database
 from app.api import auth, couples, arguments, perspectives, ai_mediation, checkins, goals, subscriptions, users
 from app.core.logging_config import logger
 from app.core.sentry_config import init_sentry
+from app.core.limiter import limiter
 
 # Initialize Sentry before app creation
 init_sentry()
-
-
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager

@@ -14,12 +14,11 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from typing import List
 import logging
-from app.main import app
+from app.core.limiter import limiter
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai", tags=["AI Mediation"])
-limiter = app.state.limiter
 
 
 @router.post("/arguments/{argument_id}/analyze")
