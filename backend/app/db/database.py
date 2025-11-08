@@ -15,10 +15,28 @@ async def connect_to_mongo():
     global client, database
     try:
         # MongoDB connection string format: mongodb://user:password@host:port/dbname
+        # For mongodb+srv://, SSL/TLS is automatically enabled
+        # Explicitly configure SSL for better compatibility
+        import ssl
+        
+        # Determine if using mongodb+srv:// (Atlas) or regular mongodb://
+        use_ssl = 'mongodb+srv://' in settings.MONGODB_URL or settings.ENVIRONMENT == 'production'
+        
+        client_options = {
+            'maxPoolSize': 50,
+            'minPoolSize': 10,
+        }
+        
+        # Configure SSL/TLS for production/Atlas connections
+        if use_ssl:
+            client_options['tls'] = True
+            client_options['tlsAllowInvalidCertificates'] = False
+            # Use system default CA certificates
+            client_options['tlsCAFile'] = None  # Use system default
+        
         client = AsyncIOMotorClient(
             settings.MONGODB_URL,
-            maxPoolSize=50,
-            minPoolSize=10
+            **client_options
         )
         database = client[settings.MONGODB_DB_NAME]
         # Test connection
