@@ -35,6 +35,9 @@ app = FastAPI(
     version=settings.VERSION,
     debug=settings.DEBUG,
     lifespan=lifespan,
+    docs_url="/docs",  # Explicitly enable Swagger UI
+    redoc_url="/redoc",  # Explicitly enable ReDoc
+    openapi_url="/openapi.json",  # Explicitly enable OpenAPI schema
 )
 
 # Configure rate limiter
