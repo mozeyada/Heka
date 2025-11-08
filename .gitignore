@@ -65,3 +65,14 @@ config/secrets.json
 *.bak
 *.backup
 
+# Deployment guides and instructions (may contain account-specific info)
+*_GUIDE.md
+*_STEPS.md
+*_CLEAN_START.md
+*_DEPLOYMENT_GUIDE.md
+*_FIX_STEPS.md
+GET_*.md
+DO_*.md
+QUICK_START_*.md
+GITHUB_SECRETS_*.md
+

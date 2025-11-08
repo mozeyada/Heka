@@ -31,12 +31,18 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user');
-      // Redirect to login (handled by frontend)
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+      // Don't redirect on login/register endpoints - these are expected to return 401 for wrong credentials
+      const url = error.config?.url || '';
+      const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
+      
+      if (!isAuthEndpoint) {
+        // Token expired or invalid on protected endpoints
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
+        // Redirect to login (handled by frontend)
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);
@@ -60,26 +66,43 @@ export const authAPI = {
   },
 
   login: async (email: string, password: string) => {
-    const formData = new FormData();
-    formData.append('username', email); // OAuth2 uses 'username' field
-    formData.append('password', password);
-    
-    const response = await apiClient.post('/api/auth/login', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    
-    // Store token
-    if (response.data.access_token) {
-      localStorage.setItem('access_token', response.data.access_token);
-      localStorage.setItem('user', JSON.stringify({
-        id: response.data.user_id,
-        email: response.data.email,
-      }));
+    try {
+      const formData = new FormData();
+      formData.append('username', email); // OAuth2 uses 'username' field
+      formData.append('password', password);
+      
+      const response = await apiClient.post('/api/auth/login', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      // Store token
+      if (response.data.access_token) {
+        localStorage.setItem('access_token', response.data.access_token);
+        localStorage.setItem('user', JSON.stringify({
+          id: response.data.user_id,
+          email: response.data.email,
+        }));
+      }
+      
+      return response.data;
+    } catch (error: any) {
+      // Provide better error messages for login failures
+      if (error.response?.status === 401) {
+        const detail = error.response.data?.detail || 'Incorrect email or password';
+        throw new Error(detail);
+      }
+      if (error.response?.status === 403) {
+        const detail = error.response.data?.detail || 'Account is inactive';
+        throw new Error(detail);
+      }
+      if (error.response?.status === 429) {
+        throw new Error('Too many login attempts. Please try again later.');
+      }
+      // Network or other errors
+      throw new Error(error.message || 'Login failed. Please check your connection and try again.');
     }
-    
-    return response.data;
   },
 
   logout: () => {

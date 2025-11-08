@@ -34,9 +34,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await authAPI.login(email, password);
       await get().fetchCurrentUser();
+      set({ isLoading: false });
     } catch (error) {
       set({ isLoading: false });
-      throw error;
+      throw error; // Re-throw so the UI can display the error
     }
   },
 
