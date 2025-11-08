@@ -2,8 +2,9 @@
 
 from pydantic_settings import BaseSettings
 from pydantic import validator, Field
-from typing import List
+from typing import List, Union
 import secrets
+import json
 
 
 class Settings(BaseSettings):
@@ -28,7 +29,26 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     
     # CORS
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
+    ALLOWED_ORIGINS: Union[List[str], str] = ["http://localhost:3000"]
+    
+    @validator('ALLOWED_ORIGINS', pre=True)
+    def parse_allowed_origins(cls, v):
+        """Parse ALLOWED_ORIGINS from JSON string or comma-separated string."""
+        if isinstance(v, str):
+            # Try parsing as JSON first
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+            
+            # If not JSON, try comma-separated
+            if ',' in v:
+                return [origin.strip() for origin in v.split(',') if origin.strip()]
+            # Single value
+            return [v.strip()] if v.strip() else []
+        return v if isinstance(v, list) else [v]
     
     # OpenAI
     OPENAI_API_KEY: str
