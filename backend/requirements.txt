@@ -19,7 +19,7 @@ redis==5.2.0  # Updated
 python-jose[cryptography]==3.3.0
 bcrypt==4.2.0  # Updated - Direct bcrypt instead of passlib
 # passlib[bcrypt]==1.7.4  # Removed - using bcrypt directly
-python-multipart==0.0.6
+# python-multipart already included above
 
 # AI Integration
 openai>=1.40.0  # Updated for compatibility
