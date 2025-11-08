@@ -5,11 +5,11 @@
 PROVIDERS = "python"
 
 [phases.setup]
-nixPkgs = ["python311", "pip"]
+nixPkgs = ["python311"]
 
 [phases.install]
-cmds = ["pip install -r backend/requirements.txt"]
+cmds = ["python311 -m pip install -r backend/requirements.txt"]
 
 [start]
-cmd = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+cmd = "cd backend && python311 -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 
