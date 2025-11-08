@@ -17,7 +17,6 @@ async def connect_to_mongo():
         # MongoDB connection string format: mongodb://user:password@host:port/dbname
         # For mongodb+srv://, SSL/TLS is automatically enabled
         # Explicitly configure SSL for better compatibility
-        import ssl
         
         # Determine if using mongodb+srv:// (Atlas) or regular mongodb://
         use_ssl = 'mongodb+srv://' in settings.MONGODB_URL or settings.ENVIRONMENT == 'production'
