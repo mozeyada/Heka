@@ -55,7 +55,8 @@ jobs:
         run: |
           # Add pytest tests here when created
           echo "Tests will be added here"
-        continue-on-error: true
+          # TODO: Add actual pytest tests
+          # pytest tests/ || exit 1
 
   frontend-tests:
     name: Frontend Tests
@@ -90,6 +91,7 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
         run: npm run build
+        # Build must succeed - no continue-on-error
 
   deploy-backend:
     name: Deploy Backend (Railway)
@@ -105,8 +107,8 @@ jobs:
         with:
           railway_token: ${{ secrets.RAILWAY_TOKEN }}
           service: backend
-        continue-on-error: true
         # Note: Railway CLI deployment will be configured separately
+        # Deployment failures should stop the pipeline
 
   deploy-frontend:
     name: Deploy Frontend (Vercel)
@@ -125,6 +127,6 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
           working-directory: ./frontend
-        continue-on-error: true
+        # Deployment failures should stop the pipeline
 
 

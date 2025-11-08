@@ -2,22 +2,22 @@
 # Python 3.11+
 
 # Web Framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
+fastapi==0.115.0  # Updated for security patches
+uvicorn[standard]==0.32.0  # Updated for security patches
+python-multipart==0.0.12  # Updated
 
 # Rate Limiting
 slowapi==0.1.9
 
 # Database
-motor==3.3.2  # Async MongoDB driver
-pymongo[srv]==4.6.1  # MongoDB Python driver with SRV support for Atlas
-dnspython==2.4.2  # Required for mongodb+srv:// connections
-redis==5.0.1
+motor==3.6.0  # Updated - Async MongoDB driver
+pymongo[srv]==4.10.1  # Updated - MongoDB Python driver with SRV support for Atlas
+dnspython==2.7.0  # Updated - Required for mongodb+srv:// connections
+redis==5.2.0  # Updated
 
 # Authentication
 python-jose[cryptography]==3.3.0
-bcrypt==4.1.2  # Direct bcrypt instead of passlib
+bcrypt==4.2.0  # Updated - Direct bcrypt instead of passlib
 # passlib[bcrypt]==1.7.4  # Removed - using bcrypt directly
 python-multipart==0.0.6
 
@@ -42,8 +42,8 @@ flake8==6.1.0
 mypy==1.7.1
 
 # Monitoring & Logging
-sentry-sdk[fastapi]==1.38.0
+sentry-sdk[fastapi]==2.19.0  # Updated for security patches
 
 # Payment Processing
-stripe==7.2.0
+stripe==11.1.0  # Updated for security patches
 
