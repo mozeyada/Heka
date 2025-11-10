@@ -248,10 +248,12 @@ async def stripe_webhook(request: Request):
     event_type = event["type"]
     event_data = event["data"]["object"]
     
-    logger.info(f"Received Stripe webhook event: {event_type}")
+    logger.info(f"Received Stripe webhook event: {event_type} (ID: {event.get('id', 'unknown')})")
     
     if event_type == "checkout.session.completed":
         await handle_checkout_session_completed(event_data)
+    elif event_type == "checkout.session.async_payment_failed":
+        await handle_checkout_payment_failed(event_data)
     elif event_type == "customer.subscription.updated":
         await handle_subscription_updated(event_data)
     elif event_type == "customer.subscription.deleted":
@@ -261,7 +263,7 @@ async def stripe_webhook(request: Request):
     elif event_type == "invoice.payment_failed":
         await handle_invoice_payment_failed(event_data)
     else:
-        logger.info(f"Unhandled webhook event type: {event_type}")
+        logger.info(f"Unhandled webhook event type: {event_type} (ID: {event.get('id', 'unknown')})")
     
     return {"status": "success"}
 
