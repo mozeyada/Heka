@@ -216,6 +216,12 @@ async def create_checkout_session(
         )
 
 
+@router.get("/webhook")
+async def stripe_webhook_get():
+    """Webhook endpoint verification (GET request from Stripe)."""
+    return {"status": "ok", "message": "Webhook endpoint is active"}
+
+
 @router.post("/webhook")
 async def stripe_webhook(request: Request):
     """Handle Stripe webhook events."""
