@@ -189,25 +189,52 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Legal Documents */}
+        {/* Legal Documents & Acceptance Status */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3">Legal Documents</h2>
-          <div className="space-y-2">
-            <a
-              href="/legal/terms"
-              target="_blank"
-              className="block text-blue-600 hover:text-blue-800 hover:underline"
-            >
-              Terms of Service
-            </a>
-            <a
-              href="/legal/privacy"
-              target="_blank"
-              className="block text-blue-600 hover:text-blue-800 hover:underline"
-            >
-              Privacy Policy
-            </a>
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Legal Documents</h2>
+          
+          <div className="space-y-4 mb-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <a
+                  href="/legal/terms"
+                  target="_blank"
+                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                >
+                  Terms of Service
+                </a>
+                {user?.terms_accepted_at && (
+                  <span className="text-xs text-gray-500">
+                    Accepted {new Date(user.terms_accepted_at).toLocaleDateString()}
+                    {user.terms_version && ` (v${user.terms_version})`}
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <a
+                  href="/legal/privacy"
+                  target="_blank"
+                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                >
+                  Privacy Policy
+                </a>
+                {user?.privacy_accepted_at && (
+                  <span className="text-xs text-gray-500">
+                    Accepted {new Date(user.privacy_accepted_at).toLocaleDateString()}
+                    {user.privacy_version && ` (v${user.privacy_version})`}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
+          
+          <p className="text-xs text-gray-500 mt-4 pt-4 border-t border-gray-200">
+            You accepted these documents when you created your account. If we update our Terms or Privacy Policy, 
+            we'll notify you and ask you to review and accept the updated versions.
+          </p>
         </div>
       </main>
     </div>

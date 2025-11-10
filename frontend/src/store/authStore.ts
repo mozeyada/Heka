@@ -10,6 +10,10 @@ interface User {
   age: number;
   is_active: boolean;
   created_at: string;
+  terms_accepted_at?: string;
+  privacy_accepted_at?: string;
+  terms_version?: string;
+  privacy_version?: string;
 }
 
 interface AuthState {

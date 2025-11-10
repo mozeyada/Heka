@@ -44,10 +44,11 @@ FRONTEND_URL=https://heka.app
 # Monitoring
 SENTRY_DSN=https://...@sentry.io/...
 
-# Stripe (if using payments)
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_PUBLISHABLE_KEY=pk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# Stripe Payment Processing (REQUIRED for subscriptions)
+# See STRIPE_SETUP_GUIDE.md for detailed setup instructions
+STRIPE_SECRET_KEY=sk_test_...  # Use sk_live_... for production
+STRIPE_PUBLISHABLE_KEY=pk_test_...  # Use pk_live_... for production
+STRIPE_WEBHOOK_SECRET=whsec_...  # From Stripe webhook endpoint
 
 # Google Gemini (beta testing)
 GEMINI_API_KEY=...
@@ -61,6 +62,9 @@ REDIS_URL=redis://...
 ```bash
 # API URL
 NEXT_PUBLIC_API_URL=https://api.heka.app
+
+# Stripe (for payment processing)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...  # Use pk_live_... for production
 
 # Optional: Analytics
 NEXT_PUBLIC_GA_ID=G-...

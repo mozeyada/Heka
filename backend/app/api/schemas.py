@@ -88,6 +88,10 @@ class UserResponse(BaseModel):
     age: int
     is_active: bool
     created_at: datetime
+    terms_accepted_at: Optional[datetime] = None
+    privacy_accepted_at: Optional[datetime] = None
+    terms_version: Optional[str] = None
+    privacy_version: Optional[str] = None
     
     class Config:
         from_attributes = True

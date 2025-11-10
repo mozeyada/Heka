@@ -50,6 +50,19 @@ async def register(
             detail="Must be 16 years or older"
         )
     
+    # CRITICAL: Validate Terms and Privacy acceptance (cannot be bypassed)
+    if not user_data.accept_terms:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must accept the Terms of Service to register"
+        )
+    
+    if not user_data.accept_privacy:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must accept the Privacy Policy to register"
+        )
+    
     try:
         # Create user document
         user = UserInDB(
@@ -155,5 +168,9 @@ async def get_current_user_info(
         name=current_user.name,
         age=current_user.age,
         is_active=current_user.is_active,
-        created_at=current_user.created_at
+        created_at=current_user.created_at,
+        terms_accepted_at=current_user.terms_accepted_at,
+        privacy_accepted_at=current_user.privacy_accepted_at,
+        terms_version=current_user.terms_version,
+        privacy_version=current_user.privacy_version
     )

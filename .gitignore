@@ -76,3 +76,11 @@ DO_*.md
 QUICK_START_*.md
 GITHUB_SECRETS_*.md
 
+# Phase completion summaries (historical records)
+PHASE*_COMPLETE.md
+
+# Temporary setup and troubleshooting files
+*_SETUP_GUIDE.md
+*_TROUBLESHOOTING.md
+HOW_TO_*.md
+

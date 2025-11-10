@@ -143,45 +143,50 @@ function RegisterForm() {
               )}
             </div>
 
-            {/* Legal Acceptance */}
-            <div className="space-y-3 pt-2 border-t border-gray-200">
-              <div className="flex items-start">
-                <input
-                  {...register('accept_terms')}
-                  type="checkbox"
-                  id="accept_terms"
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="accept_terms" className="ml-2 text-sm text-gray-700">
-                  I accept the{' '}
-                  <a href="/legal/terms" target="_blank" className="text-blue-600 hover:underline">
-                    Terms of Service
-                  </a>
-                  {' '}*
-                </label>
-              </div>
-              {errors.accept_terms && (
-                <p className="text-sm text-red-600 ml-6">{errors.accept_terms.message}</p>
-              )}
+            {/* Legal Acceptance - Simple and Clear */}
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500 mb-3">
+                By creating an account, you agree to our terms and privacy policy.
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-start">
+                  <input
+                    {...register('accept_terms')}
+                    type="checkbox"
+                    id="accept_terms"
+                    required
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0"
+                  />
+                  <label htmlFor="accept_terms" className="ml-2 text-sm text-gray-700">
+                    I agree to the{' '}
+                    <a href="/legal/terms" target="_blank" className="text-blue-600 hover:underline font-medium">
+                      Terms of Service
+                    </a>
+                  </label>
+                </div>
+                {errors.accept_terms && (
+                  <p className="text-sm text-red-600 ml-6">{errors.accept_terms.message}</p>
+                )}
 
-              <div className="flex items-start">
-                <input
-                  {...register('accept_privacy')}
-                  type="checkbox"
-                  id="accept_privacy"
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="accept_privacy" className="ml-2 text-sm text-gray-700">
-                  I accept the{' '}
-                  <a href="/legal/privacy" target="_blank" className="text-blue-600 hover:underline">
-                    Privacy Policy
-                  </a>
-                  {' '}*
-                </label>
+                <div className="flex items-start">
+                  <input
+                    {...register('accept_privacy')}
+                    type="checkbox"
+                    id="accept_privacy"
+                    required
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0"
+                  />
+                  <label htmlFor="accept_privacy" className="ml-2 text-sm text-gray-700">
+                    I agree to the{' '}
+                    <a href="/legal/privacy" target="_blank" className="text-blue-600 hover:underline font-medium">
+                      Privacy Policy
+                    </a>
+                  </label>
+                </div>
+                {errors.accept_privacy && (
+                  <p className="text-sm text-red-600 ml-6">{errors.accept_privacy.message}</p>
+                )}
               </div>
-              {errors.accept_privacy && (
-                <p className="text-sm text-red-600 ml-6">{errors.accept_privacy.message}</p>
-              )}
             </div>
           </div>
 

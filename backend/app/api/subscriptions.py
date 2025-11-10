@@ -176,6 +176,7 @@ async def create_checkout_session(
             )
         
         # Create checkout session
+        # Industry standard: include payment failure handling
         checkout_session = stripe.checkout.Session.create(
             customer=customer_id,
             payment_method_types=["card"],
@@ -196,11 +197,20 @@ async def create_checkout_session(
             mode="subscription",
             success_url=checkout_data.success_url,
             cancel_url=checkout_data.cancel_url,
+            # Industry standard: redirect to failure page if payment fails
+            # Stripe will append ?session_id={CHECKOUT_SESSION_ID} automatically
+            payment_method_collection="always",  # Always collect payment method
             metadata={
                 "couple_id": couple.id,
                 "user_id": current_user.id,
                 "tier": checkout_data.tier
             }
+        )
+        
+        logger.info(
+            f"Checkout session created - Session: {checkout_session.id}, "
+            f"Customer: {customer_id}, Tier: {checkout_data.tier}, "
+            f"Amount: ${tier_prices['amount'] / 100:.2f}"
         )
         
         return {
