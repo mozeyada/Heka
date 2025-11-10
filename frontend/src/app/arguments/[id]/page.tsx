@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
 import { perspectivesAPI } from '@/lib/api';
+import { PageHeading } from '@/components/PageHeading';
 import { CrisisResources } from '@/components/CrisisResources';
-import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -24,6 +25,10 @@ interface AIInsight {
   communication_tips: string[];
   generated_at: string;
   model_used: string;
+  safety_check?: {
+    blocked: boolean;
+    reason?: string;
+  };
 }
 
 interface Perspective {
@@ -34,11 +39,14 @@ interface Perspective {
   created_at: string;
 }
 
+function classNames(...classes: (string | null | undefined | false)[]) {
+  return classes.filter(Boolean).join(' ');
+}
+
 export default function ArgumentDetailPage() {
   const router = useRouter();
   const params = useParams();
   const argumentId = params?.id as string;
-  
   const { user } = useAuthStore();
   const { currentArgument, fetchArgumentById } = useArgumentsStore();
   const [perspectives, setPerspectives] = useState<Perspective[]>([]);
@@ -64,7 +72,7 @@ export default function ArgumentDetailPage() {
       setIsLoading(true);
       const data = await perspectivesAPI.getByArgument(argumentId);
       setPerspectives(data);
-    } catch (err: any) {
+    } catch (err) {
       setError('Failed to load perspectives');
     } finally {
       setIsLoading(false);
@@ -81,11 +89,35 @@ export default function ArgumentDetailPage() {
         }
       );
       setAIInsights(response.data);
+      setSafetyConcern(response.data?.safety_check?.blocked ? response.data?.safety_check : null);
     } catch (err: any) {
-      // Insights not found is OK (not analyzed yet)
-      if (err.response?.status !== 404) {
-        console.error('Failed to load AI insights:', err);
+      if (err.response?.status === 404) {
+        setAIInsights(null);
+      } else {
+        setError('Failed to load AI insights');
       }
+    }
+  };
+
+  const handleAddPerspective = async () => {
+    if (!perspectiveContent.trim()) {
+      setError('Perspective cannot be empty');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      await perspectivesAPI.create(argumentId, perspectiveContent.trim());
+      setPerspectiveContent('');
+      setShowPerspectiveForm(false);
+      await loadPerspectives();
+      await loadAIInsights();
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || 'Failed to add perspective';
+      setError(detail);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -93,7 +125,6 @@ export default function ArgumentDetailPage() {
     try {
       setIsAnalyzing(true);
       setError(null);
-      setSafetyConcern(null);
       const token = localStorage.getItem('access_token');
       const response = await axios.post(
         `${API_URL}/api/ai/arguments/${argumentId}/analyze`,
@@ -102,304 +133,305 @@ export default function ArgumentDetailPage() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      await loadAIInsights();
-      await fetchArgumentById(argumentId);
+      setAIInsights(response.data);
+      setSafetyConcern(response.data?.safety_check?.blocked ? response.data?.safety_check : null);
     } catch (err: any) {
-      // Check if this is a safety concern error
-      const errorDetail = err.response?.data?.detail;
-      if (errorDetail && typeof errorDetail === 'object' && errorDetail.error === 'safety_concern') {
-        setSafetyConcern({
-          message: errorDetail.message,
-          action: errorDetail.action
-        });
-      } else {
-        setError(typeof errorDetail === 'string' ? errorDetail : (errorDetail?.message || 'AI analysis failed'));
+      const detail = err.response?.data?.detail || 'Failed to analyze argument';
+      if (err.response?.status === 403 && typeof detail === 'string' && detail.toLowerCase().includes('safety')) {
+        setSafetyConcern({ blocked: true, reason: detail });
       }
+      setError(detail);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleSubmitPerspective = async () => {
-    if (perspectiveContent.length < 10) {
-      setError('Please provide at least 10 characters');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      setError(null);
-      await perspectivesAPI.create(argumentId, perspectiveContent);
-      setPerspectiveContent('');
-      setShowPerspectiveForm(false);
-      await loadPerspectives();
-      await fetchArgumentById(argumentId);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to submit perspective');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const hasUserSubmitted = perspectives.some(p => p.user_id === user?.id);
-  const bothPerspectivesSubmitted = perspectives.length >= 2;
-
-  if (!currentArgument) {
+  if (isLoading && !currentArgument) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-neutral-25">
+        <p className="text-sm text-neutral-500">Loading argument…</p>
       </div>
     );
   }
 
+  if (!currentArgument) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-neutral-25">
+        <div className="section-shell max-w-md p-6 text-center">
+          <h1 className="text-lg font-semibold text-neutral-900">Argument not found</h1>
+          <p className="mt-2 text-sm text-neutral-500">It may have been deleted or you don’t have access.</p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="mt-6 inline-flex rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white transition-transform ease-soft-spring hover:-translate-y-0.5"
+          >
+            Back to dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const statusBadge = () => {
+    switch (currentArgument.status) {
+      case 'resolved':
+        return { label: 'Resolved', className: 'bg-success-100 text-success-600' };
+      case 'in_progress':
+        return { label: 'In Progress', className: 'bg-brand-50 text-brand-600' };
+      default:
+        return { label: 'Open', className: 'bg-warning-100 text-warning-600' };
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600">Heka</h1>
-            </div>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="px-4 py-2 text-gray-600 hover:text-gray-900"
-            >
-              Back to Dashboard
-            </button>
-          </div>
-        </div>
-      </nav>
+    <div className="bg-neutral-25 pb-20">
+      <PageHeading
+        title={currentArgument.title}
+        description="Review both perspectives, capture new insights, and see how Heka guides you back to common ground."
+        actions={
+          <span
+            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadge().className}`}
+          >
+            {statusBadge().label}
+          </span>
+        }
+      />
 
-      <main className="max-w-4xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
-        {/* Argument Header */}
-        <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-3 sm:gap-0 mb-3 sm:mb-4">
-            <div className="flex-1">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{currentArgument.title}</h2>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                Category: {currentArgument.category} • Status: {currentArgument.status}
-              </p>
-            </div>
-            <span className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded whitespace-nowrap ${
-              currentArgument.priority === 'urgent' ? 'bg-red-100 text-red-800' :
-              currentArgument.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-              currentArgument.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
-              {currentArgument.priority}
-            </span>
-          </div>
-        </div>
-
-        {/* Perspectives Section */}
-        <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Perspectives</h3>
-          
-          {isLoading ? (
-            <p className="text-gray-600">Loading perspectives...</p>
-          ) : perspectives.length === 0 ? (
-            <p className="text-gray-600">No perspectives submitted yet.</p>
-          ) : (
-            <div className="space-y-4">
-              {perspectives.map((perspective) => (
-                <div
-                  key={perspective.id}
-                  className={`border rounded-lg p-4 ${
-                    perspective.user_id === user?.id
-                      ? 'border-blue-300 bg-blue-50'
-                      : 'border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <p className="text-gray-900 whitespace-pre-wrap">{perspective.content}</p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    {perspective.user_id === user?.id ? 'Your perspective' : 'Partner\'s perspective'}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Submit Perspective Button */}
-          {!hasUserSubmitted && !bothPerspectivesSubmitted && (
-            <div className="mt-4">
-              {!showPerspectiveForm ? (
-                <button
-                  onClick={() => setShowPerspectiveForm(true)}
-                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm sm:text-base"
-                >
-                  Submit Your Perspective
-                </button>
-              ) : (
-                <div className="space-y-3 sm:space-y-4">
-                  <textarea
-                    value={perspectiveContent}
-                    onChange={(e) => setPerspectiveContent(e.target.value)}
-                    rows={6}
-                    placeholder="Describe your perspective on this argument..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
-                  />
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                    <button
-                      onClick={handleSubmitPerspective}
-                      disabled={isSubmitting}
-                      className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm sm:text-base"
-                    >
-                      {isSubmitting ? 'Submitting...' : 'Submit'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowPerspectiveForm(false);
-                        setPerspectiveContent('');
-                      }}
-                      className="flex-1 sm:flex-none px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm sm:text-base"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {hasUserSubmitted && !bothPerspectivesSubmitted && (
-            <div className="mt-4 bg-blue-50 border border-blue-200 text-blue-800 px-3 sm:px-4 py-2 sm:py-3 rounded text-xs sm:text-sm">
-              ✓ Your perspective has been submitted. Waiting for your partner to submit theirs.
-            </div>
-          )}
-
-          {/* Analyze Button */}
-          {bothPerspectivesSubmitted && !aiInsights && (
-            <div className="mt-4">
-              <button
-                onClick={handleAnalyze}
-                disabled={isAnalyzing}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-semibold text-sm sm:text-base"
-              >
-                {isAnalyzing ? 'Analyzing with AI...' : '✨ Get AI Mediation Insights'}
-              </button>
-            </div>
-          )}
-
-          {/* Safety Concern Display */}
-          {safetyConcern && (
-            <div className="mt-6">
-              <CrisisResources showAcceptButton={false} />
-              {safetyConcern.message && (
-                <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <p className="text-sm text-yellow-800">{safetyConcern.message}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* AI Insights Section */}
-        {aiInsights && (
-          <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
-              🤖 AI Mediation Insights
-            </h3>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-3 sm:px-4 py-2 sm:py-3 rounded mb-3 sm:mb-4 text-xs sm:text-sm">
-                {error}
-              </div>
-            )}
-
-            {/* Summary */}
-            {aiInsights.summary && (
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-900 mb-2">Summary</h4>
-                <p className="text-gray-700">{aiInsights.summary}</p>
-              </div>
-            )}
-
-            {/* Common Ground */}
-            {aiInsights.common_ground && aiInsights.common_ground.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-900 mb-2">✅ Common Ground</h4>
-                <ul className="list-disc list-inside space-y-1 text-gray-700">
-                  {aiInsights.common_ground.map((point, idx) => (
-                    <li key={idx}>{point}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Disagreements */}
-            {aiInsights.disagreements && aiInsights.disagreements.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-900 mb-2">⚡ Key Disagreements</h4>
-                <ul className="list-disc list-inside space-y-1 text-gray-700">
-                  {aiInsights.disagreements.map((point, idx) => (
-                    <li key={idx}>{point}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Root Causes */}
-            {aiInsights.root_causes && aiInsights.root_causes.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-900 mb-2">🔍 Root Causes</h4>
-                <ul className="list-disc list-inside space-y-1 text-gray-700">
-                  {aiInsights.root_causes.map((cause, idx) => (
-                    <li key={idx}>{cause}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Suggestions */}
-            {aiInsights.suggestions && aiInsights.suggestions.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-900 mb-4">💡 Suggested Solutions</h4>
-                <div className="space-y-4">
-                  {aiInsights.suggestions.map((suggestion, idx) => (
-                    <div key={idx} className="border border-gray-200 rounded-lg p-4">
-                      <h5 className="font-semibold text-gray-900 mb-2">{suggestion.title}</h5>
-                      <p className="text-gray-700 mb-2">{suggestion.description}</p>
-                      {suggestion.actionable_steps && suggestion.actionable_steps.length > 0 && (
-                        <ul className="list-disc list-inside space-y-1 text-gray-600 text-sm">
-                          {suggestion.actionable_steps.map((step, stepIdx) => (
-                            <li key={stepIdx}>{step}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Communication Tips */}
-            {aiInsights.communication_tips && aiInsights.communication_tips.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-semibold text-gray-900 mb-2">💬 Communication Tips</h4>
-                <ul className="list-disc list-inside space-y-1 text-gray-700">
-                  {aiInsights.communication_tips.map((tip, idx) => (
-                    <li key={idx}>{tip}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="mt-4 text-xs text-gray-500 border-t border-gray-200 pt-4">
-              <div className="flex items-start mb-2">
-                <span className="text-yellow-600 mr-2">⚠️</span>
-                <span className="text-gray-600">
-                  <strong>AI-Generated Content:</strong> These insights are generated by AI and are advisory only. 
-                  They may not be suitable for your specific situation. Always use your judgment and seek professional 
-                  help when needed.
-                </span>
-              </div>
-              <div className="mt-2 text-gray-500">
-                Generated by {aiInsights.model_used} • {new Date(aiInsights.generated_at).toLocaleString()}
-              </div>
-            </div>
+      <div className="app-container space-y-8">
+        {error && (
+          <div className="section-shell border border-danger-200 bg-danger-50/80 p-5">
+            <p className="text-sm font-semibold text-danger-600">{error}</p>
           </div>
         )}
-      </main>
+
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="section-shell p-6 lg:col-span-2">
+            <h2 className="text-lg font-semibold text-neutral-900">Perspectives</h2>
+            <p className="mt-2 text-sm text-neutral-500">
+              Both partners share their point of view to give Heka the full picture.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              {perspectives.length === 0 ? (
+                <p className="rounded-2xl border border-white/40 bg-white/80 p-5 text-sm text-neutral-500">
+                  No perspectives yet. Capture yours to get started.
+                </p>
+              ) : (
+                perspectives.map((perspective, index) => (
+                  <div
+                    key={perspective.id}
+                    className="rounded-2xl border border-white/40 bg-white/80 p-5"
+                  >
+                    <div className="flex items-center justify-between text-xs uppercase tracking-wide text-neutral-400">
+                      <span>Perspective {index + 1}</span>
+                      <span>{new Date(perspective.created_at).toLocaleString()}</span>
+                    </div>
+                    <p className="mt-3 text-sm text-neutral-700 leading-relaxed whitespace-pre-line">
+                      {perspective.content}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {!showPerspectiveForm ? (
+              <button
+                onClick={() => setShowPerspectiveForm(true)}
+                className="mt-6 inline-flex rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:border-neutral-300 hover:text-neutral-900"
+              >
+                Add your perspective
+              </button>
+            ) : (
+              <div className="mt-6 rounded-2xl border border-brand-200 bg-brand-50/60 p-5">
+                <label className="text-xs font-semibold uppercase tracking-wide text-brand-600">
+                  Your perspective
+                </label>
+                <textarea
+                  value={perspectiveContent}
+                  onChange={(e) => setPerspectiveContent(e.target.value)}
+                  rows={5}
+                  placeholder="Describe what happened from your point of view"
+                  className="mt-3 w-full rounded-xl border border-brand-200 bg-white/90 px-4 py-3 text-sm text-neutral-700 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                />
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={handleAddPerspective}
+                    disabled={isSubmitting}
+                    className="rounded-xl bg-neutral-900 px-5 py-2 text-sm font-semibold text-white transition-transform ease-soft-spring hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-neutral-300"
+                  >
+                    {isSubmitting ? 'Saving…' : 'Save perspective'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPerspectiveForm(false);
+                      setPerspectiveContent('');
+                    }}
+                    className="rounded-xl border border-neutral-200 px-5 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:border-neutral-300 hover:text-neutral-900"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="section-shell p-6">
+            <h2 className="text-lg font-semibold text-neutral-900">Argument Details</h2>
+            <div className="mt-4 space-y-4 text-sm text-neutral-500">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-neutral-400">Category</p>
+                <p className="mt-1 text-sm font-semibold text-neutral-800">
+                  {currentArgument.category}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-neutral-400">Priority</p>
+                <p className="mt-1 inline-flex rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600">
+                  {currentArgument.priority}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-neutral-400">Created</p>
+                <p className="mt-1 text-sm text-neutral-600">
+                  {new Date(currentArgument.created_at).toLocaleString()}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/40 bg-white/70 p-4 text-xs text-neutral-500">
+                <p>
+                  Need help outside this argument? Visit the{' '}
+                  <button
+                    type="button"
+                    onClick={() => router.push('/settings')}
+                    className="font-semibold text-brand-600"
+                  >
+                    settings page
+                  </button>{' '}
+                  to export your data or delete your account.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="section-shell p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-900">AI Mediation Insights</h2>
+              <p className="mt-1 text-sm text-neutral-500">
+                Heka analyzes both perspectives to highlight common ground, root causes, and next steps.
+              </p>
+            </div>
+            <button
+              onClick={handleAnalyze}
+              disabled={isAnalyzing || perspectives.length < 2}
+              className="rounded-xl bg-brand-gradient px-5 py-2 text-sm font-semibold text-white shadow-elevated transition-transform ease-soft-spring hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isAnalyzing ? 'Analyzing…' : 'Generate insights'}
+            </button>
+          </div>
+
+          {!aiInsights && (
+            <div className="mt-6 rounded-2xl border border-white/40 bg-white/75 p-5 text-sm text-neutral-500">
+              {perspectives.length < 2
+                ? 'Add at least two perspectives to unlock AI mediation.'
+                : 'Click “Generate insights” to see tailored mediation guidance.'}
+            </div>
+          )}
+
+          {aiInsights && !aiInsights?.safety_check?.blocked && (
+            <div className="mt-6 space-y-6">
+              <div className="rounded-2xl border border-white/40 bg-white/80 p-5">
+                <h3 className="font-semibold text-neutral-900">Summary</h3>
+                <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
+                  {aiInsights.summary}
+                </p>
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="rounded-2xl border border-white/40 bg-white/80 p-5">
+                  <h4 className="text-sm font-semibold uppercase tracking-wide text-brand-600">Common ground</h4>
+                  <ul className="mt-3 space-y-2 text-sm text-neutral-600">
+                    {aiInsights.common_ground.map((item, idx) => (
+                      <li key={idx}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-2xl border border-white/40 bg-white/80 p-5">
+                  <h4 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Root causes</h4>
+                  <ul className="mt-3 space-y-2 text-sm text-neutral-600">
+                    {aiInsights.root_causes.map((item, idx) => (
+                      <li key={idx}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="rounded-2xl border border-white/40 bg-white/80 p-5">
+                  <h4 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Key disagreements</h4>
+                  <ul className="mt-3 space-y-2 text-sm text-neutral-600">
+                    {aiInsights.disagreements.map((item, idx) => (
+                      <li key={idx}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-2xl border border-white/40 bg-white/80 p-5">
+                  <h4 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Communication tips</h4>
+                  <ul className="mt-3 space-y-2 text-sm text-neutral-600">
+                    {aiInsights.communication_tips.map((item, idx) => (
+                      <li key={idx}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                {aiInsights.suggestions.map((suggestion, idx) => (
+                  <div key={idx} className="rounded-2xl border border-white/40 bg-white/80 p-5">
+                    <h4 className="font-semibold text-neutral-900">{suggestion.title}</h4>
+                    <p className="mt-2 text-sm text-neutral-600">{suggestion.description}</p>
+                    {suggestion.actionable_steps.length > 0 && (
+                      <ul className="mt-3 space-y-2 text-sm text-neutral-600">
+                        {suggestion.actionable_steps.map((step, stepIdx) => (
+                          <li key={stepIdx}>• {step}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-neutral-400">
+                Generated {new Date(aiInsights.generated_at).toLocaleString()} • Model: {aiInsights.model_used}
+              </p>
+            </div>
+          )}
+
+          {aiInsights?.safety_check?.blocked && (
+            <div className="mt-6 rounded-2xl border border-danger-200 bg-danger-50/80 p-6">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-danger-600">Safety first</h3>
+              <p className="mt-3 text-sm text-danger-600">
+                {aiInsights?.safety_check?.reason || 'This conflict may require professional or emergency support.'}
+              </p>
+              <div className="mt-4">
+                <CrisisResources showAcceptButton={false} />
+              </div>
+            </div>
+          )}
+
+          {safetyConcern && !aiInsights && (
+            <div className="mt-6 rounded-2xl border border-danger-200 bg-danger-50/80 p-6">
+              <p className="text-sm font-semibold text-danger-600">
+                {safetyConcern.reason || 'AI insights are currently unavailable due to safety concerns.'}
+              </p>
+              <div className="mt-4">
+                <CrisisResources showAcceptButton={false} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

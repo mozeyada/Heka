@@ -24,11 +24,21 @@
   - Redesigned footer with brand gradient accents and updated copy.
   - Added typography and container utilities in `globals.css` and wired fonts via `layout.tsx`.
   - Refactored dashboard, subscription, and settings pages to use new layout primitives.
+- Argument flow polish (Nov 8, 2025)
+  - Rebuilt argument detail page with modular sections (perspectives, mediation insights, safety notices).
+  - Modernized create-argument form with crisis acknowledgement workflow and refined input styling.
+  - Ensured all argument surfaces leverage PageHeading, section shells, and new tokens.
+- Core page polish wave (Nov 8, 2025)
+  - Redesigned Home (marketing hero, features, CTA) with gradient accents and conversion-optimized copy.
+  - Polished Goals page with inline progress tracking and completion states.
+  - Refreshed Check-ins page with clear question layout and completion confirmation.
+  - Refined Couples invite page with pending invitation list and status indicators.
+  - Rebuilt Login and Register pages with centered forms, improved validation feedback, and gradient CTAs.
 
 ## 🔄 In Progress
-1. **Page Polish Wave 1**
-   - Apply updated shell and design system to Arguments, Check-ins, Goals, Couples, Invite, and Legal pages.
-   - Introduce shared form styles and inputs aligned with new tokens.
+1. **Remaining Page Polish**
+   - Invite acceptance page, Legal pages (Terms & Privacy), Subscription success/failed pages.
+   - Ensure all pages use standardized input/button/shell components.
 
 ## 📋 Next Up
 - Update global layout shell (navigation, footer, container widths).

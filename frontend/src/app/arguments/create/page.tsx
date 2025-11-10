@@ -1,21 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useArgumentsStore } from '@/store/argumentsStore';
 import { useCouplesStore } from '@/store/couplesStore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { PageHeading } from '@/components/PageHeading';
 import { CrisisResources } from '@/components/CrisisResources';
 
 const argumentSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(255),
-  category: z.string(),
+  category: z.string().min(1, 'Please select a category'),
   priority: z.string().default('medium'),
 });
-
-type ArgumentFormData = z.infer<typeof argumentSchema>;
 
 const categories = [
   'finances',
@@ -30,9 +30,11 @@ const categories = [
 
 const priorities = ['low', 'medium', 'high', 'urgent'];
 
+type ArgumentFormData = z.infer<typeof argumentSchema>;
+
 export default function CreateArgumentPage() {
   const router = useRouter();
-  const { createArgument, isLoading } = useArgumentsStore();
+  const { createArgument, isLoading, arguments: existingArguments } = useArgumentsStore();
   const { couple } = useCouplesStore();
   const [error, setError] = useState<string | null>(null);
   const [crisisAccepted, setCrisisAccepted] = useState(false);
@@ -56,17 +58,16 @@ export default function CreateArgumentPage() {
   }, [couple, router]);
 
   const onSubmit = async (data: ArgumentFormData) => {
-    // Check if this is user's first argument and show crisis disclaimer
     if (!hasShownCrisisDisclaimer) {
       setHasShownCrisisDisclaimer(true);
-      return; // Don't submit yet, show disclaimer first
-    }
-    
-    if (!crisisAccepted) {
-      setError('Please acknowledge the safety notice before creating an argument');
       return;
     }
-    
+
+    if (!crisisAccepted) {
+      setError('Please acknowledge the safety notice before creating an argument.');
+      return;
+    }
+
     try {
       setError(null);
       await createArgument(data);
@@ -74,154 +75,170 @@ export default function CreateArgumentPage() {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || 'Failed to create argument';
       setError(errorMessage);
-      
-      // If it's a usage limit error, suggest upgrading
-      if (err.response?.status === 403 && errorMessage.includes('limit')) {
-        // Error message already contains upgrade suggestion
-      }
     }
   };
 
   if (!couple) {
-    return null; // Will redirect
+    return null;
   }
 
+  const firstArgument = existingArguments.length === 0;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600">Heka</h1>
+    <div className="bg-neutral-25 pb-20">
+      <PageHeading
+        title="Create a New Argument"
+        description="Capture both sides of the disagreement so Heka can deliver insights tailored to your relationship."
+        actions={
+          <Link
+            href="/dashboard"
+            className="rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:border-neutral-300 hover:text-neutral-900"
+          >
+            Back to Dashboard
+          </Link>
+        }
+      />
+
+      <div className="app-container max-w-3xl">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {firstArgument && !hasShownCrisisDisclaimer && (
+            <div className="section-shell border border-warning-200 bg-warning-50/80 p-6">
+              <h2 className="text-lg font-semibold text-warning-600">Safety first</h2>
+              <p className="mt-2 text-sm text-warning-600">
+                Before your first argument, we’ll share guidance on crisis resources and situations that need professional help.
+              </p>
+              <p className="mt-4 text-sm text-neutral-500">
+                Click “Continue” to review the safety notice, or “Cancel” if you’d like to return later.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setHasShownCrisisDisclaimer(true)}
+                  className="rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white transition-transform ease-soft-spring hover:-translate-y-0.5"
+                >
+                  Continue
+                </button>
+                <Link
+                  href="/dashboard"
+                  className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:border-neutral-300 hover:text-neutral-900"
+                >
+                  Cancel
+                </Link>
+              </div>
             </div>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="px-4 py-2 text-gray-600 hover:text-gray-900"
-            >
-              Back to Dashboard
-            </button>
-          </div>
-        </div>
-      </nav>
+          )}
 
-      <main className="max-w-2xl mx-auto py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6 sm:p-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">Create New Argument</h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
-            Describe the disagreement or issue you'd like to resolve together.
-          </p>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Crisis Resources Disclaimer - Show on first argument */}
-            {hasShownCrisisDisclaimer && !crisisAccepted && (
+          {hasShownCrisisDisclaimer && !crisisAccepted && (
+            <div className="section-shell border border-warning-200 bg-warning-50/80 p-6">
               <CrisisResources
                 onAccept={() => setCrisisAccepted(true)}
-                showAcceptButton={true}
+                showAcceptButton
               />
-            )}
-            
-            {!hasShownCrisisDisclaimer && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-blue-800">
-                  <strong>Before creating your first argument:</strong> You'll see important safety information 
-                  about when to seek professional help.
-                </p>
+            </div>
+          )}
+
+          {error && (
+            <div
+              className={`section-shell p-5 ${
+                error.toLowerCase().includes('limit')
+                  ? 'border border-warning-200 bg-warning-50/80'
+                  : 'border border-danger-200 bg-danger-50/80'
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-neutral-700">{error}</p>
+                {error.toLowerCase().includes('limit') && (
+                  <Link
+                    href="/subscription"
+                    className="rounded-full bg-neutral-900 px-4 py-2 text-xs font-semibold text-white transition-transform ease-soft-spring hover:-translate-y-0.5"
+                  >
+                    Upgrade Plan
+                  </Link>
+                )}
               </div>
-            )}
-            
-            {error && (
-              <div className={`border rounded-lg px-4 py-3 ${
-                error.includes('limit') || error.includes('Upgrade')
-                  ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
-                  : 'bg-red-50 border-red-200 text-red-700'
-              }`}>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    {error}
-                  </div>
-                  {(error.includes('limit') || error.includes('Upgrade')) && (
-                    <button
-                      type="button"
-                      onClick={() => router.push('/subscription')}
-                      className="ml-4 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm whitespace-nowrap"
-                    >
-                      Upgrade Now
-                    </button>
+            </div>
+          )}
+
+          <div className="section-shell p-6">
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="title" className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+                  Argument title
+                </label>
+                <input
+                  id="title"
+                  {...register('title')}
+                  type="text"
+                  placeholder="e.g., How we spend Saturday mornings"
+                  className="mt-2 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                />
+                {errors.title && (
+                  <p className="mt-2 text-xs font-semibold text-danger-600">{errors.title.message}</p>
+                )}
+              </div>
+
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="category" className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+                    Category
+                  </label>
+                  <select
+                    id="category"
+                    {...register('category')}
+                    className="mt-2 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat
+                          .split('_')
+                          .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+                          .join(' ')}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.category && (
+                    <p className="mt-2 text-xs font-semibold text-danger-600">{errors.category.message}</p>
                   )}
                 </div>
+
+                <div>
+                  <label htmlFor="priority" className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+                    Priority
+                  </label>
+                  <select
+                    id="priority"
+                    {...register('priority')}
+                    className="mt-2 w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-700 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  >
+                    {priorities.map((p) => (
+                      <option key={p} value={p}>
+                        {p.charAt(0).toUpperCase() + p.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            )}
-
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                Title
-              </label>
-              <input
-                {...register('title')}
-                type="text"
-                placeholder="e.g., Weekly date night"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-              {errors.title && (
-                <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-              )}
             </div>
+          </div>
 
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                Category
-              </label>
-              <select
-                {...register('category')}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select a category</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ')}
-                  </option>
-                ))}
-              </select>
-              {errors.category && (
-                <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="priority" className="block text-sm font-medium text-gray-700">
-                Priority
-              </label>
-              <select
-                {...register('priority')}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                {priorities.map((p) => (
-                  <option key={p} value={p}>
-                    {p.charAt(0).toUpperCase() + p.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-              <button
-                type="submit"
-                disabled={isLoading || (hasShownCrisisDisclaimer && !crisisAccepted)}
-                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm sm:text-base"
-              >
-                {isLoading ? 'Creating...' : 'Create Argument'}
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push('/dashboard')}
-                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm sm:text-base"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      </main>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="submit"
+              disabled={isLoading || (hasShownCrisisDisclaimer && !crisisAccepted)}
+              className="rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition-transform ease-soft-spring hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-neutral-300"
+            >
+              {isLoading ? 'Creating…' : 'Create Argument'}
+            </button>
+            <Link
+              href="/dashboard"
+              className="rounded-xl border border-neutral-200 px-6 py-3 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:border-neutral-300 hover:text-neutral-900"
+            >
+              Cancel
+            </Link>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
