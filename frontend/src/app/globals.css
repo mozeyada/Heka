@@ -2,3 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --surface-contrast: #0f172a;
+  --brand-gradient: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
+}
+
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-neutral-25 text-neutral-900 font-sans antialiased;
+}
+
+@layer base {
+  h1 {
+    @apply font-display text-3xl sm:text-4xl font-semibold tracking-tight text-neutral-900;
+  }
+  h2 {
+    @apply font-display text-2xl sm:text-3xl font-semibold text-neutral-900;
+  }
+  h3 {
+    @apply font-display text-xl sm:text-2xl font-semibold text-neutral-900;
+  }
+  p {
+    @apply text-base text-neutral-600;
+  }
+  a {
+    @apply text-brand-600 hover:text-brand-500 transition-colors ease-soft-spring;
+  }
+  strong {
+    @apply text-neutral-800 font-semibold;
+  }
+}
+
+@layer components {
+  .app-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  .section-shell {
+    background-color: rgba(255, 255, 255, 0.92);
+    @apply backdrop-blur-md border border-white/40 rounded-2xl shadow-card;
+  }
+}
+
+@layer utilities {
+  .bg-surface {
+    background-color: var(--surface);
+  }
+  .bg-surface-muted {
+    background-color: var(--surface-muted);
+  }
+  .text-muted {
+    @apply text-neutral-500;
+  }
+  .text-soft {
+    @apply text-neutral-400;
+  }
+  .shadow-soft {
+    box-shadow: 0 15px 40px -25px rgba(15, 23, 42, 0.35);
+  }
+}
+

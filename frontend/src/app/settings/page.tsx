@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { usersAPI } from '@/lib/api';
 import { LoadingPage } from '@/components/LoadingSpinner';
 import { ErrorAlert } from '@/components/ErrorAlert';
+import { PageHeading } from '@/components/PageHeading';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -17,13 +19,16 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
+  if (!user) {
+    return <LoadingPage />;
+  }
+
   const handleExportData = async () => {
     try {
       setExporting(true);
       setError(null);
       const data = await usersAPI.exportData();
-      
-      // Create downloadable JSON file
+
       const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -33,7 +38,7 @@ export default function SettingsPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       setSuccess('Your data has been exported successfully');
       setTimeout(() => setSuccess(null), 5000);
     } catch (err: any) {
@@ -53,8 +58,7 @@ export default function SettingsPage() {
       setDeleting(true);
       setError(null);
       await usersAPI.deleteAccount('DELETE');
-      
-      // Logout and redirect
+
       logout();
       router.push('/');
     } catch (err: any) {
@@ -65,122 +69,109 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl sm:text-2xl font-bold text-blue-600">Heka</h1>
-            </div>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="px-4 py-2 text-gray-600 hover:text-gray-900"
-            >
-              Back to Dashboard
-            </button>
-          </div>
-        </div>
-      </nav>
+    <div className="bg-neutral-25 pb-20">
+      <PageHeading
+        title="Settings"
+        description="Manage your account details, export your data, or delete your Heka profile."
+        actions={
+          <Link
+            href="/dashboard"
+            className="rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:border-neutral-300 hover:text-neutral-900"
+          >
+            Back to Dashboard
+          </Link>
+        }
+      />
 
-      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Settings</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your account and privacy</p>
-        </div>
-
+      <div className="app-container space-y-8">
         {error && (
-          <div className="mb-6">
-            <ErrorAlert message={error} onDismiss={() => setError(null)} />
-          </div>
+          <ErrorAlert message={error} onDismiss={() => setError(null)} />
         )}
 
         {success && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-sm text-green-800">{success}</p>
+          <div className="section-shell border border-success-100 bg-success-50/80 p-5">
+            <p className="text-sm font-semibold text-success-600">{success}</p>
           </div>
         )}
 
-        {/* Account Information */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Account Information</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Email:</span>
-              <span className="font-medium text-gray-900">{user?.email}</span>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="section-shell p-6">
+            <h2 className="text-lg font-semibold text-neutral-900">Account Overview</h2>
+            <p className="mt-2 text-sm text-neutral-500">
+              Joined {new Date(user.created_at).toLocaleDateString()} • {user.email}
+            </p>
+            <div className="mt-6 space-y-4 text-sm text-neutral-500">
+              <div>
+                <span className="font-semibold text-neutral-700">Legal Acceptance</span>
+                <p className="mt-1">
+                  Terms accepted on {user.terms_accepted_at ? new Date(user.terms_accepted_at).toLocaleDateString() : 'N/A'}
+                </p>
+                <p>
+                  Privacy accepted on {user.privacy_accepted_at ? new Date(user.privacy_accepted_at).toLocaleDateString() : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <span className="font-semibold text-neutral-700">Need support?</span>
+                <p className="mt-1">
+                  Email <a className="font-semibold text-brand-600" href="mailto:hello@heka.app">hello@heka.app</a>
+                </p>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Name:</span>
-              <span className="font-medium text-gray-900">{user?.name}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Member since:</span>
-              <span className="font-medium text-gray-900">
-                {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
-              </span>
-            </div>
+          </div>
+
+          <div className="section-shell p-6">
+            <h2 className="text-lg font-semibold text-neutral-900">Export Your Data</h2>
+            <p className="mt-2 text-sm text-neutral-500">
+              Download a complete copy of your arguments, perspectives, and insights in JSON format.
+            </p>
+            <button
+              onClick={handleExportData}
+              disabled={exporting}
+              className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white transition-transform ease-soft-spring hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-neutral-300"
+            >
+              {exporting ? 'Preparing export…' : 'Export Data'}
+            </button>
           </div>
         </div>
 
-        {/* Data Export */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3">Export Your Data</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Download all your data in JSON format. This includes your profile, arguments, perspectives, 
-            check-ins, goals, and subscription information.
+        <div className="section-shell border border-danger-100 bg-danger-50/70 p-6">
+          <h2 className="text-lg font-semibold text-danger-600">Danger Zone</h2>
+          <p className="mt-2 text-sm text-danger-600">
+            Permanently delete your account, couple profile, and all stored insights. This action cannot be undone.
           </p>
+
           <button
-            onClick={handleExportData}
-            disabled={exporting}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm sm:text-base"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="mt-6 inline-flex rounded-xl border border-danger-200 px-4 py-2 text-sm font-semibold text-danger-600 transition-colors ease-soft-spring hover:border-danger-300 hover:text-danger-700"
           >
-            {exporting ? 'Exporting...' : 'Export My Data'}
+            Delete Account
           </button>
-        </div>
 
-        {/* Account Deletion */}
-        <div className="bg-white shadow rounded-lg p-6 mb-6 border-2 border-red-200">
-          <h2 className="text-lg sm:text-xl font-semibold text-red-900 mb-3">Delete Account</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Permanently delete your account and all associated data. This action cannot be undone.
-            Financial records may be retained for 7 years for legal compliance.
-          </p>
-
-          {!showDeleteConfirm ? (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm sm:text-base"
-            >
-              Delete Account
-            </button>
-          ) : (
-            <div className="space-y-4">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-800 font-semibold mb-2">Warning: This action cannot be undone</p>
-                <p className="text-sm text-red-700 mb-4">
-                  Type <strong>DELETE</strong> in the box below to confirm:
-                </p>
-                <input
-                  type="text"
-                  value={deleteConfirmation}
-                  onChange={(e) => setDeleteConfirmation(e.target.value)}
-                  placeholder="Type DELETE to confirm"
-                  className="w-full px-3 py-2 border border-red-300 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500"
-                />
-              </div>
-              <div className="flex space-x-3">
+          {showDeleteConfirm && (
+            <div className="mt-6 rounded-2xl border border-white/40 bg-white/80 p-5">
+              <p className="text-sm text-neutral-600">
+                Type <span className="font-semibold text-neutral-900">DELETE</span> to confirm.
+              </p>
+              <input
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                className="mt-3 w-full rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm text-neutral-700 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                placeholder="DELETE"
+              />
+              <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   onClick={handleDeleteAccount}
-                  disabled={deleting || deleteConfirmation !== 'DELETE'}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 text-sm sm:text-base"
+                  disabled={deleting}
+                  className="rounded-xl bg-danger-500 px-4 py-2 text-sm font-semibold text-white transition-transform ease-soft-spring hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-danger-300"
                 >
-                  {deleting ? 'Deleting...' : 'Confirm Deletion'}
+                  {deleting ? 'Deleting…' : 'Confirm Deletion'}
                 </button>
                 <button
                   onClick={() => {
                     setShowDeleteConfirm(false);
                     setDeleteConfirmation('');
                   }}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm sm:text-base"
+                  className="rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:border-neutral-300 hover:text-neutral-900"
                 >
                   Cancel
                 </button>
@@ -188,55 +179,7 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
-
-        {/* Legal Documents & Acceptance Status */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Legal Documents</h2>
-          
-          <div className="space-y-4 mb-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <a
-                  href="/legal/terms"
-                  target="_blank"
-                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                >
-                  Terms of Service
-                </a>
-                {user?.terms_accepted_at && (
-                  <span className="text-xs text-gray-500">
-                    Accepted {new Date(user.terms_accepted_at).toLocaleDateString()}
-                    {user.terms_version && ` (v${user.terms_version})`}
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <a
-                  href="/legal/privacy"
-                  target="_blank"
-                  className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                >
-                  Privacy Policy
-                </a>
-                {user?.privacy_accepted_at && (
-                  <span className="text-xs text-gray-500">
-                    Accepted {new Date(user.privacy_accepted_at).toLocaleDateString()}
-                    {user.privacy_version && ` (v${user.privacy_version})`}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <p className="text-xs text-gray-500 mt-4 pt-4 border-t border-gray-200">
-            You accepted these documents when you created your account. If we update our Terms or Privacy Policy, 
-            we'll notify you and ask you to review and accept the updated versions.
-          </p>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

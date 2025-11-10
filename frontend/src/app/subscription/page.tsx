@@ -1,9 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { subscriptionsAPI } from '@/lib/api';
+import { PageHeading } from '@/components/PageHeading';
 
 interface Subscription {
   id: string;
@@ -27,7 +29,7 @@ interface Usage {
 
 export default function SubscriptionPage() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,17 +67,16 @@ export default function SubscriptionPage() {
     try {
       setCreatingCheckout(tier);
       setError(null);
-      
+
       const successUrl = `${window.location.origin}/subscription/success?session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = `${window.location.origin}/subscription`;
-      
+
       const { checkout_url } = await subscriptionsAPI.createCheckoutSession({
         tier,
         success_url: successUrl,
         cancel_url: cancelUrl,
       });
-      
-      // Redirect to Stripe checkout
+
       window.location.href = checkout_url;
     } catch (error: any) {
       setError(error.response?.data?.detail || 'Failed to create checkout session');
@@ -92,221 +93,205 @@ export default function SubscriptionPage() {
     });
   };
 
-  const getTierDisplayName = (tier: string) => {
-    return tier.charAt(0).toUpperCase() + tier.slice(1);
-  };
+  const getTierDisplayName = (tier: string) => tier.charAt(0).toUpperCase() + tier.slice(1);
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return 'text-green-600';
+        return { label: 'Active', className: 'bg-success-100 text-success-600' };
       case 'trial':
-        return 'text-blue-600';
+        return { label: 'Trial', className: 'bg-brand-50 text-brand-600' };
       case 'cancelled':
-        return 'text-red-600';
+        return { label: 'Cancelled', className: 'bg-danger-100 text-danger-600' };
       default:
-        return 'text-gray-600';
+        return { label: status, className: 'bg-neutral-100 text-neutral-600' };
     }
-  };
-
-  const isTrialActive = () => {
-    if (!subscription || subscription.status !== 'trial') return false;
-    if (!subscription.trial_end) return false;
-    return new Date(subscription.trial_end) > new Date();
-  };
-
-  const daysRemaining = () => {
-    if (!subscription?.trial_end) return 0;
-    const end = new Date(subscription.trial_end);
-    const now = new Date();
-    const diff = end.getTime() - now.getTime();
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-600">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-neutral-25">
+        <p className="text-sm text-neutral-500">Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <button onClick={() => router.push('/dashboard')} className="text-blue-600 hover:text-blue-800">
-                ← Back to Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="bg-neutral-25 pb-20">
+      <PageHeading
+        title="Subscription & Usage"
+        description="Manage your plan, monitor usage, and upgrade when you're ready for more insights."
+        actions={
+          <Link
+            href="/dashboard"
+            className="rounded-full border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:border-neutral-300 hover:text-neutral-900"
+          >
+            Back to Dashboard
+          </Link>
+        }
+      />
 
-      <main className="max-w-4xl mx-auto py-6 sm:py-8 px-4 sm:px-6">
-        <div className="mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Subscription & Usage</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Manage your subscription and track your usage</p>
-        </div>
-
+      <div className="app-container space-y-8">
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-            <p className="text-sm sm:text-base text-red-800">{error}</p>
+          <div className="section-shell border border-danger-100 bg-danger-50/80 p-5">
+            <p className="text-sm font-semibold text-danger-600">{error}</p>
           </div>
         )}
 
-        {/* Current Subscription */}
         {subscription && (
-          <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Current Subscription</h2>
-            <div className="space-y-2 sm:space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tier:</span>
-                <span className="font-semibold">{getTierDisplayName(subscription.tier)}</span>
+          <div className="section-shell p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-neutral-900">Current Subscription</h2>
+                <p className="mt-1 text-sm text-neutral-500">
+                  {subscription.status === 'trial'
+                    ? 'Enjoy full access during your trial period.'
+                    : 'Your subscription is active and up to date.'}
+                </p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Status:</span>
-                <span className={`font-semibold ${getStatusColor(subscription.status)}`}>
-                  {getTierDisplayName(subscription.status)}
-                </span>
-              </div>
-              {subscription.status === 'trial' && subscription.trial_end && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Trial Ends:</span>
-                  <span className="font-semibold">
-                    {formatDate(subscription.trial_end)} ({daysRemaining()} days remaining)
-                  </span>
-                </div>
-              )}
-              {subscription.current_period_end && subscription.status === 'active' && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Renews:</span>
-                  <span className="font-semibold">{formatDate(subscription.current_period_end)}</span>
-                </div>
-              )}
-              {subscription.cancel_at_period_end && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
-                  <p className="text-yellow-800 text-sm">
-                    Your subscription will cancel at the end of the current billing period.
-                  </p>
-                </div>
-              )}
+              <span
+                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadge(subscription.status).className}`}
+              >
+                {getStatusBadge(subscription.status).label}
+              </span>
             </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-white/40 bg-white/70 p-5">
+                <p className="text-xs uppercase tracking-wide text-neutral-500">Tier</p>
+                <p className="mt-2 text-lg font-semibold text-neutral-900">{getTierDisplayName(subscription.tier)}</p>
+              </div>
+              <div className="rounded-2xl border border-white/40 bg-white/70 p-5">
+                <p className="text-xs uppercase tracking-wide text-neutral-500">Next Renewal</p>
+                <p className="mt-2 text-lg font-semibold text-neutral-900">
+                  {subscription.current_period_end ? formatDate(subscription.current_period_end) : 'N/A'}
+                </p>
+              </div>
+            </div>
+
+            {subscription.status === 'trial' && subscription.trial_end && (
+              <div className="mt-6 rounded-2xl border border-brand-200 bg-brand-50/80 p-5">
+                <p className="text-sm font-semibold text-brand-600">
+                  Trial ends {formatDate(subscription.trial_end)}
+                </p>
+                <p className="mt-2 text-sm text-brand-500">
+                  Upgrade now to keep unlimited access after your trial.
+                </p>
+              </div>
+            )}
+
+            {subscription.cancel_at_period_end && (
+              <div className="mt-6 rounded-2xl border border-warning-200 bg-warning-50/80 p-5">
+                <p className="text-sm font-semibold text-warning-600">
+                  Cancels at end of billing period
+                </p>
+                <p className="mt-2 text-sm text-warning-500">
+                  Restore your subscription before the billing cycle ends to maintain access.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Usage Statistics */}
         {usage && (
-          <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Usage This Period</h2>
-            <div className="space-y-4">
+          <div className="section-shell p-6">
+            <h2 className="text-lg font-semibold text-neutral-900">Usage This Period</h2>
+            <p className="mt-2 text-sm text-neutral-500">
+              Period: {formatDate(usage.period_start)} – {formatDate(usage.period_end)}
+            </p>
+
+            <div className="mt-6">
               {usage.is_unlimited ? (
-                <div className="text-green-600 font-semibold">
-                  ✓ Unlimited argument resolutions
+                <div className="rounded-2xl border border-success-200 bg-success-50/80 p-5 text-sm font-semibold text-success-600">
+                  Unlimited argument resolutions • Enjoy full access with your current plan.
                 </div>
               ) : (
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-gray-600">Argument Resolutions:</span>
-                    <span className="font-semibold">
-                      {usage.usage_count} / {usage.limit === -1 ? '∞' : usage.limit}
-                    </span>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-sm font-semibold text-neutral-600">
+                    <span>Argument Resolutions</span>
+                    <span>{usage.usage_count} / {usage.limit}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200">
                     <div
-                      className={`h-2.5 rounded-full ${
-                        usage.usage_count >= usage.limit ? 'bg-red-600' : 'bg-blue-600'
-                      }`}
-                      style={{
-                        width: `${Math.min(100, (usage.usage_count / usage.limit) * 100)}%`,
-                      }}
+                      className={`h-full rounded-full ${usage.usage_count >= usage.limit ? 'bg-danger-500' : 'bg-brand-500'}`}
+                      style={{ width: `${Math.min(100, (usage.usage_count / usage.limit) * 100)}%` }}
                     />
                   </div>
                   {usage.usage_count >= usage.limit && (
-                    <p className="text-red-600 text-sm mt-2">
-                      Limit reached! Upgrade to continue using Heka.
+                    <p className="text-sm text-danger-600">
+                      Limit reached. Upgrade to continue logging new arguments.
                     </p>
                   )}
                 </div>
               )}
-              <div className="text-sm text-gray-500 mt-4">
-                Period: {formatDate(usage.period_start)} - {formatDate(usage.period_end)}
-              </div>
             </div>
           </div>
         )}
 
-        {/* Upgrade Options */}
         {subscription && subscription.tier === 'free' && (
-          <div className="bg-white shadow rounded-lg p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Upgrade Your Subscription</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              {/* Basic Tier */}
-              <div className="border border-gray-200 rounded-lg p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Basic</h3>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">$9.99</div>
-                <div className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">per month</div>
-                <ul className="space-y-2 mb-6 text-sm text-gray-600">
-                  <li>✓ Unlimited argument resolutions</li>
-                  <li>✓ Weekly relationship check-ins</li>
-                  <li>✓ Monthly relationship insights</li>
-                  <li>✓ Basic communication exercises</li>
-                  <li>✓ Historical argument tracking</li>
+          <div className="section-shell p-6">
+            <h2 className="text-lg font-semibold text-neutral-900">Upgrade Your Plan</h2>
+            <p className="mt-2 text-sm text-neutral-500">
+              Choose the plan that best supports your relationship journey.
+            </p>
+
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div className="rounded-2xl border border-white/40 bg-white/70 p-6">
+                <h3 className="text-lg font-semibold text-neutral-900">Basic</h3>
+                <p className="mt-2 text-sm text-neutral-500">Perfect for couples who want unlimited resolutions.</p>
+                <div className="mt-6 text-3xl font-semibold text-neutral-900">$9.99</div>
+                <p className="text-sm text-neutral-400">per month</p>
+                <ul className="mt-6 space-y-2 text-sm text-neutral-500">
+                  <li>• Unlimited argument resolutions</li>
+                  <li>• Weekly relationship check-ins</li>
+                  <li>• Monthly AI insight summaries</li>
+                  <li>• Communication exercises</li>
                 </ul>
                 <button
                   onClick={() => handleUpgrade('basic')}
                   disabled={creatingCheckout === 'basic'}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white transition-transform ease-soft-spring hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-neutral-300"
                 >
-                  {creatingCheckout === 'basic' ? 'Processing...' : 'Upgrade to Basic'}
+                  {creatingCheckout === 'basic' ? 'Processing…' : 'Upgrade to Basic'}
                 </button>
               </div>
 
-              {/* Premium Tier */}
-              <div className="border-2 border-blue-500 rounded-lg p-4 sm:p-6 relative">
-                <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs px-2 py-1 rounded-bl-lg">
-                  Popular
-                </div>
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Premium</h3>
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">$19.99</div>
-                <div className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4">per month</div>
-                <ul className="space-y-2 mb-6 text-sm text-gray-600">
-                  <li>✓ Everything in Basic</li>
-                  <li>✓ Advanced AI insights</li>
-                  <li>✓ Unlimited communication exercises</li>
-                  <li>✓ Relationship goal tracking</li>
-                  <li>✓ Weekly relationship insights</li>
-                  <li>✓ Preventive communication prompts</li>
-                  <li>✓ Achievement badges & progress</li>
-                  <li>✓ Priority support</li>
+              <div className="relative overflow-hidden rounded-2xl border border-brand-200 bg-brand-50/60 p-6">
+                <span className="absolute right-5 top-5 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-brand-600 shadow-soft">
+                  Most Popular
+                </span>
+                <h3 className="text-lg font-semibold text-neutral-900">Premium</h3>
+                <p className="mt-2 text-sm text-neutral-500">Unlock every insight, exercise, and proactive prompt.</p>
+                <div className="mt-6 text-3xl font-semibold text-neutral-900">$19.99</div>
+                <p className="text-sm text-neutral-400">per month</p>
+                <ul className="mt-6 space-y-2 text-sm text-neutral-500">
+                  <li>• Everything in Basic</li>
+                  <li>• Advanced AI insights & proactive prompts</li>
+                  <li>• Unlimited communication exercises</li>
+                  <li>• Relationship goal tracking & analytics</li>
+                  <li>• Priority support</li>
                 </ul>
                 <button
                   onClick={() => handleUpgrade('premium')}
                   disabled={creatingCheckout === 'premium'}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm sm:text-base"
+                  className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-brand-gradient px-4 py-3 text-sm font-semibold text-white shadow-elevated transition-transform ease-soft-spring hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {creatingCheckout === 'premium' ? 'Processing...' : 'Upgrade to Premium'}
+                  {creatingCheckout === 'premium' ? 'Processing…' : 'Upgrade to Premium'}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Success Message for Paid Subscriptions */}
         {subscription && subscription.tier !== 'free' && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold text-green-900 mb-2">
-              ✓ Active Subscription
-            </h3>
-            <p className="text-sm sm:text-base text-green-800">
-              Thank you for subscribing to Heka {getTierDisplayName(subscription.tier)}!
-              You have full access to all features.
+          <div className="section-shell border border-success-200 bg-success-50/80 p-6">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-success-600">Thank you for being a member</h3>
+            <p className="mt-3 text-sm text-success-600">
+              You have full access to Heka {getTierDisplayName(subscription.tier)}. We're honored to support your relationship journey.
             </p>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
