@@ -111,11 +111,8 @@ PHASE*_COMPLETE.md
 *_TROUBLESHOOTING.md
 HOW_TO_*.md
 
-# Exception: Keep essential operational docs
+# Exception: Keep ONLY absolute essentials
 !README.md
 !SETUP.md
 !DEPLOYMENT_ENV_VARS.md
-!STRIPE_SETUP_GUIDE.md
-!CODE_REVIEW_RESPONSE.md
-!SECURITY_VALIDATION_FINAL.md
 
