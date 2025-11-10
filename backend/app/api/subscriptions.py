@@ -245,15 +245,23 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=400, detail="Invalid signature")
     
     # Handle the event
-    if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        await handle_checkout_session_completed(session)
-    elif event["type"] == "customer.subscription.updated":
-        subscription = event["data"]["object"]
-        await handle_subscription_updated(subscription)
-    elif event["type"] == "customer.subscription.deleted":
-        subscription = event["data"]["object"]
-        await handle_subscription_deleted(subscription)
+    event_type = event["type"]
+    event_data = event["data"]["object"]
+    
+    logger.info(f"Received Stripe webhook event: {event_type}")
+    
+    if event_type == "checkout.session.completed":
+        await handle_checkout_session_completed(event_data)
+    elif event_type == "customer.subscription.updated":
+        await handle_subscription_updated(event_data)
+    elif event_type == "customer.subscription.deleted":
+        await handle_subscription_deleted(event_data)
+    elif event_type == "invoice.payment_succeeded":
+        await handle_invoice_payment_succeeded(event_data)
+    elif event_type == "invoice.payment_failed":
+        await handle_invoice_payment_failed(event_data)
+    else:
+        logger.info(f"Unhandled webhook event type: {event_type}")
     
     return {"status": "success"}
 
@@ -325,4 +333,63 @@ async def handle_subscription_deleted(subscription: dict):
             },
             db
         )
+        logger.info(f"Subscription cancelled: {stripe_sub_id}")
+
+
+async def handle_invoice_payment_succeeded(invoice: dict):
+    """Handle successful invoice payment."""
+    db = get_database()
+    subscription_id = invoice.get("subscription")
+    customer_id = invoice.get("customer")
+    amount_paid = invoice.get("amount_paid", 0) / 100  # Convert from cents to dollars
+    
+    logger.info(f"Invoice payment succeeded - Subscription: {subscription_id}, Customer: {customer_id}, Amount: ${amount_paid:.2f}")
+    
+    # Find subscription by Stripe subscription ID
+    if subscription_id:
+        sub_doc = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id})
+        if sub_doc:
+            from app.models.subscription import SubscriptionStatus
+            await subscription_service.update_subscription(
+                str(sub_doc["_id"]),
+                {
+                    "status": SubscriptionStatus.ACTIVE,
+                    "current_period_start": datetime.fromtimestamp(invoice.get("period_start", 0)),
+                    "current_period_end": datetime.fromtimestamp(invoice.get("period_end", 0))
+                },
+                db
+            )
+            logger.info(f"Subscription activated/renewed: {subscription_id}")
+
+
+async def handle_invoice_payment_failed(invoice: dict):
+    """Handle failed invoice payment."""
+    db = get_database()
+    subscription_id = invoice.get("subscription")
+    customer_id = invoice.get("customer")
+    amount_due = invoice.get("amount_due", 0) / 100  # Convert from cents to dollars
+    attempt_count = invoice.get("attempt_count", 0)
+    
+    logger.warning(
+        f"Invoice payment FAILED - Subscription: {subscription_id}, "
+        f"Customer: {customer_id}, Amount: ${amount_due:.2f}, "
+        f"Attempt: {attempt_count}"
+    )
+    
+    # Find subscription by Stripe subscription ID
+    if subscription_id:
+        sub_doc = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id})
+        if sub_doc:
+            from app.models.subscription import SubscriptionStatus
+            # Update status to past_due or expired based on attempt count
+            new_status = SubscriptionStatus.EXPIRED if attempt_count >= 3 else SubscriptionStatus.EXPIRED
+            
+            await subscription_service.update_subscription(
+                str(sub_doc["_id"]),
+                {
+                    "status": new_status
+                },
+                db
+            )
+            logger.warning(f"Subscription marked as expired due to payment failure: {subscription_id}")
 
