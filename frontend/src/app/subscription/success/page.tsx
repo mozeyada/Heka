@@ -18,11 +18,9 @@ function SubscriptionSuccessContent() {
       return;
     }
 
-    // Refresh subscription data after successful payment
     const refreshSubscription = async () => {
       try {
         await subscriptionsAPI.getMySubscription();
-        // Redirect to subscription page after a delay
         setTimeout(() => {
           router.push('/subscription');
         }, 3000);
@@ -37,32 +35,32 @@ function SubscriptionSuccessContent() {
   }, [sessionId, isAuthenticated, router]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="max-w-md w-full bg-white shadow rounded-lg p-8 text-center">
-        <div className="mb-4">
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100">
-            <svg
-              className="h-8 w-8 text-green-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-green-50 via-white to-emerald-50 px-4">
+      <div className="w-full max-w-md">
+        <div className="section-shell border border-green-200 bg-green-50/60 p-10 text-center">
+          <div className="mb-6 flex items-center justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+              <svg
+                className="h-8 w-8 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
           </div>
+          <h1 className="text-2xl font-bold text-neutral-900">Payment Successful!</h1>
+          <p className="mt-3 text-sm text-neutral-600">
+            Your subscription has been activated. You now have full access to all features.
+          </p>
+          <p className="mt-6 text-xs text-neutral-500">Redirecting to subscription page…</p>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
-        <p className="text-gray-600 mb-6">
-          Your subscription has been activated. You now have full access to all features.
-        </p>
-        <p className="text-sm text-gray-500">
-          Redirecting to subscription page...
-        </p>
       </div>
     </div>
   );
@@ -70,15 +68,14 @@ function SubscriptionSuccessContent() {
 
 export default function SubscriptionSuccessPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Loading...</p>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-neutral-25">
+          <p className="text-sm text-neutral-500">Loading…</p>
         </div>
-      </div>
-    }>
+      }
+    >
       <SubscriptionSuccessContent />
     </Suspense>
   );
 }
-

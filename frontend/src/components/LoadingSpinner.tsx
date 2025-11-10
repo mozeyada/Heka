@@ -15,7 +15,7 @@ export function LoadingSpinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   return (
     <div className="flex items-center justify-center">
       <svg
-        className={`animate-spin ${sizeClasses[size]} text-blue-600`}
+        className={`animate-spin ${sizeClasses[size]} text-indigo-600`}
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
@@ -43,10 +43,10 @@ export function LoadingSpinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
  */
 export function LoadingPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center bg-neutral-25">
       <div className="text-center">
         <LoadingSpinner size="lg" />
-        <p className="mt-4 text-gray-600">Loading...</p>
+        <p className="mt-4 text-sm text-neutral-500">Loading…</p>
       </div>
     </div>
   );

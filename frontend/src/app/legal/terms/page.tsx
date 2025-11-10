@@ -1,31 +1,38 @@
 'use client';
 
+import Link from 'next/link';
+import { PageHeading } from '@/components/PageHeading';
+
 export default function TermsOfServicePage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl sm:text-2xl font-bold text-blue-600">Heka</h1>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="bg-neutral-25 pb-20">
+      <PageHeading
+        title="Terms of Service"
+        description="Your rights and responsibilities when using Heka."
+        actions={
+          <Link
+            href="/dashboard"
+            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-all hover:border-gray-400 hover:bg-gray-50"
+          >
+            Back to Dashboard
+          </Link>
+        }
+      />
 
-      <main className="max-w-4xl mx-auto py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg p-6 sm:p-8">
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              <strong>⚠️ Legal Review Required:</strong> This document is a draft and must be reviewed by qualified Australian legal counsel before final implementation.
+      <div className="app-container max-w-4xl">
+        <div className="section-shell p-8">
+          <div className="mb-8 rounded-xl border border-yellow-200 bg-yellow-50 p-5">
+            <p className="text-sm font-semibold text-yellow-800">
+              ⚠️ Legal Review Required: This document is a draft and must be reviewed by qualified Australian legal counsel before final implementation.
             </p>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Terms of Service</h1>
-          <p className="text-gray-600 mb-4">Last Updated: November 8, 2025</p>
-          <p className="text-sm text-gray-500 mb-8">Version: 1.0 (Draft - Awaiting Legal Review)</p>
+          <div className="mb-8 border-b border-gray-200 pb-6">
+            <p className="text-sm text-neutral-500">Last Updated: November 8, 2025</p>
+            <p className="mt-1 text-xs text-neutral-400">Version: 1.0 (Draft - Awaiting Legal Review)</p>
+          </div>
 
-          <div className="prose max-w-none space-y-6">
+          <div className="prose prose-sm prose-neutral max-w-none space-y-8">
             
             <section>
               <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">1. Acceptance of Terms</h2>
@@ -275,7 +282,7 @@ export default function TermsOfServicePage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
