@@ -10,6 +10,7 @@ interface Argument {
   category: string;
   priority: string;
   status: string;
+  summary?: string;
   created_at: string;
   updated_at: string;
 }

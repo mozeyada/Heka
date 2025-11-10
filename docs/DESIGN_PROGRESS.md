@@ -38,6 +38,10 @@
   - Updated Invite acceptance page with status-aware messaging and action prompts.
   - Polished Subscription success/failed pages with contextual feedback and support links.
   - All core user flows now leverage unified design system (section-shell, btn-primary/secondary, input-field).
+- Dashboard & argument glow-up (Nov 10, 2025)
+  - Reimagined dashboard into a layered hero with usage telemetry, quick wins, and argument history cards.
+  - Elevated argument creation flow with calibrated safety hand-off, guided copy, and premium surface treatments.
+  - Refined argument detail view to spotlight perspectives, metadata, and AI insights with richer storytelling.
 - Legal pages & micro-interactions (Nov 8, 2025)
   - Updated Terms of Service and Privacy Policy pages with PageHeading and section-shell styling.
   - Enhanced ErrorAlert, SuccessAlert, WarningAlert components with improved spacing and colors.

@@ -6,7 +6,6 @@ import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
 import { perspectivesAPI } from '@/lib/api';
-import { PageHeading } from '@/components/PageHeading';
 import { CrisisResources } from '@/components/CrisisResources';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -171,64 +170,134 @@ export default function ArgumentDetailPage() {
     );
   }
 
-  const statusBadge = () => {
+  const getStatusMeta = () => {
     switch (currentArgument.status) {
       case 'resolved':
-        return { label: 'Resolved', className: 'bg-success-100 text-success-600' };
+        return {
+          label: 'Resolved',
+          className:
+            'bg-gradient-to-r from-emerald-100/80 to-white text-emerald-600 border border-emerald-200/80 shadow-[0_0_0_1px_rgba(16,185,129,0.1)]',
+        };
       case 'in_progress':
-        return { label: 'In Progress', className: 'bg-brand-50 text-brand-600' };
+        return {
+          label: 'In Progress',
+          className:
+            'bg-gradient-to-r from-indigo-100/80 to-white text-indigo-600 border border-indigo-200/70 shadow-[0_0_0_1px_rgba(99,102,241,0.1)]',
+        };
       default:
-        return { label: 'Open', className: 'bg-warning-100 text-warning-600' };
+        return {
+          label: 'Open',
+          className:
+            'bg-gradient-to-r from-amber-100/80 to-white text-amber-600 border border-amber-200/70 shadow-[0_0_0_1px_rgba(217,119,6,0.1)]',
+        };
     }
   };
 
-  return (
-    <div className="bg-neutral-25 pb-20">
-      <PageHeading
-        title={currentArgument.title}
-        description="Review both perspectives, capture new insights, and see how Heka guides you back to common ground."
-        actions={
-          <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadge().className}`}
-          >
-            {statusBadge().label}
-          </span>
-        }
-      />
+  const formatCategory = (value: string) =>
+    value
+      .split('_')
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+      .join(' ');
 
-      <div className="app-container space-y-8">
+  const priorityTone: Record<string, string> = {
+    urgent: 'border-danger-200 bg-danger-50 text-danger-600',
+    high: 'border-warning-200 bg-warning-50 text-warning-700',
+    medium: 'border-indigo-200 bg-indigo-50 text-indigo-600',
+    low: 'border-neutral-200 bg-neutral-100 text-neutral-600',
+  };
+
+  const statusMeta = getStatusMeta();
+
+  return (
+    <div className="relative overflow-hidden bg-neutral-25 pb-24 pt-16">
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-indigo-100/70 via-white/40 to-transparent" />
+        <div className="absolute right-[-20%] top-12 h-[420px] w-[420px] rounded-full bg-pink-200/40 blur-[140px]" />
+        <div className="absolute left-[-15%] top-24 h-[360px] w-[360px] rounded-full bg-indigo-200/40 blur-[140px]" />
+      </div>
+
+      <div className="app-container space-y-10">
+        <section className="relative overflow-hidden rounded-[32px] border border-white/70 bg-white/90 p-8 shadow-[0_35px_90px_rgba(79,70,229,0.18)] backdrop-blur">
+          <div className="pointer-events-none absolute -right-16 top-0 h-56 w-56 rounded-full bg-gradient-to-br from-indigo-400/20 to-transparent blur-2xl" />
+          <div className="pointer-events-none absolute -left-14 -top-12 h-44 w-44 rounded-full bg-gradient-to-br from-white/30 to-transparent blur-xl" />
+          <div className="relative flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <span
+                className={classNames(
+                  'inline-flex items-center rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-[0.28em]',
+                  statusMeta.className
+                )}
+              >
+                {statusMeta.label}
+              </span>
+              <h1 className="mt-4 text-3xl font-semibold text-neutral-900 sm:text-4xl">{currentArgument.title}</h1>
+              <p className="mt-3 text-sm leading-6 text-neutral-600">
+                Revisit both perspectives, track new developments, and let Heka surface the moments of connection hiding
+                underneath the friction.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-inner">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">Category</p>
+                <p className="mt-2 text-sm font-semibold text-neutral-900">{formatCategory(currentArgument.category)}</p>
+              </div>
+              <div className="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-inner">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">Priority</p>
+                <span
+                  className={classNames(
+                    'mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize',
+                    priorityTone[currentArgument.priority] || 'border-neutral-200 bg-neutral-100 text-neutral-600'
+                  )}
+                >
+                  {currentArgument.priority}
+                </span>
+              </div>
+              <div className="rounded-2xl border border-white/70 bg-white/70 p-4 shadow-inner">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">Created</p>
+                <p className="mt-2 text-sm text-neutral-600">
+                  {new Date(currentArgument.created_at).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {error && (
-          <div className="section-shell border border-danger-200 bg-danger-50/80 p-5">
+          <div className="rounded-[28px] border border-danger-200 bg-danger-50/85 p-5 shadow-[0_24px_60px_rgba(220,38,38,0.14)] backdrop-blur">
             <p className="text-sm font-semibold text-danger-600">{error}</p>
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="section-shell p-6 lg:col-span-2">
-            <h2 className="text-lg font-semibold text-neutral-900">Perspectives</h2>
-            <p className="mt-2 text-sm text-neutral-500">
-              Both partners share their point of view to give Heka the full picture.
-            </p>
+        <section className="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,0.55fr)]">
+          <div className="rounded-[28px] border border-white/70 bg-white/90 p-6 shadow-[0_28px_80px_rgba(15,23,42,0.12)] backdrop-blur">
+            <header className="flex flex-col gap-2 border-b border-neutral-100 pb-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">Perspectives</p>
+              <h2 className="text-xl font-semibold text-neutral-900">Capture both voices</h2>
+              <p className="text-sm text-neutral-500">
+                When each partner shares calmly, the AI has the emotional context to mediate with nuance.
+              </p>
+            </header>
 
             <div className="mt-6 space-y-4">
               {perspectives.length === 0 ? (
-                <p className="rounded-2xl border border-white/40 bg-white/80 p-5 text-sm text-neutral-500">
-                  No perspectives yet. Capture yours to get started.
-                </p>
+                <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/70 p-6 text-sm text-neutral-500">
+                  No perspectives yet. Add yours to open the mediation space.
+                </div>
               ) : (
                 perspectives.map((perspective, index) => (
-                  <div
+                  <article
                     key={perspective.id}
-                    className="rounded-2xl border border-white/40 bg-white/80 p-5"
+                    className="rounded-2xl border border-white/70 bg-white/80 p-5 shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
                   >
-                    <div className="flex items-center justify-between text-xs uppercase tracking-wide text-neutral-400">
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-neutral-400">
                       <span>Perspective {index + 1}</span>
                       <span>{new Date(perspective.created_at).toLocaleString()}</span>
                     </div>
-                    <p className="mt-3 text-sm text-neutral-700 leading-relaxed whitespace-pre-line">
+                    <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-neutral-700">
                       {perspective.content}
                     </p>
-                  </div>
+                  </article>
                 ))
               )}
             </div>
@@ -236,28 +305,28 @@ export default function ArgumentDetailPage() {
             {!showPerspectiveForm ? (
               <button
                 onClick={() => setShowPerspectiveForm(true)}
-                className="mt-6 inline-flex rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:border-neutral-300 hover:text-neutral-900"
+                className="mt-6 inline-flex items-center justify-center rounded-full border border-neutral-300 px-6 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-900"
               >
                 Add your perspective
               </button>
             ) : (
-              <div className="mt-6 rounded-2xl border border-brand-200 bg-brand-50/60 p-5">
-                <label className="text-xs font-semibold uppercase tracking-wide text-brand-600">
+              <div className="mt-6 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-6 shadow-[0_22px_55px_rgba(79,70,229,0.18)]">
+                <label className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">
                   Your perspective
                 </label>
                 <textarea
                   value={perspectiveContent}
                   onChange={(e) => setPerspectiveContent(e.target.value)}
-                  rows={5}
-                  placeholder="Describe what happened from your point of view"
-                  className="mt-3 w-full rounded-xl border border-brand-200 bg-white/90 px-4 py-3 text-sm text-neutral-700 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  rows={6}
+                  placeholder="Describe what happened from your point of view. Focus on feelings, needs, and specific moments."
+                  className="mt-3 w-full rounded-2xl border border-indigo-100 bg-white/90 px-4 py-3 text-sm text-neutral-800 shadow-[0_0_0_1px_rgba(79,70,229,0.08)] transition focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-200/50"
                 />
-                <div className="mt-4 flex flex-wrap gap-3">
+                <div className="mt-5 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     onClick={handleAddPerspective}
                     disabled={isSubmitting}
-                    className="rounded-xl bg-neutral-900 px-5 py-2 text-sm font-semibold text-white transition-transform ease-soft-spring hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-neutral-300"
+                    className="inline-flex items-center justify-center rounded-full bg-neutral-900 px-6 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-white shadow-[0_20px_45px_rgba(15,23,42,0.35)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:shadow-none"
                   >
                     {isSubmitting ? 'Saving…' : 'Save perspective'}
                   </button>
@@ -267,7 +336,7 @@ export default function ArgumentDetailPage() {
                       setShowPerspectiveForm(false);
                       setPerspectiveContent('');
                     }}
-                    className="rounded-xl border border-neutral-200 px-5 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:border-neutral-300 hover:text-neutral-900"
+                    className="inline-flex items-center justify-center rounded-full border border-neutral-300 px-6 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-900"
                   >
                     Cancel
                   </button>
@@ -276,89 +345,78 @@ export default function ArgumentDetailPage() {
             )}
           </div>
 
-          <div className="section-shell p-6">
-            <h2 className="text-lg font-semibold text-neutral-900">Argument Details</h2>
-            <div className="mt-4 space-y-4 text-sm text-neutral-500">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-neutral-400">Category</p>
-                <p className="mt-1 text-sm font-semibold text-neutral-800">
-                  {currentArgument.category}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-neutral-400">Priority</p>
-                <p className="mt-1 inline-flex rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600">
-                  {currentArgument.priority}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-neutral-400">Created</p>
-                <p className="mt-1 text-sm text-neutral-600">
-                  {new Date(currentArgument.created_at).toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/40 bg-white/70 p-4 text-xs text-neutral-500">
-                <p>
-                  Need help outside this argument? Visit the{' '}
-                  <button
-                    type="button"
-                    onClick={() => router.push('/settings')}
-                    className="font-semibold text-brand-600"
-                  >
-                    settings page
-                  </button>{' '}
-                  to export your data or delete your account.
-                </p>
-              </div>
+          <aside className="flex flex-col gap-6">
+            <div className="rounded-[28px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">Next steps</p>
+              <h3 className="mt-2 text-lg font-semibold text-neutral-900">Keep the relationship muscles warm</h3>
+              <p className="mt-3 text-sm text-neutral-500">
+                Revisit this conversation after each partner adds a perspective. Insight feels richer when both sides slow
+                down enough to be heard fully.
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push('/settings')}
+                className="mt-5 inline-flex items-center justify-center rounded-full border border-neutral-300 px-5 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-neutral-500 transition hover:border-neutral-400 hover:text-neutral-900"
+              >
+                Manage data & safety
+              </button>
             </div>
-          </div>
-        </div>
 
-        <div className="section-shell p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="rounded-[28px] border border-white/70 bg-white/85 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">Tip</p>
+              <p className="mt-3 text-sm text-neutral-600">
+                A perspective works best with three parts: what happened, how it made you feel, and what you need going
+                forward. Keep it gentle and specific.
+              </p>
+            </div>
+          </aside>
+        </section>
+
+        <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-[0_35px_90px_rgba(79,70,229,0.16)] backdrop-blur">
+          <div className="flex flex-col gap-3 border-b border-neutral-100 pb-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-neutral-900">AI Mediation Insights</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-400">AI mediation</p>
+              <h2 className="text-xl font-semibold text-neutral-900">Insights tuned to both of you</h2>
               <p className="mt-1 text-sm text-neutral-500">
-                Heka analyzes both perspectives to highlight common ground, root causes, and next steps.
+                Once both perspectives are logged, Heka blends them into plain-language insights, scripts, and forward
+                motion that respect each voice.
               </p>
             </div>
             <button
               onClick={handleAnalyze}
               disabled={isAnalyzing || perspectives.length < 2}
-              className="rounded-xl bg-brand-gradient px-5 py-2 text-sm font-semibold text-white shadow-elevated transition-transform ease-soft-spring hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-full bg-brand-gradient px-6 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-white shadow-[0_22px_55px_rgba(79,70,229,0.35)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isAnalyzing ? 'Analyzing…' : 'Generate insights'}
             </button>
           </div>
 
           {!aiInsights && (
-            <div className="mt-6 rounded-2xl border border-white/40 bg-white/75 p-5 text-sm text-neutral-500">
+            <div className="mt-6 rounded-2xl border border-dashed border-indigo-200 bg-indigo-50/60 p-6 text-sm text-indigo-700">
               {perspectives.length < 2
                 ? 'Add at least two perspectives to unlock AI mediation.'
-                : 'Click “Generate insights” to see tailored mediation guidance.'}
+                : 'Tap “Generate insights” when you’re ready for Heka to synthesize what both of you shared.'}
             </div>
           )}
 
           {aiInsights && !aiInsights?.safety_check?.blocked && (
             <div className="mt-6 space-y-6">
-              <div className="rounded-2xl border border-white/40 bg-white/80 p-5">
-                <h3 className="font-semibold text-neutral-900">Summary</h3>
-                <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
-                  {aiInsights.summary}
-                </p>
+              <div className="rounded-2xl border border-white/70 bg-white/85 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
+                <h3 className="text-lg font-semibold text-neutral-900">Summary</h3>
+                <p className="mt-3 text-sm leading-relaxed text-neutral-600">{aiInsights.summary}</p>
               </div>
 
               <div className="grid gap-5 md:grid-cols-2">
-                <div className="rounded-2xl border border-white/40 bg-white/80 p-5">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-brand-600">Common ground</h4>
+                <div className="rounded-2xl border border-white/70 bg-white/85 p-5">
+                  <h4 className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-500">Common ground</h4>
                   <ul className="mt-3 space-y-2 text-sm text-neutral-600">
                     {aiInsights.common_ground.map((item, idx) => (
                       <li key={idx}>• {item}</li>
                     ))}
                   </ul>
                 </div>
-                <div className="rounded-2xl border border-white/40 bg-white/80 p-5">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Root causes</h4>
+                <div className="rounded-2xl border border-white/70 bg-white/85 p-5">
+                  <h4 className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-500">Root causes</h4>
                   <ul className="mt-3 space-y-2 text-sm text-neutral-600">
                     {aiInsights.root_causes.map((item, idx) => (
                       <li key={idx}>• {item}</li>
@@ -368,16 +426,18 @@ export default function ArgumentDetailPage() {
               </div>
 
               <div className="grid gap-5 md:grid-cols-2">
-                <div className="rounded-2xl border border-white/40 bg-white/80 p-5">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Key disagreements</h4>
+                <div className="rounded-2xl border border-white/70 bg-white/85 p-5">
+                  <h4 className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-500">Key disagreements</h4>
                   <ul className="mt-3 space-y-2 text-sm text-neutral-600">
                     {aiInsights.disagreements.map((item, idx) => (
                       <li key={idx}>• {item}</li>
                     ))}
                   </ul>
                 </div>
-                <div className="rounded-2xl border border-white/40 bg-white/80 p-5">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Communication tips</h4>
+                <div className="rounded-2xl border border-white/70 bg-white/85 p-5">
+                  <h4 className="text-xs font-semibold uppercase tracking-[0.28em] text-neutral-500">
+                    Communication tips
+                  </h4>
                   <ul className="mt-3 space-y-2 text-sm text-neutral-600">
                     {aiInsights.communication_tips.map((item, idx) => (
                       <li key={idx}>• {item}</li>
@@ -388,8 +448,11 @@ export default function ArgumentDetailPage() {
 
               <div className="space-y-5">
                 {aiInsights.suggestions.map((suggestion, idx) => (
-                  <div key={idx} className="rounded-2xl border border-white/40 bg-white/80 p-5">
-                    <h4 className="font-semibold text-neutral-900">{suggestion.title}</h4>
+                  <div
+                    key={idx}
+                    className="rounded-2xl border border-white/70 bg-white/85 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.12)]"
+                  >
+                    <h4 className="text-base font-semibold text-neutral-900">{suggestion.title}</h4>
                     <p className="mt-2 text-sm text-neutral-600">{suggestion.description}</p>
                     {suggestion.actionable_steps.length > 0 && (
                       <ul className="mt-3 space-y-2 text-sm text-neutral-600">
@@ -409,8 +472,8 @@ export default function ArgumentDetailPage() {
           )}
 
           {aiInsights?.safety_check?.blocked && (
-            <div className="mt-6 rounded-2xl border border-danger-200 bg-danger-50/80 p-6">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-danger-600">Safety first</h3>
+            <div className="mt-6 rounded-2xl border border-danger-200 bg-danger-50/85 p-6 shadow-[0_24px_60px_rgba(220,38,38,0.15)]">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.28em] text-danger-600">Safety first</h3>
               <p className="mt-3 text-sm text-danger-600">
                 {aiInsights?.safety_check?.reason || 'This conflict may require professional or emergency support.'}
               </p>
@@ -421,7 +484,7 @@ export default function ArgumentDetailPage() {
           )}
 
           {safetyConcern && !aiInsights && (
-            <div className="mt-6 rounded-2xl border border-danger-200 bg-danger-50/80 p-6">
+            <div className="mt-6 rounded-2xl border border-danger-200 bg-danger-50/85 p-6 shadow-[0_24px_60px_rgba(220,38,38,0.15)]">
               <p className="text-sm font-semibold text-danger-600">
                 {safetyConcern.reason || 'AI insights are currently unavailable due to safety concerns.'}
               </p>
@@ -430,7 +493,7 @@ export default function ArgumentDetailPage() {
               </div>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );
