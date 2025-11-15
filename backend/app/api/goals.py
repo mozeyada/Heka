@@ -99,6 +99,8 @@ async def create_goal(
 @router.get("/", response_model=List[GoalResponse])
 async def get_goals(
     status_filter: str = None,
+    limit: int = 20,
+    offset: int = 0,
     current_user: UserInDB = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
@@ -121,13 +123,28 @@ async def get_goals(
     
     couple = CoupleInDB.from_mongo(couple_doc)
     
-    # Build query
+    if limit < 1 or limit > 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="limit must be between 1 and 100"
+        )
+    if offset < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="offset must be >= 0"
+        )
+
     query = {"couple_id": ObjectId(couple.id)}
     if status_filter:
         query["status"] = status_filter
     
     # Get goals
-    goals_docs = await db.relationship_goals.find(query).sort("created_at", -1).to_list(length=100)
+    goals_docs = await (
+        db.relationship_goals.find(query)
+        .sort("created_at", -1)
+        .skip(offset)
+        .limit(limit)
+    ).to_list(length=limit)
     goals = [RelationshipGoalInDB.from_mongo(doc) for doc in goals_docs]
     
     return [

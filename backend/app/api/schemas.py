@@ -78,6 +78,28 @@ class Token(BaseModel):
     token_type: str = "bearer"
     user_id: str
     email: str
+    refresh_token: Optional[str] = None
+
+
+class RefreshTokenRequest(BaseModel):
+    """Refresh token rotation request."""
+    refresh_token: str
+    device_id: Optional[str] = None
+
+
+class DeviceTokenCreate(BaseModel):
+    """Register device push token request."""
+
+    platform: str = Field(..., description="ios or android")
+    token: str = Field(..., min_length=10)
+    device_id: str = Field(..., min_length=4)
+
+    @validator("platform")
+    def validate_platform(cls, v):
+        v = v.lower()
+        if v not in {"ios", "android"}:
+            raise ValueError("platform must be 'ios' or 'android'")
+        return v
 
 
 class UserResponse(BaseModel):

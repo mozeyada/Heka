@@ -10,7 +10,7 @@ from app.models.argument import ArgumentInDB, ArgumentCategory, ArgumentPriority
 from app.models.couple import CoupleStatus
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
-from typing import List
+from typing import List, Optional, Dict, Any
 
 router = APIRouter(prefix="/api/arguments", tags=["Arguments"])
 
@@ -127,6 +127,10 @@ async def create_argument(
 
 @router.get("/", response_model=List[ArgumentResponse])
 async def get_arguments(
+    limit: int = 20,
+    offset: int = 0,
+    status_filter: Optional[str] = None,
+    category_filter: Optional[str] = None,
     current_user: UserInDB = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
@@ -147,10 +151,31 @@ async def get_arguments(
     from app.models.couple import CoupleInDB
     couple = CoupleInDB.from_mongo(couple_doc)
     
-    # Get arguments for couple
-    cursor = db.arguments.find({"couple_id": ObjectId(couple.id)}).sort("created_at", -1)
-    arguments = []
-    
+    if limit < 1 or limit > 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="limit must be between 1 and 100"
+        )
+    if offset < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="offset must be >= 0"
+        )
+
+    query: Dict[str, Any] = {"couple_id": ObjectId(couple.id)}
+    if status_filter:
+        query["status"] = status_filter
+    if category_filter:
+        query["category"] = category_filter
+
+    cursor = (
+        db.arguments.find(query)
+        .sort("created_at", -1)
+        .skip(offset)
+        .limit(limit)
+    )
+    arguments: List[ArgumentResponse] = []
+
     async for arg_doc in cursor:
         arg = ArgumentInDB.from_mongo(arg_doc)
         arguments.append(ArgumentResponse(

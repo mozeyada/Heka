@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Heka",
+    "slug": "heka",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "heka",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.heka.app"
+    },
+    "android": {
+      "package": "com.heka.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      }
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#0F172A",
+      "barStyle": "light-content"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "sentry-expo",
+      [
+        "expo-notifications",
+        {}
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "pending"
+      }
+    }
+  }
+}
+

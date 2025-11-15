@@ -7,7 +7,19 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.config import settings
 from app.db.database import connect_to_mongo, close_mongo_connection, get_database
-from app.api import auth, couples, arguments, perspectives, ai_mediation, checkins, goals, subscriptions, users
+from app.api import (
+    auth,
+    couples,
+    arguments,
+    perspectives,
+    ai_mediation,
+    checkins,
+    goals,
+    subscriptions,
+    users,
+    notifications,
+    dashboard,
+)
 from app.core.logging_config import logger
 from app.core.sentry_config import init_sentry
 from app.core.limiter import limiter
@@ -113,4 +125,6 @@ app.include_router(ai_mediation.router)
 app.include_router(checkins.router)
 app.include_router(goals.router)
 app.include_router(subscriptions.router)
+app.include_router(notifications.router)
+app.include_router(dashboard.router)
 

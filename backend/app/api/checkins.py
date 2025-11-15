@@ -6,6 +6,7 @@ from app.db.database import get_database
 from app.models.user import UserInDB
 from app.models.couple import CoupleInDB, CoupleStatus
 from app.models.relationship_checkin import RelationshipCheckInInDB, CheckInStatus
+from app.api.dashboard import get_dashboard_overview
 from app.api.schemas import CheckInCreate, CheckInResponse
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
@@ -160,6 +161,7 @@ async def complete_checkin(
 @router.get("/history")
 async def get_checkin_history(
     limit: int = 10,
+    offset: int = 0,
     current_user: UserInDB = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
@@ -182,13 +184,31 @@ async def get_checkin_history(
     
     couple = CoupleInDB.from_mongo(couple_doc)
     
-    # Get check-ins
-    checkins_docs = await db.relationship_checkins.find({
-        "couple_id": ObjectId(couple.id)
-    }).sort("week_start_date", -1).to_list(length=limit)
+    if limit < 1 or limit > 50:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="limit must be between 1 and 50"
+        )
+    if offset < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="offset must be >= 0"
+        )
+
+    cursor = (
+        db.relationship_checkins.find({
+            "couple_id": ObjectId(couple.id)
+        })
+        .sort("week_start_date", -1)
+        .skip(offset)
+        .limit(limit)
+    )
+    checkins_docs = await cursor.to_list(length=limit)
     
     checkins = [RelationshipCheckInInDB.from_mongo(doc) for doc in checkins_docs]
     
+    next_offset = offset + len(checkins) if len(checkins) == limit else None
+
     return {
         "checkins": [
             {
@@ -198,6 +218,7 @@ async def get_checkin_history(
                 "completed_at": checkin.completed_at.isoformat() if checkin.completed_at else None
             }
             for checkin in checkins
-        ]
+        ],
+        "next_offset": next_offset
     }
 

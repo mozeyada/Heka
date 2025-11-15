@@ -3,12 +3,24 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from slowapi import Limiter
-from app.api.schemas import UserRegister, UserLogin, Token, UserResponse
+from bson import ObjectId
+from app.api.schemas import (
+    UserRegister,
+    UserLogin,
+    Token,
+    UserResponse,
+    RefreshTokenRequest,
+)
 from app.api.dependencies import get_current_user
 from app.core.security import verify_password, get_password_hash, create_access_token
 from app.core.sanitization import sanitize_text, sanitize_email
 from app.db.database import get_database
 from app.models.user import UserInDB
+from app.services.refresh_token_service import (
+    create_refresh_token,
+    verify_and_rotate_refresh_token,
+    RefreshTokenError,
+)
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
 from app.core.limiter import limiter
@@ -148,12 +160,25 @@ async def login(
     access_token = create_access_token(
         data={"sub": str(user.id), "email": user.email}
     )
-    
+
+    device_id = request.headers.get("x-device-id")
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host if request.client else None
+
+    refresh_token = await create_refresh_token(
+        user_id=str(user.id),
+        db=db,
+        device_id=device_id,
+        user_agent=user_agent,
+        ip_address=ip_address,
+    )
+
     return Token(
         access_token=access_token,
         token_type="bearer",
         user_id=str(user.id),
-        email=user.email
+        email=user.email,
+        refresh_token=refresh_token,
     )
 
 
@@ -173,4 +198,52 @@ async def get_current_user_info(
         privacy_accepted_at=current_user.privacy_accepted_at,
         terms_version=current_user.terms_version,
         privacy_version=current_user.privacy_version
+    )
+
+
+@router.post("/refresh", response_model=Token)
+@limiter.limit("20/hour")
+async def refresh_token(
+    request: Request,
+    payload: RefreshTokenRequest,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Refresh access token using a valid refresh token with rotation."""
+
+    device_id = payload.device_id or request.headers.get("x-device-id")
+    user_agent = request.headers.get("user-agent")
+    ip_address = request.client.host if request.client else None
+
+    try:
+        user_id, new_refresh_token = await verify_and_rotate_refresh_token(
+            payload.refresh_token,
+            db,
+            device_id=device_id,
+            user_agent=user_agent,
+            ip_address=ip_address,
+        )
+    except RefreshTokenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        )
+
+    user_doc = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not user_doc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+
+    user = UserInDB.from_mongo(user_doc)
+    access_token = create_access_token(
+        data={"sub": str(user.id), "email": user.email}
+    )
+
+    return Token(
+        access_token=access_token,
+        token_type="bearer",
+        user_id=str(user.id),
+        email=user.email,
+        refresh_token=new_refresh_token,
     )

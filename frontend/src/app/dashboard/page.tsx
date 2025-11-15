@@ -84,6 +84,13 @@ export default function DashboardPage() {
     }
   };
 
+  const usageCount = usage?.usage_count ?? 0;
+  const usageLimit = usage?.limit ?? 0;
+  const usagePercentage = usage?.is_unlimited
+    ? 0
+    : Math.min(Math.round((usageCount / Math.max(usageLimit, 1)) * 100), 100);
+  const trialEndsOn = subscription?.trial_end ? new Date(subscription.trial_end).toLocaleDateString() : null;
+
   if (!isAuthenticated || !user) {
     return <LoadingPage />;
   }
@@ -92,30 +99,23 @@ export default function DashboardPage() {
     return <LoadingPage />;
   }
 
-  const usageCount = usage?.usage_count ?? 0;
-  const usageLimit = usage?.limit ?? 0;
-  const usagePercentage = usage?.is_unlimited
-    ? 0
-    : Math.min(Math.round((usageCount / Math.max(usageLimit, 1)) * 100), 100);
-  const trialEndsOn = subscription?.trial_end ? new Date(subscription.trial_end).toLocaleDateString() : null;
-
   return (
-    <div className="bg-neutral-25 pb-20">
+    <div className="bg-white pb-20">
       <div className="app-container py-8 space-y-8">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-neutral-900">
+            <h1 className="text-3xl font-semibold text-neutral-900">
               Welcome back, {user.name?.split(' ')[0] ?? user.name}.
             </h1>
-            <p className="mt-1 text-sm text-neutral-600">
+            <p className="mt-2 text-base text-neutral-600">
               Track your relationship health, complete check-ins, and keep arguments moving toward resolution.
             </p>
           </div>
           {subscription && (
             <Link
               href="/subscription"
-              className="text-sm font-medium text-brand-600 hover:text-brand-700"
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
             >
               Manage subscription
             </Link>
@@ -128,10 +128,10 @@ export default function DashboardPage() {
 
         {/* Free Trial Banner */}
         {subscription && subscription.tier === 'free' && (
-          <div className="section-shell bg-gradient-to-r from-indigo-50 to-pink-50 p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-indigo-100 p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-neutral-900">Free Trial Active</h3>
+                <h3 className="text-base font-semibold text-neutral-900">Free Trial Active</h3>
                 <p className="mt-1 text-sm text-neutral-600">
                   {usageCount}/{usageLimit} arguments used
                   {trialEndsOn && ` • Trial ends ${trialEndsOn}`}
@@ -139,7 +139,7 @@ export default function DashboardPage() {
               </div>
               <Link
                 href="/subscription"
-                className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
               >
                 Upgrade Now
               </Link>
@@ -149,50 +149,50 @@ export default function DashboardPage() {
 
         {/* Stats Overview */}
         <div className="grid gap-6 sm:grid-cols-3">
-          <div className="section-shell p-5">
-            <p className="text-xs font-medium text-neutral-500 uppercase">Arguments Left</p>
-            <p className="mt-2 text-2xl font-semibold text-neutral-900">
-              {usage?.is_unlimited ? 'Unlimited' : `${usageCount}/${usageLimit}`}
+          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Arguments Left</p>
+            <p className="mt-3 text-3xl font-semibold text-neutral-900">
+              {usage?.is_unlimited ? 'Unlimited' : `${usageLimit - usageCount}`}
             </p>
             {subscription?.tier === 'free' && trialEndsOn && (
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-2 text-sm text-neutral-500">
                 Trial ends {trialEndsOn}
               </p>
             )}
           </div>
 
-          <div className="section-shell p-5">
-            <p className="text-xs font-medium text-neutral-500 uppercase">Weekly Check-in</p>
-            <p className="mt-2 text-2xl font-semibold text-neutral-900">
-              {currentCheckin?.status === 'completed' ? 'Completed ✓' : 'Pending'}
+          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Weekly Check-in</p>
+            <p className="mt-3 text-3xl font-semibold text-neutral-900">
+              {currentCheckin?.status === 'completed' ? '✓' : '—'}
             </p>
-            <p className="mt-1 text-xs text-neutral-500">
+            <p className="mt-2 text-sm text-neutral-500">
               {currentCheckin?.status === 'completed'
                 ? 'Completed this week'
                 : 'Stay aligned with a quick pulse'}
             </p>
           </div>
 
-          <div className="section-shell p-5">
-            <p className="text-xs font-medium text-neutral-500 uppercase">Goals Active</p>
-            <p className="mt-2 text-2xl font-semibold text-neutral-900">{goals.length}</p>
-            <p className="mt-1 text-xs text-neutral-500">
+          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Active Goals</p>
+            <p className="mt-3 text-3xl font-semibold text-neutral-900">{goals.length}</p>
+            <p className="mt-2 text-sm text-neutral-500">
               {goals.length > 0 ? 'Keep up the momentum' : 'Set a shared intention'}
             </p>
           </div>
         </div>
 
         {/* Usage Progress */}
-        {!usage?.is_unlimited && (
-          <div className="section-shell p-5">
-            <div className="flex items-center justify-between text-xs font-medium text-neutral-500 uppercase mb-3">
+        {!usage?.is_unlimited && usageLimit > 0 && (
+          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between text-xs font-medium text-neutral-500 uppercase tracking-wide mb-4">
               <span>Usage Progress</span>
               <span>{usagePercentage}%</span>
             </div>
-            <div className="h-2 w-full rounded-full bg-neutral-200">
+            <div className="h-2 w-full rounded-full bg-neutral-100">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  usageCount >= usageLimit ? 'bg-danger-600' : 'bg-brand-600'
+                  usageCount >= usageLimit ? 'bg-red-600' : 'bg-indigo-600'
                 }`}
                 style={{ width: `${usagePercentage}%` }}
               />
@@ -202,7 +202,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="section-shell p-6">
+          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
             <h3 className="text-base font-semibold text-neutral-900">Weekly Check-in</h3>
             <p className="mt-2 text-sm text-neutral-600">
               {currentCheckin?.status === 'completed' 
@@ -217,7 +217,7 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="section-shell p-6">
+          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
             <h3 className="text-base font-semibold text-neutral-900">Relationship Goals</h3>
             <p className="mt-2 text-sm text-neutral-600">
               {goals.length} active goal{goals.length !== 1 ? 's' : ''} keeping you focused together.
@@ -230,7 +230,7 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <div className="section-shell p-6">
+          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
             <h3 className="text-base font-semibold text-neutral-900">New Argument</h3>
             <p className="mt-2 text-sm text-neutral-600">
               Capture both perspectives and let Heka guide you toward resolution.
@@ -246,8 +246,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Couple Status */}
-        <div className="section-shell p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-base font-semibold text-neutral-900">Your Couple Profile</h3>
               <p className="mt-2 text-sm text-neutral-600">
@@ -273,8 +273,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Arguments List */}
-        <div className="section-shell p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
               <h3 className="text-base font-semibold text-neutral-900">Your Arguments</h3>
               <p className="mt-1 text-sm text-neutral-600">
@@ -297,28 +297,28 @@ export default function DashboardPage() {
             </p>
           ) : (
             <div className="space-y-3">
-              {args.map((arg) => (
+              {args.slice(0, 5).map((arg) => (
                 <button
                   key={arg.id}
                   onClick={() => router.push(`/arguments/${arg.id}`)}
-                  className="w-full rounded-lg border border-neutral-200 bg-white p-4 text-left transition-all hover:border-indigo-300 hover:shadow-sm"
+                  className="w-full rounded-xl border border-neutral-200 bg-white p-5 text-left transition-all hover:border-indigo-200 hover:shadow-md"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
+                    <div className="flex-1">
                       <h4 className="font-semibold text-neutral-900">{arg.title}</h4>
                       <p className="mt-1 text-sm text-neutral-500">
                         {arg.category} • {arg.status}
                       </p>
                     </div>
                     <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                      className={`inline-flex items-center rounded-md px-3 py-1 text-xs font-semibold ${
                         arg.priority === 'urgent'
-                          ? 'bg-red-100 text-red-700'
+                          ? 'bg-red-100 text-red-700 border border-red-200'
                           : arg.priority === 'high'
-                          ? 'bg-orange-100 text-orange-700'
+                          ? 'bg-orange-100 text-orange-700 border border-orange-200'
                           : arg.priority === 'medium'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-neutral-100 text-neutral-600'
+                          ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                          : 'bg-neutral-100 text-neutral-600 border border-neutral-200'
                       }`}
                     >
                       {arg.priority}
