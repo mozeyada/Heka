@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "jsx": "react-native",
     "strict": true,
     "allowJs": false,
@@ -10,13 +10,15 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
     "app",
     "src",
     "scripts"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }
-

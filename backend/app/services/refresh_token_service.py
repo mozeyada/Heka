@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import hashlib
+import logging
 import secrets
 from typing import Optional, Tuple
 from bson import ObjectId
@@ -9,6 +10,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.config import settings
 from app.models.refresh_token import RefreshToken, compute_expiry
+
+logger = logging.getLogger(__name__)
 
 
 class RefreshTokenError(Exception):
@@ -36,15 +39,14 @@ async def create_refresh_token(
 ) -> str:
     """
     Create and persist a new refresh token for a user.
-    Any active token for the same device is revoked before issuing a new one.
+    All active tokens for the user are revoked before issuing a new one.
     Returns the raw token string for client consumption.
     """
-    # Revoke existing tokens for same user & device to prevent duplicates
-    query = {"user_id": ObjectId(user_id)}
-    if device_id:
-        query["device_id"] = device_id
+    # Revoke ALL active tokens for this user (not just same device_id)
+    # This ensures old tokens are invalidated on new login, preventing token reuse
+    # and ensuring only the latest login's token is valid
     await db.refresh_tokens.update_many(
-        {**query, "revoked_at": None},
+        {"user_id": ObjectId(user_id), "revoked_at": None},
         {
             "$set": {
                 "revoked_at": datetime.utcnow(),
@@ -97,6 +99,17 @@ async def verify_and_rotate_refresh_token(
         )
         raise RefreshTokenError("refresh token expired")
 
+    # Device ID validation: only fail if token has a device_id and we're sending a different one
+    # If token has no device_id, we accept any device_id (or None) for backward compatibility
+    # If token has device_id but we send None, that's also acceptable (device might not be available)
+    
+    # Log device_id comparison for debugging
+    device_match = token.device_id == device_id if (token.device_id and device_id) else 'N/A'
+    logger.info(
+        f"Refresh token validation: stored_device_id={token.device_id}, "
+        f"received_device_id={device_id}, match={device_match}"
+    )
+    
     if token.device_id and device_id and token.device_id != device_id:
         raise RefreshTokenError("device mismatch")
 

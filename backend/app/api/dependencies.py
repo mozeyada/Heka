@@ -3,6 +3,8 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional
+from jose import JWTError, jwt
+from app.config import settings
 from app.core.security import verify_token
 from app.db.database import get_database
 from app.models.user import UserInDB
@@ -24,8 +26,22 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    # Verify token
-    payload = verify_token(token)
+    # Verify token with detailed logging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"🔍 Validating token - preview: {token[:30] if token else 'None'}...")
+    
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        logger.info(f"✅ Token valid - user_id: {payload.get('sub')}")
+    except JWTError as e:
+        logger.error(f"❌ Token validation failed: {str(e)} - token preview: {token[:30] if token else 'None'}...")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Token invalid: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     if payload is None:
         raise credentials_exception
     

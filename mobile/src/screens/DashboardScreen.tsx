@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,25 +6,31 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import * as Sentry from '@sentry/react-native';
 import { trackEvent } from '../services/analytics';
 import { fetchDashboardOverview, DashboardOverview } from '../api/dashboard';
-import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
+import { colors, spacing, typography, radii } from '../theme/tokens';
 import { useAuthStore } from '../store/auth';
+import { Card } from '../components/common';
+import { PageHeading } from '../components/PageHeading';
+import { StatCard, ActionCard } from '../components/DashboardCards';
 
 export default function DashboardScreen() {
+  const router = useRouter();
+  const { user, refreshSession } = useAuthStore();
   const [data, setData] = useState<DashboardOverview | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { refreshSession } = useAuthStore();
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const overview = await fetchDashboardOverview();
       setData(overview);
-      await trackEvent('dashboard_loaded', {
+      trackEvent('dashboard_loaded', {
         arguments_count: overview.arguments.length,
         goals_count: overview.goals.length,
         subscription_tier: overview.subscription.tier,
@@ -32,178 +38,241 @@ export default function DashboardScreen() {
     } catch (error) {
       console.log('Failed to load dashboard overview', error);
       Sentry.captureException(error);
-      await trackEvent('dashboard_load_failed');
+      trackEvent('dashboard_load_failed');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refreshSession();
-      const overview = await fetchDashboardOverview();
-      setData(overview);
-      await trackEvent('dashboard_refreshed');
+      await loadData();
+      trackEvent('dashboard_refreshed');
     } catch (error) {
       console.log('Refresh failed', error);
       Sentry.captureException(error);
-      await trackEvent('dashboard_refresh_failed');
+      trackEvent('dashboard_refresh_failed');
     } finally {
       setRefreshing(false);
     }
-  };
+  }, [loadData, refreshSession]);
 
   useEffect(() => {
-    void trackEvent('dashboard_viewed');
-    void loadData();
-  }, []);
+    trackEvent('dashboard_viewed');
+    loadData();
+  }, [loadData]);
 
   if (loading && !data) {
     return (
-      <View style={styles.loader}>
+      <View style={styles.centeredContainer}>
         <ActivityIndicator size="large" color={colors.brand[500]} />
-        <Text style={styles.loaderText}>Loading your dashboard…</Text>
       </View>
     );
   }
 
+  if (!data) {
+    return (
+      <View style={styles.centeredContainer}>
+        <Text style={styles.errorText}>Unable to load dashboard.</Text>
+        <TouchableOpacity style={styles.button} onPress={loadData}>
+          <Text style={styles.buttonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const usagePercentage = data.usage.is_unlimited
+    ? 0
+    : Math.min(Math.round((data.usage.count / Math.max(data.usage.limit, 1)) * 100), 100);
+
   return (
     <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl tintColor={colors.brand[500]} refreshing={refreshing} onRefresh={onRefresh} />
-      }
+      style={styles.screen}
+      contentContainerStyle={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} />}
     >
-      {data ? (
-        <View style={styles.content}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Subscription</Text>
-            <Text style={styles.line}>
-              Tier: <Text style={styles.highlight}>{data.subscription.tier}</Text>
-            </Text>
-            <Text style={styles.line}>Status: {data.subscription.status}</Text>
-            {data.subscription.trial_end ? (
-              <Text style={styles.line}>Trial ends: {data.subscription.trial_end}</Text>
-            ) : null}
-          </View>
+      <PageHeading
+        title={`Welcome back, ${user?.email?.split('@')[0] ?? 'there'}.`}
+        description="Here's a snapshot of your relationship health."
+      />
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Usage</Text>
-            <Text style={styles.line}>
-              {data.usage.count} / {data.usage.is_unlimited ? '∞' : data.usage.limit} arguments used
-            </Text>
-            <Text style={styles.line}>
-              Period: {data.usage.period_start ?? '—'} → {data.usage.period_end ?? '—'}
-            </Text>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Current Check-in</Text>
-            <Text style={styles.line}>Week starting: {data.week_start_date}</Text>
-            <Text style={styles.line}>Status: {data.current_checkin?.status ?? 'pending'}</Text>
-            {data.current_checkin?.completed_at ? (
-              <Text style={styles.line}>Completed: {data.current_checkin.completed_at}</Text>
-            ) : null}
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Active Goals</Text>
-            {data.goals.length === 0 ? (
-              <Text style={styles.line}>No active goals yet.</Text>
-            ) : (
-              data.goals.map((goal) => (
-                <View key={goal.id} style={styles.item}>
-                  <Text style={styles.itemTitle}>{goal.title}</Text>
-                  <Text style={styles.itemMeta}>
-                    Status: {goal.status} {goal.target_date ? `• Target: ${goal.target_date}` : ''}
-                  </Text>
-                </View>
-              ))
-            )}
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Arguments</Text>
-            {data.arguments.length === 0 ? (
-              <Text style={styles.line}>No arguments logged yet.</Text>
-            ) : (
-              data.arguments.map((argument) => (
-                <View key={argument.id} style={styles.item}>
-                  <Text style={styles.itemTitle}>{argument.title}</Text>
-                  <Text style={styles.itemMeta}>
-                    {argument.status} • {argument.priority} • {argument.category}
-                  </Text>
-                </View>
-              ))
-            )}
-          </View>
-        </View>
-      ) : (
-        <View style={styles.loader}>
-          <Text style={styles.loaderText}>Unable to load dashboard.</Text>
-        </View>
+      {data.subscription.tier === 'free' && (
+        <Card style={styles.trialCard}>
+          <Text style={styles.trialTitle}>Free Trial Active</Text>
+          <Text style={styles.trialDescription}>
+            {data.usage.count}/{data.usage.limit} arguments used.
+          </Text>
+          <TouchableOpacity style={styles.button} onPress={() => router.push('/subscription')}>
+            <Text style={styles.buttonText}>Upgrade Now</Text>
+          </TouchableOpacity>
+        </Card>
       )}
+
+      <View style={styles.statsRow}>
+        <StatCard
+          label="Arguments Left"
+          value={data.usage.is_unlimited ? '∞' : data.usage.limit - data.usage.count}
+          description={data.subscription.trial_end ? `Trial ends ${new Date(data.subscription.trial_end).toLocaleDateString()}` : ''}
+        />
+        <StatCard
+          label="Weekly Check-in"
+          value={data.current_checkin?.status === 'completed' ? '✓' : '—'}
+          description={data.current_checkin?.status === 'completed' ? 'Completed' : 'Pending'}
+        />
+        <StatCard
+          label="Active Goals"
+          value={data.goals.length}
+          description={data.goals.length > 0 ? 'In progress' : 'No active goals'}
+        />
+      </View>
+
+      {!data.usage.is_unlimited && (
+        <Card>
+          <Text style={styles.sectionTitle}>Usage Progress</Text>
+          <View style={styles.progressWrapper}>
+            <View style={[styles.progressBar, { width: `${usagePercentage}%` }]} />
+          </View>
+          <Text style={styles.progressLabel}>{usagePercentage}% used</Text>
+        </Card>
+      )}
+
+      <View style={styles.actionsRow}>
+        <ActionCard
+          title="Weekly Check-in"
+          description={data.current_checkin?.status === 'completed' ? 'Completed this week ✓' : 'Stay aligned with a quick weekly pulse.'}
+          buttonText={data.current_checkin?.status === 'completed' ? 'View Check-in' : 'Complete Check-in'}
+          onPress={() => router.push('/checkins')}
+        />
+        <ActionCard
+          title="Relationship Goals"
+          description={`${data.goals.length} active goal${data.goals.length !== 1 ? 's' : ''} keeping you focused.`}
+          buttonText="View Goals"
+          onPress={() => router.push('/goals')}
+        />
+      </View>
+
+      <Card>
+        <Text style={styles.sectionTitle}>Recent Arguments</Text>
+        {data.arguments.length === 0 ? (
+          <Text style={styles.emptyText}>No arguments logged yet.</Text>
+        ) : (
+          data.arguments.slice(0, 3).map((arg) => (
+            <TouchableOpacity key={arg.id} style={styles.argumentItem} onPress={() => router.push(`/argument?id=${arg.id}`)}>
+              <Text style={styles.argumentTitle}>{arg.title}</Text>
+              <Text style={styles.argumentMeta}>{arg.status} • {arg.priority}</Text>
+            </TouchableOpacity>
+          ))
+        )}
+        <TouchableOpacity style={styles.button} onPress={() => router.push('/arguments')}>
+          <Text style={styles.buttonText}>View All Arguments</Text>
+        </TouchableOpacity>
+      </Card>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    backgroundColor: colors.surfaceMuted,
+  },
   container: {
-    flex: 1,
-    backgroundColor: colors.surfaceMuted,
-  },
-  content: {
     padding: spacing.lg,
-    gap: spacing.lg,
   },
-  loader: {
+  centeredContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: colors.surfaceMuted,
   },
-  loaderText: {
+  button: {
+    backgroundColor: colors.brand[600],
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
+    alignItems: 'center',
     marginTop: spacing.md,
-    color: colors.neutral[400],
   },
-  section: {
-    padding: spacing.lg,
-    borderRadius: radii.lg,
-    backgroundColor: colors.surface,
-    gap: spacing.xs,
-    ...shadows.card,
+  buttonText: {
+    ...typography.label,
+    color: colors.surface,
+  },
+  errorText: {
+    ...typography.body,
+    color: colors.danger,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  trialCard: {
+    backgroundColor: colors.brand[50],
+    borderColor: colors.brand[200],
+    borderWidth: 1,
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  trialTitle: {
+    ...typography.heading,
+    fontSize: 18,
+    color: colors.brand[800],
+  },
+  trialDescription: {
+    ...typography.body,
+    color: colors.brand[700],
+    marginVertical: spacing.sm,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontFamily: typography.heading.fontFamily,
-    fontSize: typography.heading.fontSize,
+    ...typography.heading,
+    fontSize: 20,
     color: colors.neutral[100],
-    marginBottom: spacing.sm,
+    marginBottom: spacing.lg,
   },
-  line: {
+  progressWrapper: {
+    height: 8,
+    backgroundColor: colors.neutral[700],
+    borderRadius: radii.xl,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: colors.brand[500],
+  },
+  progressLabel: {
+    ...typography.label,
+    fontSize: 12,
     color: colors.neutral[400],
-    fontSize: typography.body.fontSize,
-    marginBottom: spacing.xs,
-  },
-  highlight: {
-    color: colors.brand[600],
-    fontWeight: '600',
-  },
-  item: {
+    textAlign: 'right',
     marginTop: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radii.md,
-    backgroundColor: colors.surfaceMuted,
   },
-  itemTitle: {
+  argumentItem: {
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[700],
+  },
+  argumentTitle: {
+    ...typography.label,
     color: colors.neutral[100],
-    fontSize: 16,
-    fontWeight: '600',
   },
-  itemMeta: {
-    marginTop: spacing.xs,
-    color: colors.neutral[400],
+  argumentMeta: {
+    ...typography.body,
     fontSize: 14,
+    color: colors.neutral[400],
+    marginTop: spacing.xs,
+  },
+  emptyText: {
+    ...typography.body,
+    color: colors.neutral[400],
+    textAlign: 'center',
+    padding: spacing.lg,
   },
 });
-

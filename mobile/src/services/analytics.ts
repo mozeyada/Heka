@@ -1,6 +1,10 @@
-import { Mixpanel } from 'mixpanel-react-native';
+import { NativeModules } from 'react-native';
 
-let instance: Mixpanel | null = null;
+type MixpanelStatic = typeof import('mixpanel-react-native')['Mixpanel'];
+
+let mixpanelModule: MixpanelStatic | null | undefined;
+let instance: any = null;
+let supported: boolean | null = null;
 
 function logDebug(message: string, meta?: Record<string, unknown>) {
   if (__DEV__) {
@@ -8,19 +12,59 @@ function logDebug(message: string, meta?: Record<string, unknown>) {
   }
 }
 
+function loadMixpanel() {
+  if (mixpanelModule !== undefined) {
+    return mixpanelModule;
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pkg = require('mixpanel-react-native') as {
+      Mixpanel?: MixpanelStatic;
+    };
+    mixpanelModule = pkg?.Mixpanel ?? null;
+  } catch (error) {
+    logDebug('Failed to load mixpanel-react-native package', { error });
+    mixpanelModule = null;
+  }
+
+  return mixpanelModule;
+}
+
+function isMixpanelSupported() {
+  if (supported !== null) return supported;
+  supported = Boolean(NativeModules?.MixpanelReactNative);
+  if (!supported) {
+    logDebug('Native module unavailable – skipping Mixpanel init');
+  }
+  return supported;
+}
+
 export async function initializeMixpanel() {
   if (instance) return instance;
+  if (!isMixpanelSupported()) {
+    return null;
+  }
+  const Mixpanel = loadMixpanel();
+  if (!Mixpanel) {
+    return null;
+  }
   const token = process.env.EXPO_PUBLIC_MIXPANEL_TOKEN;
   if (!token) {
     logDebug('Token missing, analytics disabled');
     return null;
   }
-  const client = await Mixpanel.init(token, true);
-  if (__DEV__) {
-    client.setLoggingEnabled(true);
+  try {
+    const client = await Mixpanel.init(token, true);
+    if (__DEV__) {
+      client.setLoggingEnabled(true);
+    }
+    instance = client;
+    return instance;
+  } catch (error) {
+    logDebug('Mixpanel init failed', { error });
+    return null;
   }
-  instance = client;
-  return instance;
 }
 
 async function getMixpanel() {

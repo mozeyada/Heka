@@ -1,4 +1,4 @@
-import { Expo, ExpoPushMessage } from 'expo-server-sdk';
+const { Expo } = require('expo-server-sdk');
 
 function usage() {
   console.log('Usage: npm run push:test -- <ExpoPushToken>');
@@ -31,13 +31,13 @@ async function main() {
     process.exit(1);
   }
 
-  const message: ExpoPushMessage = {
+  const message = {
     to: token,
     sound: 'default',
     title: process.env.PUSH_MESSAGE_TITLE ?? 'Heka push smoke test',
     body:
       process.env.PUSH_MESSAGE_BODY ??
-      'This is a test notification triggered from scripts/send-test-push.ts',
+      'This is a test notification triggered from scripts/send-test-push.cjs',
     data: {
       smokeTest: true,
       sentAt: new Date().toISOString(),
@@ -65,6 +65,5 @@ async function main() {
 }
 
 main();
-
 
 

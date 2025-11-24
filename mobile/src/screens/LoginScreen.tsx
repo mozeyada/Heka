@@ -12,20 +12,26 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useAuthStore } from '../store/auth';
+import { getDeviceId } from '../services/deviceId';
 import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [deviceId] = useState('mobile-demo-device'); // TODO: replace with actual device identifier
   const { login, loading, error } = useAuthStore();
 
   const handleLogin = async () => {
     try {
+      console.log('🔵 Login button pressed');
+      const deviceId = await getDeviceId();
+      console.log('🔵 Calling login function...');
       await login(email.trim().toLowerCase(), password, deviceId);
-      // TODO: navigate to dashboard (to be implemented)
+      console.log('✅ Login function completed successfully');
+      // Navigation is handled by _layout.tsx based on accessToken
     } catch (err) {
-      console.log('Login failed', err);
+      console.error('❌ Login failed in handleLogin:', err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error('Error details:', { errorMessage, err });
     }
   };
 

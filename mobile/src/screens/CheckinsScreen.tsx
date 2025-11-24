@@ -1,197 +1,253 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { fetchCheckinHistory, CheckinHistoryItem } from '../api/checkins';
-import { colors, spacing, radii, typography, shadows } from '../theme/tokens';
+import { getCurrentCheckin, completeCheckin } from '../api/checkins';
+import { useAuthStore } from '../store/auth';
+import { colors, spacing, typography, radii } from '../theme/tokens';
+import { Card } from '../components/common';
+import { PageHeading } from '../components/PageHeading';
 
-const PAGE_SIZE = 10;
-
-export default function CheckinsScreen() {
-  const [items, setItems] = useState<CheckinHistoryItem[]>([]);
-  const [offset, setOffset] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [nextOffset, setNextOffset] = useState<number | null>(null);
+export default function CheckinScreen() {
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+  const [checkin, setCheckin] = useState<any>(null);
+  const [responses, setResponses] = useState({ question1: '', question2: '' });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadPage = async (reset = false) => {
-    if (loading) return;
+  const loadCheckin = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const response = await fetchCheckinHistory({
-        limit: PAGE_SIZE,
-        offset: reset ? 0 : offset,
-      });
-      setItems((prev) => (reset ? response.checkins : [...prev, ...response.checkins]));
-      setOffset((prev) => (reset ? response.checkins.length : prev + response.checkins.length));
-      setNextOffset(response.next_offset);
-    } catch (error) {
-      console.log('Failed to load check-ins', error);
+      const data = await getCurrentCheckin();
+      setCheckin(data);
+      if (data.responses) {
+        setResponses({
+          question1: data.responses.question1 || '',
+          question2: data.responses.question2 || '',
+        });
+      }
+    } catch (err) {
+      setError('Failed to load check-in.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadPage(true);
-    setRefreshing(false);
-  };
-
-  useEffect(() => {
-    loadPage(true);
   }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    } else {
+      loadCheckin();
+    }
+  }, [isAuthenticated, router, loadCheckin]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadCheckin().finally(() => setRefreshing(false));
+  }, [loadCheckin]);
+
+  const handleSubmit = async () => {
+    if (!responses.question1.trim() || !responses.question2.trim()) {
+      setError('Please answer both questions.');
+      return;
+    }
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await completeCheckin(responses);
+      loadCheckin(); // Reload to show completed state
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to submit check-in.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.centeredContainer}>
+        <ActivityIndicator size="large" color={colors.brand[500]} />
+      </View>
+    );
+  }
+
   return (
-    <FlatList
-      contentContainerStyle={styles.list}
-      data={items}
-      keyExtractor={(item) => item.id}
-      ListHeaderComponent={
-        <View style={styles.hero}>
-          <Text style={styles.heroTitle}>Weekly check-ins</Text>
-          <Text style={styles.heroSubtitle}>
-            Stay aligned with a five-minute ritual. Tap a week to review completion details on the dashboard.
-          </Text>
-          <TouchableOpacity
-            style={styles.ctaButton}
-            onPress={() => router.push('/dashboard')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.ctaButtonText}>Go to Dashboard</Text>
-          </TouchableOpacity>
-        </View>
-      }
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={styles.card}
-          onPress={() => router.push('/dashboard')}
-        >
-          <View style={styles.cardHeader}>
-            <Text style={styles.title}>Week beginning {item.week_start_date}</Text>
-            <View style={[styles.statusPill, item.status === 'completed' ? styles.statusComplete : styles.statusPending]}>
-              <Text
-                style={[styles.statusText, item.status === 'completed' ? styles.statusTextComplete : styles.statusTextPending]}
-              >
-                {item.status.toUpperCase()}
-              </Text>
-            </View>
-          </View>
-          {item.completed_at ? (
-            <Text style={styles.meta}>Completed: {item.completed_at}</Text>
-          ) : (
-            <Text style={styles.meta}>Not completed yet</Text>
-          )}
-        </TouchableOpacity>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} />}
+    >
+      <PageHeading
+        title="Weekly Check-in"
+        description="A quick pulse on your relationship health."
+      />
+
+      {error && (
+        <Card style={styles.errorCard}>
+          <Text style={styles.errorText}>{error}</Text>
+        </Card>
       )}
-      ListEmptyComponent={
-        !loading ? (
-          <Text style={styles.empty}>No history yet. Complete your first weekly check-in to begin tracking.</Text>
-        ) : null
-      }
-      ListFooterComponent={
-        loading && nextOffset !== null ? (
-          <View style={styles.footer}>
-            <ActivityIndicator color={colors.brand[500]} />
-          </View>
-        ) : null
-      }
-      onEndReached={() => {
-        if (nextOffset !== null && !loading) {
-          loadPage();
-        }
-      }}
-      refreshControl={
-        <RefreshControl tintColor={colors.brand[500]} refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    />
+
+      {checkin?.status === 'completed' ? (
+        <CompletedCheckinView checkin={checkin} />
+      ) : (
+        <CheckinForm
+          responses={responses}
+          setResponses={setResponses}
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+        />
+      )}
+    </ScrollView>
   );
 }
 
+const CheckinForm = ({ responses, setResponses, onSubmit, isSubmitting }: any) => (
+  <Card>
+    <Text style={styles.questionLabel}>1. How are you feeling about communication this week?</Text>
+    <TextInput
+      style={[styles.input, styles.textArea]}
+      placeholder="Share your thoughts openly…"
+      placeholderTextColor={colors.neutral[400]}
+      value={responses.question1}
+      onChangeText={(text) => setResponses({ ...responses, question1: text })}
+      multiline
+    />
+
+    <Text style={styles.questionLabel}>2. Rate your relationship satisfaction (1-10) and explain why?</Text>
+    <TextInput
+      style={[styles.input, styles.textArea]}
+      placeholder="Rate from 1–10 and share context…"
+      placeholderTextColor={colors.neutral[400]}
+      value={responses.question2}
+      onChangeText={(text) => setResponses({ ...responses, question2: text })}
+      multiline
+    />
+
+    <TouchableOpacity
+      style={[styles.button, isSubmitting && styles.buttonDisabled]}
+      onPress={onSubmit}
+      disabled={isSubmitting}
+    >
+      <Text style={styles.buttonText}>{isSubmitting ? 'Submitting...' : 'Submit Check-in'}</Text>
+    </TouchableOpacity>
+  </Card>
+);
+
+const CompletedCheckinView = ({ checkin }: any) => (
+  <Card>
+    <View style={styles.completedHeader}>
+      <Text style={styles.completedTitle}>Check-in Completed!</Text>
+      <Text style={styles.completedDate}>
+        Submitted on {new Date(checkin.completed_at).toLocaleDateString()}
+      </Text>
+    </View>
+
+    <View style={styles.responseCard}>
+      <Text style={styles.questionLabel}>How are you feeling about communication this week?</Text>
+      <Text style={styles.responseText}>{checkin.responses.question1}</Text>
+    </View>
+
+    <View style={styles.responseCard}>
+      <Text style={styles.questionLabel}>Rate your relationship satisfaction (1-10) and why?</Text>
+      <Text style={styles.responseText}>{checkin.responses.question2}</Text>
+    </View>
+  </Card>
+);
+
 const styles = StyleSheet.create({
-  list: {
-    padding: spacing.lg,
+  screen: {
     backgroundColor: colors.surfaceMuted,
-    gap: spacing.md,
   },
-  hero: {
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-  },
-  heroTitle: {
-    fontSize: typography.body.fontSize + 6,
-    fontWeight: '700',
-    color: colors.neutral[100],
-  },
-  heroSubtitle: {
-    color: colors.neutral[400],
-    lineHeight: 20,
-  },
-  ctaButton: {
-    marginTop: spacing.sm,
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.md,
-    backgroundColor: colors.brand[500],
-  },
-  ctaButtonText: {
-    color: colors.surface,
-    fontWeight: '600',
-  },
-  card: {
+  container: {
     padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    gap: spacing.sm,
-    ...shadows.card,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  title: {
-    color: colors.neutral[100],
-    fontSize: typography.body.fontSize + 2,
-    fontWeight: '600',
+  centeredContainer: {
     flex: 1,
-    marginRight: spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceMuted,
   },
-  meta: {
-    color: colors.neutral[400],
-    fontSize: 14,
-  },
-  statusPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.md,
-  },
-  statusPending: {
-    backgroundColor: '#fef9c3',
-  },
-  statusComplete: {
-    backgroundColor: '#bbf7d0',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-  },
-  statusTextPending: {
-    color: '#b45309',
-  },
-  statusTextComplete: {
-    color: '#15803d',
-  },
-  empty: {
-    textAlign: 'center',
-    color: colors.neutral[400],
-    paddingVertical: spacing['2xl'],
-  },
-  footer: {
+  button: {
+    backgroundColor: colors.brand[600],
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    marginTop: spacing.lg,
+  },
+  buttonText: {
+    ...typography.label,
+    color: colors.surface,
+  },
+  buttonDisabled: {
+    backgroundColor: colors.brand[400],
+  },
+  questionLabel: {
+    ...typography.label,
+    color: colors.neutral[200],
+    marginBottom: spacing.md,
+  },
+  input: {
+    ...typography.body,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.neutral[600],
+    padding: spacing.md,
+    color: colors.neutral[100],
+    marginBottom: spacing.lg,
+  },
+  textArea: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  errorCard: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: colors.danger,
+    borderWidth: 1,
+    marginBottom: spacing.lg,
+  },
+  errorText: {
+    ...typography.body,
+    color: colors.danger,
+    textAlign: 'center',
+  },
+  completedHeader: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    paddingBottom: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral[700],
+  },
+  completedTitle: {
+    ...typography.heading,
+    fontSize: 22,
+    color: colors.success,
+  },
+  completedDate: {
+    ...typography.body,
+    color: colors.neutral[400],
+    marginTop: spacing.sm,
+  },
+  responseCard: {
+    marginBottom: spacing.lg,
+  },
+  responseText: {
+    ...typography.body,
+    color: colors.neutral[200],
+    marginTop: spacing.sm,
   },
 });
-

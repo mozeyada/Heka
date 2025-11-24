@@ -1,11 +1,14 @@
 import { api } from './client';
 
-export type CheckinHistoryItem = {
+export type Checkin = {
   id: string;
   week_start_date: string;
   status: string;
   completed_at: string | null;
+  responses: Record<string, string> | null;
 };
+
+export type CheckinHistoryItem = Omit<Checkin, 'responses'>;
 
 export type CheckinHistoryResponse = {
   checkins: CheckinHistoryItem[];
@@ -22,13 +25,13 @@ export async function fetchCheckinHistory(params?: {
   return response.data;
 }
 
-export async function fetchCurrentCheckin() {
-  const response = await api.get('/api/checkins/current');
+export async function getCurrentCheckin(): Promise<Checkin> {
+  const response = await api.get<Checkin>('/api/checkins/current');
   return response.data;
 }
 
-export async function completeCurrentCheckin(responses: Record<string, string>) {
-  const response = await api.post('/api/checkins/current/complete', {
+export async function completeCheckin(responses: Record<string, string>): Promise<Checkin> {
+  const response = await api.post<Checkin>('/api/checkins/current/complete', {
     responses,
   });
   return response.data;

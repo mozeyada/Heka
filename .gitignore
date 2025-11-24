@@ -73,3 +73,9 @@ config/secrets.json
 !SETUP.md
 !DEPLOYMENT_ENV_VARS.md
 
+.cursor/
+backend/debug_token.py
+backend/temp_debug_env/
+backend/start_backend.sh
+mobile/clear-auth.js
+mobile/get_logs.sh

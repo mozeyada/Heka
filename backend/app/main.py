@@ -50,6 +50,7 @@ app = FastAPI(
     docs_url="/docs",  # Explicitly enable Swagger UI
     redoc_url="/redoc",  # Explicitly enable ReDoc
     openapi_url="/openapi.json",  # Explicitly enable OpenAPI schema
+    redirect_slashes=False,  # Disable automatic trailing slash redirects to preserve auth headers
 )
 
 # Configure rate limiter

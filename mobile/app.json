@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.heka.app"
+      "bundleIdentifier": "com.heka.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.heka.app",
@@ -33,7 +36,6 @@
       "output": "static"
     },
     "plugins": [
-      "expo-router",
       "sentry-expo",
       [
         "expo-notifications",
@@ -42,9 +44,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "pending"
+        "projectId": "6ed8b76f-a657-4a77-8ede-c2a0fcffc794"
       }
-    }
+    },
+    "owner": "mo.zeyada"
   }
 }
-

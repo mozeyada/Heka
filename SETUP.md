@@ -52,7 +52,7 @@ cp .env.example .env
 # Get connection string and update MONGODB_URL in .env
 
 # Start development server
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8001
 ```
 
 Backend will run at: http://localhost:8000  

@@ -13,6 +13,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: false,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -59,6 +61,7 @@ export async function registerForPushNotifications() {
     );
 
     const token = tokenResponse.data;
+    console.log('📱 Expo Push Token:', token);
     const deviceId = await getDeviceId();
 
     await registerDeviceToken({
@@ -71,9 +74,24 @@ export async function registerForPushNotifications() {
       platform: Platform.OS,
     });
   } catch (error) {
-    await trackEvent('push_registration_failed', { reason: 'exception' });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isFirebaseError = errorMessage.includes('FirebaseApp') || errorMessage.includes('FCM');
+    
+    // Log to console for debugging, but don't crash the app
+    if (isFirebaseError) {
+      console.warn('⚠️ Push notifications unavailable: Firebase not configured. This is expected until FCM credentials are set up.');
+    } else {
+      console.error('❌ Push registration error:', error);
+    }
+    
+    await trackEvent('push_registration_failed', { 
+      reason: 'exception', 
+      error: errorMessage,
+      is_firebase_config: isFirebaseError 
+    });
+    
+    // Don't throw - push notifications are optional, app should continue working
     registrationAttempted = false;
-    throw error;
   }
 }
 

@@ -1,200 +1,247 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { fetchGoals, GoalListItem, updateGoalStatus } from '../api/goals';
-import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
-
-const PAGE_SIZE = 20;
+import { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  TextInput,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { fetchGoals, createGoal, updateGoalStatus, Goal } from '../api/goals';
+import { useAuthStore } from '../store/auth';
+import { colors, spacing, typography, radii } from '../theme/tokens';
+import { Card } from '../components/common';
+import { GoalCard } from '../components/GoalCard';
+import { PageHeading } from '../components/PageHeading';
 
 export default function GoalsScreen() {
-  const [items, setItems] = useState<GoalListItem[]>([]);
-  const [offset, setOffset] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newGoal, setNewGoal] = useState({ title: '', description: '', target_date: '' });
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadPage = async (reset = false) => {
-    if (loading) return;
+  const loadGoals = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const response = await fetchGoals({
-        limit: PAGE_SIZE,
-        offset: reset ? 0 : offset,
-      });
-      setItems((prev) => (reset ? response : [...prev, ...response]));
-      setOffset((prev) => (reset ? response.length : prev + response.length));
-      setHasMore(response.length === PAGE_SIZE);
-    } catch (error) {
-      console.log('Failed to load goals', error);
+      const data = await fetchGoals();
+      setGoals(data);
+    } catch (err) {
+      setError('Failed to load goals.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const onRefresh = async () => {
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    } else {
+      loadGoals();
+    }
+  }, [isAuthenticated, router, loadGoals]);
+
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    await loadPage(true);
-    setRefreshing(false);
-  };
+    loadGoals().finally(() => setRefreshing(false));
+  }, [loadGoals]);
 
-  const toggleGoalStatus = async (goal: GoalListItem) => {
+  const handleCreateGoal = async () => {
+    if (!newGoal.title.trim()) {
+      setError('Title is required.');
+      return;
+    }
+    setIsCreating(true);
+    setError(null);
     try {
-      setUpdatingId(goal.id);
-      const nextStatus = goal.status === 'completed' ? 'active' : 'completed';
-      await updateGoalStatus(goal.id, nextStatus);
-      setItems((prev) =>
-        prev.map((item) => (item.id === goal.id ? { ...item, status: nextStatus } : item))
-      );
-    } catch (error) {
-      console.log('Failed to update goal status', error);
+      await createGoal(newGoal);
+      setNewGoal({ title: '', description: '', target_date: '' });
+      setShowCreateForm(false);
+      loadGoals();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to create goal.');
     } finally {
-      setUpdatingId(null);
+      setIsCreating(false);
     }
   };
 
-  useEffect(() => {
-    loadPage(true);
-  }, []);
+  const handleCompleteGoal = async (goalId: string) => {
+    try {
+      await updateGoalStatus(goalId, 'completed');
+      loadGoals();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to complete goal.');
+    }
+  };
+
+  const activeGoals = goals.filter((g) => g.status === 'active');
+  const completedGoals = goals.filter((g) => g.status === 'completed');
+
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.centeredContainer}>
+        <ActivityIndicator size="large" color={colors.brand[500]} />
+      </View>
+    );
+  }
 
   return (
-    <FlatList
-      contentContainerStyle={styles.list}
-      data={items}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => {
-        const isCompleted = item.status === 'completed';
-        return (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-            <Text style={styles.title}>{item.title}</Text>
-              <View style={[styles.statusPill, isCompleted ? styles.statusComplete : styles.statusActive]}>
-                <Text style={[styles.statusText, isCompleted ? styles.statusTextComplete : styles.statusTextActive]}>
-                  {item.status.toUpperCase()}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.meta}>
-              {item.target_date ? `Target: ${item.target_date}` : 'No target date set'}
-            </Text>
-            {item.description ? <Text style={styles.description}>{item.description}</Text> : null}
-            <TouchableOpacity
-              style={[styles.actionButton, isCompleted ? styles.actionSecondary : styles.actionPrimary]}
-              onPress={() => toggleGoalStatus(item)}
-              disabled={updatingId === item.id}
-            >
-              <Text style={styles.actionButtonText}>
-                {updatingId === item.id
-                  ? 'Updating…'
-                  : isCompleted
-                  ? 'Mark Active'
-                  : 'Mark Complete'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        );
-      }}
-      ListEmptyComponent={
-        !loading ? <Text style={styles.empty}>No goals yet. Set an intention together.</Text> : null
-      }
-      ListFooterComponent={
-        loading && hasMore ? (
-          <View style={styles.footer}>
-            <ActivityIndicator color={colors.brand[500]} />
-          </View>
-        ) : null
-      }
-      onEndReached={() => {
-        if (hasMore && !loading) {
-          loadPage();
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} />}
+    >
+      <PageHeading
+        title="Relationship Goals"
+        description="Set shared goals to strengthen your partnership."
+        actions={
+          <TouchableOpacity style={styles.button} onPress={() => setShowCreateForm(!showCreateForm)}>
+            <Text style={styles.buttonText}>{showCreateForm ? 'Cancel' : 'New Goal'}</Text>
+          </TouchableOpacity>
         }
-      }}
-      refreshControl={
-        <RefreshControl tintColor={colors.brand[500]} refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    />
+      />
+
+      {error && (
+        <Card style={styles.errorCard}>
+          <Text style={styles.errorText}>{error}</Text>
+        </Card>
+      )}
+
+      {showCreateForm && (
+        <Card>
+          <Text style={styles.sectionTitle}>Create New Goal</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Goal Title"
+            placeholderTextColor={colors.neutral[400]}
+            value={newGoal.title}
+            onChangeText={(text) => setNewGoal({ ...newGoal, title: text })}
+          />
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Description (optional)"
+            placeholderTextColor={colors.neutral[400]}
+            value={newGoal.description}
+            onChangeText={(text) => setNewGoal({ ...newGoal, description: text })}
+            multiline
+          />
+          <TouchableOpacity
+            style={[styles.button, isCreating && styles.buttonDisabled]}
+            onPress={handleCreateGoal}
+            disabled={isCreating}
+          >
+            <Text style={styles.buttonText}>{isCreating ? 'Creating...' : 'Create Goal'}</Text>
+          </TouchableOpacity>
+        </Card>
+      )}
+
+      {goals.length === 0 && !showCreateForm && (
+        <Card>
+          <Text style={styles.emptyText}>No goals yet. Create one to get started!</Text>
+        </Card>
+      )}
+
+      {activeGoals.length > 0 && (
+        <View>
+          <Text style={styles.sectionTitle}>Active Goals</Text>
+          {activeGoals.map((goal) => (
+            <GoalCard
+              key={goal.id}
+              goal={goal}
+              onPress={() => router.push(`/goals/${goal.id}`)}
+              onComplete={() => handleCompleteGoal(goal.id)}
+            />
+          ))}
+        </View>
+      )}
+
+      {completedGoals.length > 0 && (
+        <View style={{ marginTop: spacing.xl }}>
+          <Text style={styles.sectionTitle}>Completed Goals</Text>
+          {completedGoals.map((goal) => (
+            <GoalCard
+              key={goal.id}
+              goal={goal}
+              onPress={() => router.push(`/goals/${goal.id}`)}
+              onComplete={() => {}}
+            />
+          ))}
+        </View>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  list: {
-    padding: spacing.lg,
+  screen: {
     backgroundColor: colors.surfaceMuted,
-    gap: spacing.lg,
   },
-  card: {
+  container: {
     padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    ...shadows.card,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    backgroundColor: colors.surfaceMuted,
   },
-  title: {
+  button: {
+    backgroundColor: colors.brand[600],
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
+    alignItems: 'center',
+  },
+  buttonText: {
+    ...typography.label,
+    color: colors.surface,
+  },
+  buttonDisabled: {
+    backgroundColor: colors.brand[400],
+  },
+  sectionTitle: {
+    ...typography.heading,
+    fontSize: 20,
     color: colors.neutral[100],
-    fontSize: typography.body.fontSize + 2,
-    fontWeight: '600',
+    marginBottom: spacing.lg,
   },
-  meta: {
-    color: colors.neutral[400],
-    fontSize: 14,
-    marginBottom: spacing.sm,
-  },
-  description: {
-    marginTop: spacing.xs,
-    color: colors.neutral[600],
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  statusPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+  input: {
+    ...typography.body,
+    backgroundColor: colors.surface,
     borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.neutral[600],
+    padding: spacing.md,
+    color: colors.neutral[100],
+    marginBottom: spacing.md,
   },
-  statusActive: {
-    backgroundColor: colors.brand[100],
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
-  statusComplete: {
-    backgroundColor: colors.neutral[600],
+  errorCard: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: colors.danger,
+    borderWidth: 1,
+    marginBottom: spacing.lg,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.4,
+  errorText: {
+    ...typography.body,
+    color: colors.danger,
+    textAlign: 'center',
   },
-  statusTextActive: {
-    color: colors.brand[600],
-  },
-  statusTextComplete: {
-    color: colors.neutral[50],
-  },
-  actionButton: {
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.md,
-    alignItems: 'center',
-  },
-  actionPrimary: {
-    backgroundColor: colors.brand[500],
-  },
-  actionSecondary: {
-    backgroundColor: colors.neutral[600],
-  },
-  actionButtonText: {
-    color: colors.neutral[50],
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  empty: {
+  emptyText: {
+    ...typography.body,
     color: colors.neutral[400],
     textAlign: 'center',
-    paddingVertical: spacing['2xl'],
-  },
-  footer: {
-    paddingVertical: spacing.md,
+    padding: spacing.lg,
   },
 });
-
