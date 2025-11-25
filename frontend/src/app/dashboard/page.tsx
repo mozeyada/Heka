@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { MessageCircle, Sparkles, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useCouplesStore } from '@/store/couplesStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
@@ -11,6 +12,9 @@ import { goalsAPI } from '@/lib/api';
 import { subscriptionsAPI } from '@/lib/api';
 import { LoadingPage } from '@/components/LoadingSpinner';
 import { ErrorAlert } from '@/components/ErrorAlert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -99,236 +103,242 @@ export default function DashboardPage() {
     return <LoadingPage />;
   }
 
-  return (
-    <div className="bg-white pb-20">
-      <div className="app-container py-8 space-y-8">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold text-neutral-900">
-              Welcome back, {user.name?.split(' ')[0] ?? user.name}.
-            </h1>
-            <p className="mt-2 text-base text-neutral-600">
-              Track your relationship health, complete check-ins, and keep arguments moving toward resolution.
-            </p>
-          </div>
-          {subscription && (
-            <Link
-              href="/subscription"
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
-            >
-              Manage subscription
-            </Link>
-          )}
-        </div>
+  // Get greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
 
+  const userName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'there';
+
+  return (
+    <div className="bg-background min-h-screen pb-20">
+      <div className="app-container py-8 space-y-6">
         {error && (
           <ErrorAlert message={error} onRetry={loadDashboardData} onDismiss={() => setError(null)} />
         )}
 
-        {/* Free Trial Banner */}
-        {subscription && subscription.tier === 'free' && (
-          <div className="rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-indigo-100 p-6 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-neutral-900">Free Trial Active</h3>
-                <p className="mt-1 text-sm text-neutral-600">
-                  {usageCount}/{usageLimit} arguments used
-                  {trialEndsOn && ` • Trial ends ${trialEndsOn}`}
+        {/* Hero Section - Warm Greeting */}
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold text-neutral-900">
+            {getGreeting()}, {userName}.
+          </h1>
+          <p className="text-sm text-neutral-500">Your relationship pulse.</p>
+        </div>
+
+        {/* Primary Action Card - Start New Session */}
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1 flex-1">
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">
+                  Resolve a Conflict
+                </h2>
+                <p className="text-sm text-muted-foreground max-w-[280px]">
+                  Feeling heard is the first step. Start a guided AI mediation session now.
                 </p>
               </div>
-              <Link
-                href="/subscription"
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
-              >
-                Upgrade Now
-              </Link>
+              {/* Decorative Icon */}
+              <div className="p-2 bg-primary/10 rounded-full ml-4">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Stats Overview */}
-        <div className="grid gap-6 sm:grid-cols-3">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Arguments Left</p>
-            <p className="mt-3 text-3xl font-semibold text-neutral-900">
-              {usage?.is_unlimited ? 'Unlimited' : `${usageLimit - usageCount}`}
-            </p>
-            {subscription?.tier === 'free' && trialEndsOn && (
-              <p className="mt-2 text-sm text-neutral-500">
-                Trial ends {trialEndsOn}
-              </p>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Weekly Check-in</p>
-            <p className="mt-3 text-3xl font-semibold text-neutral-900">
-              {currentCheckin?.status === 'completed' ? '✓' : '—'}
-            </p>
-            <p className="mt-2 text-sm text-neutral-500">
-              {currentCheckin?.status === 'completed'
-                ? 'Completed this week'
-                : 'Stay aligned with a quick pulse'}
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Active Goals</p>
-            <p className="mt-3 text-3xl font-semibold text-neutral-900">{goals.length}</p>
-            <p className="mt-2 text-sm text-neutral-500">
-              {goals.length > 0 ? 'Keep up the momentum' : 'Set a shared intention'}
-            </p>
-          </div>
-        </div>
-
-        {/* Usage Progress */}
-        {!usage?.is_unlimited && usageLimit > 0 && (
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between text-xs font-medium text-neutral-500 uppercase tracking-wide mb-4">
-              <span>Usage Progress</span>
-              <span>{usagePercentage}%</span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-neutral-100">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  usageCount >= usageLimit ? 'bg-red-600' : 'bg-indigo-600'
-                }`}
-                style={{ width: `${usagePercentage}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Quick Actions */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <h3 className="text-base font-semibold text-neutral-900">Weekly Check-in</h3>
-            <p className="mt-2 text-sm text-neutral-600">
-              {currentCheckin?.status === 'completed' 
-                ? 'Completed this week ✓' 
-                : 'Stay aligned with a quick weekly pulse.'}
-            </p>
-            <Link
-              href="/checkins/current"
-              className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
-            >
-              {currentCheckin?.status === 'completed' ? 'View Check-in' : 'Complete Check-in'}
-            </Link>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <h3 className="text-base font-semibold text-neutral-900">Relationship Goals</h3>
-            <p className="mt-2 text-sm text-neutral-600">
-              {goals.length} active goal{goals.length !== 1 ? 's' : ''} keeping you focused together.
-            </p>
-            <Link
-              href="/goals"
-              className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
-            >
-              View Goals
-            </Link>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <h3 className="text-base font-semibold text-neutral-900">New Argument</h3>
-            <p className="mt-2 text-sm text-neutral-600">
-              Capture both perspectives and let Heka guide you toward resolution.
-            </p>
-            <button
+            <Button
+              className="w-full mt-6 gap-2 shadow-md"
+              size="lg"
               onClick={() => router.push('/arguments/create')}
-              className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!couple}
             >
-              New Argument
-            </button>
-          </div>
+              <MessageCircle className="h-4 w-4" />
+              Start New Session
+            </Button>
+            {!couple && (
+              <p className="mt-3 text-xs text-muted-foreground text-center">
+                Connect with your partner to start
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Status Grid - 2 Columns (Fixed Layout) */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Weekly Check-in Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Weekly Check-in
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                {currentCheckin?.status === 'completed' ? (
+                  <>
+                    <p className="text-3xl font-semibold text-foreground">✓</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Completed</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-3xl font-semibold text-foreground">—</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Pending</p>
+                  </>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                asChild
+              >
+                <Link href="/checkins/current">
+                  {currentCheckin?.status === 'completed' ? 'View' : 'Complete Now'}
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Active Goals Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Active Goals
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-3xl font-semibold text-foreground">{goals.length}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {goals.length === 1 ? 'Goal' : 'Goals'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                asChild
+              >
+                <Link href="/goals">View Goals</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Active Issues / Recent Arguments */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Active Issues</CardTitle>
+              {couple && args.length > 0 && (
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/arguments">View All</Link>
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {args.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground mb-4">
+                  No active conflicts. You're in a good place.
+                </p>
+                {couple && (
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push('/arguments/create')}
+                  >
+                    Start New Session
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {args.slice(0, 3).map((arg) => (
+                  <button
+                    key={arg.id}
+                    onClick={() => router.push(`/arguments/${arg.id}`)}
+                    className="w-full rounded-lg border border-border bg-muted/50 p-4 text-left transition-all hover:border-primary/50 hover:bg-background flex items-center justify-between group"
+                  >
+                    <div className="flex-1 min-w-0 mr-3">
+                      <h4 className="font-semibold text-foreground truncate mb-1">{arg.title}</h4>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={
+                            arg.status === 'analyzed'
+                              ? 'default'
+                              : arg.status === 'draft'
+                              ? 'secondary'
+                              : 'outline'
+                          }
+                          className="text-xs"
+                        >
+                          {arg.status}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground truncate">
+                          {arg.category}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Couple Status */}
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-neutral-900">Your Couple Profile</h3>
-              <p className="mt-2 text-sm text-neutral-600">
-                {couple 
-                  ? "You're connected and ready to collaborate."
-                  : 'Invite your partner to create a couple profile and unlock shared insights.'}
+        {!couple && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-6">
+              <h3 className="text-sm font-semibold text-foreground mb-1">Connect with Your Partner</h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Invite your partner to unlock shared insights and collaborative mediation.
               </p>
-            </div>
-            {!couple && (
-              <button
+              <Button
+                size="sm"
                 onClick={() => router.push('/couples/create')}
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
               >
                 Create Couple Profile
-              </button>
-            )}
-          </div>
-          {couple && (
-            <div className="mt-4 rounded-lg bg-green-50 border border-green-200 p-4">
-              <p className="text-sm font-semibold text-green-700">✓ Active • All sessions are shared</p>
-            </div>
-          )}
-        </div>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Arguments List */}
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-            <div>
-              <h3 className="text-base font-semibold text-neutral-900">Your Arguments</h3>
-              <p className="mt-1 text-sm text-neutral-600">
-                Revisit previous conflicts and keep momentum toward resolution.
-              </p>
-            </div>
-            {couple && (
-              <button
-                onClick={() => router.push('/arguments/create')}
-                className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
-              >
-                New Argument
-              </button>
-            )}
-          </div>
-
-          {args.length === 0 ? (
-            <p className="text-sm text-neutral-500">
-              No arguments yet. Create your first argument to get started.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {args.slice(0, 5).map((arg) => (
-                <button
-                  key={arg.id}
-                  onClick={() => router.push(`/arguments/${arg.id}`)}
-                  className="w-full rounded-xl border border-neutral-200 bg-white p-5 text-left transition-all hover:border-indigo-200 hover:shadow-md"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-neutral-900">{arg.title}</h4>
-                      <p className="mt-1 text-sm text-neutral-500">
-                        {arg.category} • {arg.status}
-                      </p>
-                    </div>
-                    <span
-                      className={`inline-flex items-center rounded-md px-3 py-1 text-xs font-semibold ${
-                        arg.priority === 'urgent'
-                          ? 'bg-red-100 text-red-700 border border-red-200'
-                          : arg.priority === 'high'
-                          ? 'bg-orange-100 text-orange-700 border border-orange-200'
-                          : arg.priority === 'medium'
-                          ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                          : 'bg-neutral-100 text-neutral-600 border border-neutral-200'
-                      }`}
-                    >
-                      {arg.priority}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Subscription/Usage - Subtle Bottom Section */}
+        {subscription && !usage?.is_unlimited && usageLimit > 0 && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Plan Status</p>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/subscription">View Options</Link>
+                </Button>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {usageCount} of {usageLimit} free sessions used
+                  </span>
+                  <span className="text-muted-foreground">{usagePercentage}%</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      usageCount >= usageLimit ? 'bg-destructive' : 'bg-primary'
+                    }`}
+                    style={{ width: `${usagePercentage}%` }}
+                  />
+                </div>
+                {subscription.tier === 'free' && trialEndsOn && (
+                  <p className="text-xs text-muted-foreground">
+                    Trial ends {trialEndsOn}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
