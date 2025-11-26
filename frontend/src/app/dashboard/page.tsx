@@ -2,8 +2,19 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { MessageCircle, Sparkles, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import type { LucideIcon } from 'lucide-react';
+import {
+  MessageCircle,
+  Sparkles,
+  ChevronRight,
+  Heart,
+  Shield,
+  Home,
+  FileText,
+  Target,
+  Settings as SettingsIcon,
+} from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useCouplesStore } from '@/store/couplesStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
@@ -18,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isAuthenticated, fetchCurrentUser } = useAuthStore();
   const { couple, fetchMyCouple } = useCouplesStore();
   const { arguments: args, fetchArguments } = useArgumentsStore();
@@ -112,25 +124,72 @@ export default function DashboardPage() {
   };
 
   const userName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'there';
+  const userInitial = userName.charAt(0).toUpperCase();
+  const elevatedCardClasses =
+    'border-0 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.06)] hover:shadow-[0_24px_45px_rgba(15,23,42,0.12)] transition-all';
+  const categoryIconMap = {
+    communication: {
+      icon: MessageCircle,
+      bg: 'bg-blue-100',
+      color: 'text-blue-600',
+      text: 'communication',
+    },
+    values: {
+      icon: Heart,
+      bg: 'bg-rose-100',
+      color: 'text-rose-600',
+      text: 'values alignment',
+    },
+    trust: {
+      icon: Shield,
+      bg: 'bg-indigo-100',
+      color: 'text-indigo-600',
+      text: 'trust & safety',
+    },
+  } as const;
+  const defaultCategoryIcon = {
+    icon: MessageCircle,
+    bg: 'bg-slate-200',
+    color: 'text-slate-500',
+    text: 'relationship',
+  };
+  const getCategoryIconConfig = (category?: string) => {
+    const key = (category ?? '').toLowerCase() as keyof typeof categoryIconMap;
+    return categoryIconMap[key] ?? defaultCategoryIcon;
+  };
+  const navItems: Array<{ label: string; href: string; icon: LucideIcon }> = [
+    { label: 'Home', href: '/dashboard', icon: Home },
+    { label: 'Issues', href: '/arguments', icon: FileText },
+    { label: 'Goals', href: '/goals', icon: Target },
+    { label: 'Settings', href: '/settings', icon: SettingsIcon },
+  ];
 
   return (
-    <div className="bg-background min-h-screen pb-20">
-      <div className="app-container py-8 space-y-6">
+    <div className="bg-slate-100/80 min-h-screen pb-32">
+      <div className="app-container py-8 space-y-6 pb-28">
         {error && (
           <ErrorAlert message={error} onRetry={loadDashboardData} onDismiss={() => setError(null)} />
         )}
 
         {/* Hero Section - Warm Greeting */}
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-neutral-900">
-            {getGreeting()}, {userName}.
-          </h1>
-          <p className="text-sm text-neutral-500">Your relationship pulse.</p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              {getGreeting()}, {userName}.
+            </h1>
+            <p className="text-base font-medium text-slate-500">Your relationship pulse.</p>
+          </div>
+          <div className="h-12 w-12 rounded-full bg-white shadow-lg border border-white flex items-center justify-center text-primary font-semibold">
+            {userInitial}
+          </div>
         </div>
 
         {/* Primary Action Card - Start New Session */}
-        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent shadow-sm">
-          <CardContent className="p-6">
+        <Card
+          className={`${elevatedCardClasses} relative overflow-hidden bg-gradient-to-br from-primary/20 via-primary/5 to-white`}
+        >
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(147,51,234,0.2),transparent_50%)]" />
+          <CardContent className="relative p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-1 flex-1">
                 <h2 className="text-xl font-semibold tracking-tight text-foreground">
@@ -163,32 +222,40 @@ export default function DashboardPage() {
         </Card>
 
         {/* Status Grid - 2 Columns (Fixed Layout) */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
           {/* Weekly Check-in Card */}
-          <Card>
+          <Card className={`${elevatedCardClasses} h-full flex flex-col`}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Weekly Check-in
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+                  Weekly Check-in
+                </CardTitle>
+                <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                  {currentCheckin?.status === 'completed' ? (
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  ) : (
+                    <FileText className="h-5 w-5 text-slate-500" />
+                  )}
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
               <div>
                 {currentCheckin?.status === 'completed' ? (
                   <>
-                    <p className="text-3xl font-semibold text-foreground">✓</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Completed</p>
+                    <p className="text-4xl font-bold text-slate-900">✓</p>
+                    <p className="mt-1 text-sm text-emerald-600 font-medium">Completed</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-3xl font-semibold text-foreground">—</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Pending</p>
+                    <p className="text-4xl font-bold text-slate-900">—</p>
+                    <p className="mt-1 text-sm text-amber-600 font-medium">Pending</p>
                   </>
                 )}
               </div>
               <Button
-                variant="outline"
+                className="w-full bg-secondary/60 hover:bg-secondary text-secondary-foreground border-0 shadow-sm"
                 size="sm"
-                className="w-full"
                 asChild
               >
                 <Link href="/checkins/current">
@@ -199,23 +266,27 @@ export default function DashboardPage() {
           </Card>
 
           {/* Active Goals Card */}
-          <Card>
+          <Card className={`${elevatedCardClasses} h-full flex flex-col`}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Active Goals
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+                  Active Goals
+                </CardTitle>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  <Target className="h-5 w-5" />
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
               <div>
-                <p className="text-3xl font-semibold text-foreground">{goals.length}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-5xl font-bold text-primary leading-none">{goals.length}</p>
+                <p className="mt-2 text-sm text-slate-500">
                   {goals.length === 1 ? 'Goal' : 'Goals'}
                 </p>
               </div>
               <Button
-                variant="outline"
+                className="w-full bg-secondary/60 hover:bg-secondary text-secondary-foreground border-0 shadow-sm"
                 size="sm"
-                className="w-full"
                 asChild
               >
                 <Link href="/goals">View Goals</Link>
@@ -225,7 +296,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Active Issues / Recent Arguments */}
-        <Card>
+        <Card className={elevatedCardClasses}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Active Issues</CardTitle>
@@ -252,36 +323,36 @@ export default function DashboardPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-2">
-                {args.slice(0, 3).map((arg) => (
-                  <button
-                    key={arg.id}
-                    onClick={() => router.push(`/arguments/${arg.id}`)}
-                    className="w-full rounded-lg border border-border bg-muted/50 p-4 text-left transition-all hover:border-primary/50 hover:bg-background flex items-center justify-between group"
-                  >
-                    <div className="flex-1 min-w-0 mr-3">
-                      <h4 className="font-semibold text-foreground truncate mb-1">{arg.title}</h4>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={
-                            arg.status === 'analyzed'
-                              ? 'default'
-                              : arg.status === 'draft'
-                              ? 'secondary'
-                              : 'outline'
-                          }
-                          className="text-xs"
-                        >
-                          {arg.status}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground truncate">
-                          {arg.category}
-                        </span>
+              <div className="space-y-1">
+                {args.slice(0, 3).map((arg) => {
+                  const { icon: CategoryIcon, bg, color, text } = getCategoryIconConfig(arg.category);
+                  return (
+                    <button
+                      key={arg.id}
+                      onClick={() => router.push(`/arguments/${arg.id}`)}
+                      className="w-full flex items-center gap-4 p-3 rounded-xl text-left transition-colors hover:bg-slate-50 group"
+                    >
+                      <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${bg} ${color}`}>
+                        <CategoryIcon className="h-5 w-5" />
                       </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
-                  </button>
-                ))}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-slate-900 truncate pr-4">{arg.title}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] px-1.5 h-5 font-medium bg-slate-100 text-slate-500 border-0"
+                          >
+                            {arg.status}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground capitalize truncate">
+                            {text}
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                    </button>
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -289,7 +360,7 @@ export default function DashboardPage() {
 
         {/* Couple Status */}
         {!couple && (
-          <Card className="border-primary/20 bg-primary/5">
+          <Card className={`${elevatedCardClasses} bg-primary/5`}>
             <CardContent className="p-6">
               <h3 className="text-sm font-semibold text-foreground mb-1">Connect with Your Partner</h3>
               <p className="text-xs text-muted-foreground mb-4">
@@ -307,7 +378,7 @@ export default function DashboardPage() {
 
         {/* Subscription/Usage - Subtle Bottom Section */}
         {subscription && !usage?.is_unlimited && usageLimit > 0 && (
-          <Card>
+          <Card className={elevatedCardClasses}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Plan Status</p>
@@ -340,6 +411,26 @@ export default function DashboardPage() {
           </Card>
         )}
       </div>
+      <nav className="fixed bottom-0 left-0 right-0 border-t bg-white/80 backdrop-blur-lg shadow-[0_-4px_12px_rgba(15,23,42,0.12)]">
+        <div className="app-container">
+          <div className="flex items-center justify-between py-4">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex flex-col items-center gap-1 text-xs font-medium"
+                >
+                  <Icon className={`h-5 w-5 ${isActive ? 'text-primary' : 'text-slate-400'}`} />
+                  <span className={isActive ? 'text-primary' : 'text-slate-500'}>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
     </div>
   );
 }
