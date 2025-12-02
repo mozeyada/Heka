@@ -57,7 +57,7 @@ export default function SubscriptionPage() {
       setUsage(usageData);
     } catch (error: any) {
       console.error('Failed to load subscription data:', error);
-      setError('Failed to load subscription information');
+      setError(error.response?.data?.detail || error.message || 'Failed to load subscription information');
     } finally {
       setLoading(false);
     }

@@ -19,6 +19,97 @@ import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { useAuthStore } from '../store/auth';
 import { Card } from '../components/common';
 
+type IoniconName = keyof typeof Ionicons.glyphMap;
+
+const withAlpha = (hex: string, alpha: number) => {
+  const sanitized = hex.replace('#', '');
+  const bigint = parseInt(sanitized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const categoryIconMap: Record<
+  string,
+  { icon: IoniconName; backgroundColor: string; iconColor: string; label: string }
+> = {
+  communication: {
+    icon: 'chatbubbles-outline',
+    backgroundColor: withAlpha(colors.brand[500], 0.12),
+    iconColor: colors.brand[600],
+    label: 'Communication',
+  },
+  trust: {
+    icon: 'shield-checkmark',
+    backgroundColor: withAlpha(colors.neutral[200], 0.18),
+    iconColor: colors.neutral[200],
+    label: 'Trust & Safety',
+  },
+  values: {
+    icon: 'heart-outline',
+    backgroundColor: withAlpha(colors.danger, 0.12),
+    iconColor: colors.danger,
+    label: 'Values & Beliefs',
+  },
+  intimacy: {
+    icon: 'color-wand-outline',
+    backgroundColor: withAlpha(colors.brand[300], 0.18),
+    iconColor: colors.brand[600],
+    label: 'Intimacy',
+  },
+  finances: {
+    icon: 'cash-outline',
+    backgroundColor: withAlpha(colors.warning, 0.12),
+    iconColor: colors.warning,
+    label: 'Finances',
+  },
+};
+
+const defaultCategoryIcon = {
+  icon: 'chatbubble-ellipses' as IoniconName,
+  backgroundColor: withAlpha(colors.brand[500], 0.12),
+  iconColor: colors.brand[600],
+  label: 'Relationship',
+};
+
+const getCategoryIconConfig = (category?: string) => {
+  if (!category) return defaultCategoryIcon;
+  const key = category.toLowerCase().trim();
+  return categoryIconMap[key] ?? defaultCategoryIcon;
+};
+
+const statusBadgeVariants: Record<string, { backgroundColor: string; borderColor: string; textColor: string }> = {
+  analyzed: {
+    backgroundColor: withAlpha(colors.success, 0.12),
+    borderColor: withAlpha(colors.success, 0.4),
+    textColor: colors.success,
+  },
+  pending: {
+    backgroundColor: withAlpha(colors.warning, 0.12),
+    borderColor: withAlpha(colors.warning, 0.4),
+    textColor: colors.warning,
+  },
+  draft: {
+    backgroundColor: withAlpha(colors.neutral[600], 0.5),
+    borderColor: colors.neutral[600],
+    textColor: colors.neutral[400],
+  },
+  default: {
+    backgroundColor: withAlpha(colors.brand[500], 0.1),
+    borderColor: withAlpha(colors.brand[500], 0.3),
+    textColor: colors.brand[500],
+  },
+};
+
+const getStatusBadgeVariant = (status?: string) => {
+  if (!status) {
+    return statusBadgeVariants.default;
+  }
+  const key = status.toLowerCase().trim();
+  return statusBadgeVariants[key] ?? statusBadgeVariants.default;
+};
+
 export default function DashboardScreen() {
   const router = useRouter();
   const { user, refreshSession } = useAuthStore();
@@ -97,8 +188,15 @@ export default function DashboardScreen() {
     return 'Good evening';
   };
 
-  const userName = user?.email?.split('@')[0] ?? null;
+  // Extract user name: prefer user.name, fallback to email username, capitalize first letter
+  const rawUserName = user?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? null;
+  const userName = rawUserName ? rawUserName.charAt(0).toUpperCase() + rawUserName.slice(1).toLowerCase() : null;
   const userInitial = userName ? userName.charAt(0).toUpperCase() : '?';
+  const isCheckinCompleted = data.current_checkin?.status === 'completed';
+  const goalsCount = data.goals.length;
+  const activeGoalsLabel = goalsCount === 1 ? 'Goal' : 'Goals';
+  const topArguments = data.arguments.slice(0, 3);
+  const hasArguments = topArguments.length > 0;
 
   return (
     <ScrollView
@@ -114,11 +212,11 @@ export default function DashboardScreen() {
           </Text>
           <Text style={styles.subtitle}>Your relationship pulse.</Text>
         </View>
-        {/* Profile Avatar (Standard App Pattern) */}
+        {/* Profile Avatar and Settings */}
         <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{userInitial}</Text>
-          </View>
+          <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsButton}>
+            <Ionicons name="settings-outline" size={24} color={colors.neutral[300]} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -160,31 +258,50 @@ export default function DashboardScreen() {
           <Card style={styles.statCard}>
             <View style={styles.statCardHeader}>
               <Text style={styles.statLabel}>Weekly Check-in</Text>
-              <View style={styles.statCardIcon}>
+              <View style={[styles.statCardIcon, styles.statCardIconCheckin]}>
                 <Ionicons
-                  name={data.current_checkin?.status === 'completed' ? 'checkmark-circle' : 'clipboard-outline'}
-                  size={24}
-                  color={data.current_checkin?.status === 'completed' ? colors.success : colors.neutral[500]}
+                  name={isCheckinCompleted ? 'checkmark-circle' : 'clipboard-outline'}
+                  size={22}
+                  color={isCheckinCompleted ? colors.success : colors.brand[600]}
                 />
               </View>
             </View>
-            <View style={styles.statCardContent}>
-              <Text style={styles.statValue}>
-                {data.current_checkin?.status === 'completed' ? '✓' : '—'}
-              </Text>
-              <Text style={styles.statDescription}>
-                {data.current_checkin?.status === 'completed' ? 'Completed' : 'Pending'}
-              </Text>
+            <View style={styles.statCardBody}>
+              <View>
+                <Text style={styles.statValue}>{isCheckinCompleted ? '✓' : '—'}</Text>
+                <Text
+                  style={[
+                    styles.statDescription,
+                    isCheckinCompleted ? styles.statDescriptionPositive : styles.statDescriptionWarning,
+                  ]}
+                >
+                  {isCheckinCompleted ? 'Completed' : 'Pending'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.statButton,
+                  isCheckinCompleted ? styles.statButtonSecondary : styles.statButtonPrimary,
+                ]}
+                onPress={() => router.push('/checkins')}
+                activeOpacity={0.9}
+              >
+                <Text
+                  style={[
+                    styles.statButtonText,
+                    isCheckinCompleted ? styles.statButtonTextSecondary : styles.statButtonTextPrimary,
+                  ]}
+                >
+                  {isCheckinCompleted ? 'View' : 'Complete Now'}
+                </Text>
+                <Ionicons
+                  name={isCheckinCompleted ? 'arrow-forward' : 'flash'}
+                  size={16}
+                  color={isCheckinCompleted ? colors.neutral[300] : colors.surface}
+                  style={styles.statButtonIcon}
+                />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.statButton}
-              onPress={() => router.push('/checkins')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.statButtonText}>
-                {data.current_checkin?.status === 'completed' ? 'View' : 'Complete Now'}
-              </Text>
-            </TouchableOpacity>
           </Card>
         </View>
 
@@ -192,27 +309,24 @@ export default function DashboardScreen() {
           <Card style={styles.statCard}>
             <View style={styles.statCardHeader}>
               <Text style={styles.statLabel}>Active Goals</Text>
-              <View style={styles.statCardIcon}>
-                <Ionicons
-                  name="flag"
-                  size={24}
-                  color={data.goals.length > 0 ? colors.brand[500] : colors.neutral[500]}
-                />
+              <View style={[styles.statCardIcon, styles.statCardIconGoals]}>
+                <Ionicons name="flag" size={20} color={colors.brand[600]} />
               </View>
             </View>
-            <View style={styles.statCardContent}>
-              <Text style={styles.statValue}>{data.goals.length}</Text>
-              <Text style={styles.statDescription}>
-                {data.goals.length === 1 ? 'Goal' : 'Goals'}
-              </Text>
+            <View style={styles.statCardBody}>
+              <View>
+                <Text style={styles.statValue}>{goalsCount}</Text>
+                <Text style={styles.statDescription}>{activeGoalsLabel}</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.statButton, styles.statButtonGhost]}
+                onPress={() => router.push('/goals')}
+                activeOpacity={0.9}
+              >
+                <Text style={[styles.statButtonText, styles.statButtonTextGhost]}>View Goals</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.brand[600]} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.statButton}
-              onPress={() => router.push('/goals')}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.statButtonText}>View Goals</Text>
-            </TouchableOpacity>
           </Card>
         </View>
       </View>
@@ -228,7 +342,7 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {data.arguments.length === 0 ? (
+        {!hasArguments ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No active conflicts. You're in a good place.</Text>
             <TouchableOpacity
@@ -241,40 +355,48 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <View style={styles.argumentsList}>
-            {data.arguments.slice(0, 3).map((arg, index) => (
-              <TouchableOpacity
-                key={arg.id}
-                style={[
-                  styles.argumentItem,
-                  index < data.arguments.slice(0, 3).length - 1 && styles.argumentItemBorder,
-                ]}
-                onPress={() => router.push(`/argument?id=${arg.id}`)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.argumentContent}>
-                  <Text style={styles.argumentTitle} numberOfLines={1}>{arg.title}</Text>
-                  <View style={styles.argumentMetaRow}>
-                    <View style={[
-                      styles.statusBadge,
-                      arg.status === 'analyzed' && styles.statusBadgeSuccess,
-                      arg.status === 'draft' && styles.statusBadgeDraft,
-                    ]}>
-                      <Text style={[
-                        styles.statusBadgeText,
-                        arg.status === 'analyzed' && styles.statusBadgeTextSuccess,
-                        arg.status === 'draft' && styles.statusBadgeTextDraft,
-                      ]}>
-                        {arg.status}
-                      </Text>
+            {topArguments.map((arg, index) => {
+              const { icon, backgroundColor, iconColor, label } = getCategoryIconConfig(arg.category);
+              const statusVariant = getStatusBadgeVariant(arg.status);
+              return (
+                <TouchableOpacity
+                  key={arg.id}
+                  style={[styles.argumentItem, index < topArguments.length - 1 && styles.argumentItemBorder]}
+                  onPress={() => router.push(`/arguments/${arg.id}`)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.argumentLeft}>
+                    <View style={[styles.argumentIcon, { backgroundColor }]}>
+                      <Ionicons name={icon} size={18} color={iconColor} />
                     </View>
-                    <Text style={styles.argumentCategory} numberOfLines={1}>
-                      {arg.category}
-                    </Text>
+                    <View style={styles.argumentContent}>
+                      <Text style={styles.argumentTitle} numberOfLines={1}>
+                        {arg.title}
+                      </Text>
+                      <View style={styles.argumentMetaRow}>
+                        <View
+                          style={[
+                            styles.statusBadge,
+                            {
+                              backgroundColor: statusVariant.backgroundColor,
+                              borderColor: statusVariant.borderColor,
+                            },
+                          ]}
+                        >
+                          <Text style={[styles.statusBadgeText, { color: statusVariant.textColor }]}>
+                            {arg.status}
+                          </Text>
+                        </View>
+                        <Text style={styles.argumentCategory} numberOfLines={1}>
+                          {label}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.neutral[500]} />
-              </TouchableOpacity>
-            ))}
+                  <Ionicons name="chevron-forward" size={18} color={colors.neutral[400]} />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </Card>
@@ -376,6 +498,12 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     marginTop: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  settingsButton: {
+    padding: spacing.xs,
   },
   avatar: {
     width: 44,
@@ -462,16 +590,22 @@ const styles = StyleSheet.create({
   // Stats Row - 2 Columns
   statsRow: {
     flexDirection: 'row',
-    gap: spacing.md,
     marginBottom: spacing.lg,
+    gap: spacing.md,
   },
   statCardWrapper: {
     flex: 1,
+    marginBottom: 0,
+    minHeight: 0,
   },
   statCard: {
-    padding: spacing.lg + 4,
-    minHeight: 160,
-    justifyContent: 'space-between',
+    padding: spacing['2xl'],
+    minHeight: 200,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: withAlpha(colors.neutral[200], 0.4),
+    backgroundColor: colors.surface,
+    marginBottom: 0,
   },
   statCardHeader: {
     flexDirection: 'row',
@@ -480,11 +614,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   statCardIcon: {
-    marginTop: -2,
-  },
-  statCardContent: {
-    flex: 1,
+    width: 40,
+    height: 40,
+    borderRadius: radii.md,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statCardIconCheckin: {
+    backgroundColor: withAlpha(colors.brand[500], 0.15),
+  },
+  statCardIconGoals: {
+    backgroundColor: withAlpha(colors.brand[200], 0.35),
+  },
+  statCardBody: {
+    flex: 1,
+    justifyContent: 'space-between',
   },
   statLabel: {
     ...typography.label,
@@ -501,35 +645,57 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
     fontWeight: '700',
   },
-  statValueLarge: {
-    ...typography.heading,
-    fontSize: 48,
-    color: colors.neutral[100],
-    marginBottom: spacing.xs,
-    fontWeight: '800',
-    lineHeight: 56,
-  },
   statDescription: {
     ...typography.body,
     fontSize: 13,
     color: colors.neutral[400],
-    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+  },
+  statDescriptionPositive: {
+    color: colors.success,
+  },
+  statDescriptionWarning: {
+    color: colors.warning,
   },
   statButton: {
-    borderWidth: 1.5,
-    borderColor: colors.neutral[600],
-    backgroundColor: colors.surface,
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.md,
-    borderRadius: radii.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radii.md,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.md,
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    gap: spacing.xs,
   },
   statButtonText: {
     ...typography.label,
     fontSize: 13,
-    color: colors.neutral[200],
     fontWeight: '600',
+  },
+  statButtonPrimary: {
+    backgroundColor: colors.brand[600],
+    borderColor: colors.brand[600],
+  },
+  statButtonSecondary: {
+    backgroundColor: colors.neutral[700],
+    borderColor: colors.neutral[700],
+  },
+  statButtonGhost: {
+    backgroundColor: withAlpha(colors.neutral[700], 0.4),
+    borderColor: 'transparent',
+  },
+  statButtonTextPrimary: {
+    color: colors.surface,
+  },
+  statButtonTextSecondary: {
+    color: colors.neutral[300],
+  },
+  statButtonTextGhost: {
+    color: colors.brand[600],
+  },
+  statButtonIcon: {
+    marginLeft: spacing.xs,
   },
   // Arguments Card
   argumentsCard: {
@@ -558,22 +724,36 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   argumentsList: {
-    gap: spacing.md,
+    marginTop: spacing.sm,
+    gap: spacing.sm,
   },
   argumentItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.lg,
-    paddingHorizontal: 0,
-    backgroundColor: 'transparent',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: withAlpha(colors.neutral[700], 0.5),
   },
   argumentItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[700],
+    marginBottom: spacing.sm,
+  },
+  argumentLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   argumentContent: {
     flex: 1,
     marginRight: spacing.sm,
+  },
+  argumentIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
   },
   argumentTitle: {
     ...typography.label,
@@ -589,39 +769,23 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: radii.sm,
-    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: colors.neutral[600],
-  },
-  statusBadgeSuccess: {
-    borderColor: colors.success + '40',
-    backgroundColor: colors.success + '10',
-  },
-  statusBadgeDraft: {
-    borderColor: colors.neutral[600],
-    backgroundColor: 'transparent',
   },
   statusBadgeText: {
     ...typography.label,
-    fontSize: 9,
-    color: colors.neutral[400],
+    fontSize: 10,
     textTransform: 'uppercase',
     fontWeight: '600',
     letterSpacing: 0.8,
-  },
-  statusBadgeTextSuccess: {
-    color: colors.success,
-  },
-  statusBadgeTextDraft: {
-    color: colors.neutral[400],
   },
   argumentCategory: {
     ...typography.body,
     fontSize: 12,
     color: colors.neutral[400],
     flex: 1,
+    marginLeft: spacing.sm,
   },
   // Empty State
   emptyState: {

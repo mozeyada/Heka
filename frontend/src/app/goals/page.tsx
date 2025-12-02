@@ -49,7 +49,7 @@ export default function GoalsPage() {
       setGoals(data);
     } catch (error: any) {
       console.error('Failed to load goals:', error);
-      setError('Failed to load goals. Please try again.');
+      setError(error.response?.data?.detail || error.message || 'Failed to load goals. Please try again.');
     } finally {
       setLoading(false);
     }

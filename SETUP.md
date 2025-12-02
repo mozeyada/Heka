@@ -28,7 +28,7 @@ This guide will help you set up the Heka development environment.
 cd backend
 
 # Create virtual environment
-python -m venv venv
+python3 -m venv venv
 source ~/.venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
@@ -51,12 +51,15 @@ cp .env.example .env
 # Sign up: https://www.mongodb.com/cloud/atlas
 # Get connection string and update MONGODB_URL in .env
 
-# Start development server
+# Start development server (must be run from backend directory)
+cd backend
 uvicorn app.main:app --reload --port 8001
 ```
 
-Backend will run at: http://localhost:8000  
-API docs at: http://localhost:8000/docs
+**Note:** The `uvicorn` command must be run from the `backend` directory, not the project root.
+
+Backend will run at: http://localhost:8001  
+API docs at: http://localhost:8001/docs
 
 ---
 

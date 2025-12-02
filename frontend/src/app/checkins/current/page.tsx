@@ -39,7 +39,7 @@ export default function CheckInPage() {
       }
     } catch (error: any) {
       console.error('Failed to load check-in:', error);
-      setError('Failed to load check-in. Please try again.');
+      setError(error.response?.data?.detail || error.message || 'Failed to load check-in. Please try again.');
     } finally {
       setLoading(false);
     }

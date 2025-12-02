@@ -1,7 +1,7 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
-import ArgumentDetailScreen from '../src/screens/ArgumentDetailScreen';
+import ArgumentDetailScreen from '../../src/screens/ArgumentDetailScreen';
 
-export default function ArgumentRoute() {
+export default function ArgumentDetailRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   return (
@@ -11,4 +11,6 @@ export default function ArgumentRoute() {
     </>
   );
 }
+
+
 

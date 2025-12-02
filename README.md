@@ -2,27 +2,28 @@
 
 AI-powered couple argument resolution platform.
 
-**Status:** 🚀 MVP Complete - Ready for Beta Launch
+**Status:** 🚀 MVP Complete – Mobile parity polish wrapping up
 
 ## What is Heka?
 
 Heka helps couples resolve arguments using AI-powered mediation. Each partner shares their perspective, and our AI analyzes both sides using proven relationship frameworks (Gottman, NVC, EFT) to provide neutral insights and actionable guidance.
 
-## Current Status (Nov 2024)
+## Current Status (Dec 2025)
 
-✅ **MVP Complete (95%)**
+✅ **MVP Complete (Production-ready web + mobile core)**
 - Full-stack application deployed and operational
-- 17 responsive pages with professional design system
+- 17 responsive web pages with cohesive design system
+- Native mobile app (Expo) with polished dashboard, subscription management, goal detail timeline, and settings (data export + deletion)
 - AI mediation with safety detection
-- Subscription management (Free, Premium, Pro tiers)
+- Subscription management (Free, Basic, Premium tiers)
 - Stripe payments configured
 - Security hardening complete
 - Production-ready on Railway (backend) + Vercel (frontend)
 
-🚧 **In Progress (Sprint 6: Launch Prep)**
-- Stripe live payment testing
-- Beta user recruitment (target: 10-20 couples)
-- Marketing materials
+🚧 **In Progress (Launch Prep)**
+- Final mobile visual finesse (glassmorphic nav, iconography tweaks)
+- Device QA (iOS + Android) following smoke runbook
+- Beta collateral refresh (screenshots, marketing copy)
 
 📍 **Next Phase: Beta Launch** (4-6 weeks)
 - User feedback collection
@@ -59,9 +60,7 @@ npm run dev
 
 - **[SETUP.md](SETUP.md)** - Development environment setup
 - **[DEPLOYMENT_ENV_VARS.md](DEPLOYMENT_ENV_VARS.md)** - Required environment variables
-- **[PROJECT_PLAN.md](PROJECT_PLAN.md)** - Project roadmap and status
-- **[docs/DESIGN_PROGRESS.md](docs/DESIGN_PROGRESS.md)** - UI/UX design system
-- **[STRIPE_SETUP_GUIDE.md](STRIPE_SETUP_GUIDE.md)** - Payment setup guide
+- Internal planning/design docs are retained locally to keep the public repo focused on product deliverables.
 
 ## Live Deployments
 
@@ -78,7 +77,7 @@ npm run dev
 - 🎯 Goal setting and progress tracking
 - 📊 Weekly relationship check-ins
 - 💳 Subscription management (Stripe)
-- 📱 Fully mobile-responsive design
+- 📱 Native mobile app (Expo) with polished dashboard, subscription, settings, and goal detail flows
 - 🔒 Security hardening (rate limiting, input sanitization, crisis detection)
 - 📄 Legal compliance (Terms, Privacy Policy, data export/deletion)
 

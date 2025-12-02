@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
-import { fetchArgument } from '../api/arguments';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { fetchArgument, deleteArgument } from '../api/arguments';
 import { submitPerspective, getPerspectivesForArgument, Perspective } from '../api/perspectives';
 import { getAIInsights, analyzeArgument, AIInsight } from '../api/ai';
 import { useAuthStore } from '../store/auth';
@@ -22,14 +26,21 @@ type Props = {
 
 // --- Main Component --- //
 export default function ArgumentDetailScreen({ argumentId }: Props) {
+  const router = useRouter();
   const [argument, setArgument] = useState<any>(null);
   const [perspectives, setPerspectives] = useState<Perspective[]>([]);
   const [aiInsights, setAIInsights] = useState<AIInsight | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { userId } = useAuthStore();
+  const insets = useSafeAreaInsets();
+  const contentContainerStyle = useMemo(
+    () => [styles.container, { paddingTop: spacing.lg + insets.top }],
+    [insets.top]
+  );
 
   const loadData = useCallback(async () => {
     if (!argumentId) return;
@@ -45,7 +56,7 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
       setPerspectives(pers);
       setAIInsights(ins);
     } catch (err: any) {
-      setError(err.message || 'Failed to load data.');
+      setError(err.response?.data?.detail || err.message || 'Failed to load data.');
     } finally {
       setLoading(false);
     }
@@ -75,6 +86,37 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
     }
   };
 
+  const handleDelete = () => {
+    if (!argumentId) return;
+    
+    Alert.alert(
+      'Delete Argument',
+      'Are you sure you want to delete this argument? This action cannot be undone and will also delete all associated perspectives and insights.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            setError(null);
+            try {
+              await deleteArgument(argumentId);
+              router.back();
+            } catch (error: any) {
+              const errorMessage = error.response?.data?.detail || error.message || 'Failed to delete argument';
+              setError(errorMessage);
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading && !refreshing) {
     return <LoadingSkeleton />;
   }
@@ -101,10 +143,11 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={contentContainerStyle}
+      contentInsetAdjustmentBehavior="always"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} />}
     >
-      <ArgumentHeader argument={argument} />
+      <ArgumentHeader argument={argument} onDelete={handleDelete} isDeleting={deleting} />
 
       {error && <ErrorCard message={error} />}
 
@@ -156,17 +199,34 @@ const LoadingSkeleton = () => (
   </View>
 );
 
-const ArgumentHeader = ({ argument }: { argument: any }) => (
+const ArgumentHeader = ({ argument, onDelete, isDeleting }: { argument: any; onDelete?: () => void; isDeleting?: boolean }) => (
   <Card>
-    <Text style={styles.title}>{argument.title}</Text>
-    <View style={styles.metaContainer}>
-      <Text style={styles.metaText}>{argument.status}</Text>
-      <Text style={styles.metaSeparator}>•</Text>
-      <Text style={styles.metaText}>{argument.priority}</Text>
-      <Text style={styles.metaSeparator}>•</Text>
-      <Text style={styles.metaText}>{argument.category}</Text>
+    <View style={styles.headerRow}>
+      <View style={styles.headerContent}>
+        <Text style={styles.title}>{argument.title}</Text>
+        <View style={styles.metaContainer}>
+          <Text style={styles.metaText}>{argument.status}</Text>
+          <Text style={styles.metaSeparator}>•</Text>
+          <Text style={styles.metaText}>{argument.priority}</Text>
+          <Text style={styles.metaSeparator}>•</Text>
+          <Text style={styles.metaText}>{argument.category}</Text>
+        </View>
+        <Text style={styles.dateText}>Created: {new Date(argument.created_at).toLocaleDateString()}</Text>
+      </View>
+      {onDelete && (
+        <TouchableOpacity
+          style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
+          onPress={onDelete}
+          disabled={isDeleting}
+        >
+          {isDeleting ? (
+            <ActivityIndicator size="small" color={colors.danger} />
+          ) : (
+            <Ionicons name="trash-outline" size={20} color={colors.danger} />
+          )}
+        </TouchableOpacity>
+      )}
     </View>
-    <Text style={styles.dateText}>Created: {new Date(argument.created_at).toLocaleDateString()}</Text>
   </Card>
 );
 
@@ -600,5 +660,20 @@ const styles = StyleSheet.create({
   },
   sectionContent: {
     marginTop: spacing.md,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerContent: {
+    flex: 1,
+  },
+  deleteButton: {
+    padding: spacing.sm,
+    marginLeft: spacing.md,
+  },
+  deleteButtonDisabled: {
+    opacity: 0.5,
   },
 });

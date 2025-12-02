@@ -77,29 +77,20 @@ export function Header() {
 
         <div className="hidden items-center gap-4 lg:flex">
           {isAuthenticated && user ? (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <Link
                 href="/settings"
                 className="text-sm font-medium text-neutral-600 transition-colors ease-soft-spring hover:text-neutral-900"
               >
                 Settings
               </Link>
-              <div className="flex items-center gap-3 rounded-full bg-white/70 px-3 py-2 shadow-soft">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
-                  {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
-                </div>
-                <div className="text-sm leading-tight">
-                  <p className="font-semibold text-neutral-900">{user.name || user.email}</p>
-                  <p className="text-xs text-neutral-500">{user.email}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600 transition-colors ease-soft-spring hover:bg-neutral-200 hover:text-neutral-900"
-                >
-                  Logout
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors ease-soft-spring hover:bg-neutral-200 hover:text-neutral-900 whitespace-nowrap"
+              >
+                Logout
+              </button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -162,9 +153,31 @@ export function Header() {
             <div className="mt-4 border-t border-neutral-100 pt-4">
               {isAuthenticated && user ? (
                 <div className="flex flex-col gap-3">
-                  <div className="rounded-xl bg-white px-4 py-3 shadow-soft">
-                    <p className="text-sm font-semibold text-neutral-900">{user.name || user.email}</p>
-                    <p className="text-xs text-neutral-500">{user.email}</p>
+                  <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-soft">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+                      {(() => {
+                        const rawName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? '?';
+                        return rawName.charAt(0).toUpperCase();
+                      })()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {(() => {
+                        const rawName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? null;
+                        const displayName = rawName
+                          ? rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase()
+                          : null;
+                        return (
+                          <>
+                            <p className="text-sm font-semibold text-neutral-900 truncate">
+                              {displayName || user.email}
+                            </p>
+                            {displayName && (
+                              <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
                   </div>
                   <Link
                     href="/settings"

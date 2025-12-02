@@ -165,6 +165,10 @@ export const argumentsAPI = {
     const response = await apiClient.get(`/api/arguments/${id}`);
     return response.data;
   },
+
+  delete: async (id: string) => {
+    await apiClient.delete(`/api/arguments/${id}`);
+  },
 };
 
 // Perspectives API

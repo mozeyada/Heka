@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,18 @@ import {
   RefreshControl,
   TextInput,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchGoals, createGoal, updateGoalStatus, Goal } from '../api/goals';
-import { useAuthStore } from '../store/auth';
-import { colors, spacing, typography, radii } from '../theme/tokens';
+import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { Card } from '../components/common';
 import { GoalCard } from '../components/GoalCard';
 import { PageHeading } from '../components/PageHeading';
 
 export default function GoalsScreen() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,20 +35,17 @@ export default function GoalsScreen() {
     try {
       const data = await fetchGoals();
       setGoals(data);
-    } catch (err) {
-      setError('Failed to load goals.');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to load goals.');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else {
-      loadGoals();
-    }
-  }, [isAuthenticated, router, loadGoals]);
+    // No need to check auth here - we're already in protected (tabs) route
+    loadGoals();
+  }, [loadGoals]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -82,8 +80,21 @@ export default function GoalsScreen() {
     }
   };
 
-  const activeGoals = goals.filter((g) => g.status === 'active');
-  const completedGoals = goals.filter((g) => g.status === 'completed');
+  const activeGoals = useMemo(() => goals.filter((g) => g.status === 'active'), [goals]);
+  const completedGoals = useMemo(() => goals.filter((g) => g.status === 'completed'), [goals]);
+  const completionRate = goals.length ? Math.round((completedGoals.length / goals.length) * 100) : 0;
+  const insets = useSafeAreaInsets();
+
+  const goalStats = [
+    { label: 'Active', value: activeGoals.length, icon: 'flag', accent: colors.brand[600], subtitle: 'In progress' },
+    { label: 'Completed', value: completedGoals.length, icon: 'checkmark-circle', accent: colors.success, subtitle: 'Finished' },
+    { label: 'Focus', value: Math.max(activeGoals.length - completedGoals.length, 0), icon: 'flash', accent: colors.warning, subtitle: 'Needs attention' },
+  ] as const;
+
+  const contentContainerStyle = useMemo(
+    () => [styles.container, { paddingTop: spacing.lg + insets.top }],
+    [insets.top]
+  );
 
   if (loading && !refreshing) {
     return (
@@ -96,18 +107,55 @@ export default function GoalsScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={contentContainerStyle}
+      contentInsetAdjustmentBehavior="always"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} />}
     >
       <PageHeading
         title="Relationship Goals"
-        description="Set shared goals to strengthen your partnership."
-        actions={
-          <TouchableOpacity style={styles.button} onPress={() => setShowCreateForm(!showCreateForm)}>
-            <Text style={styles.buttonText}>{showCreateForm ? 'Cancel' : 'New Goal'}</Text>
-          </TouchableOpacity>
-        }
+        description="Celebrate wins and set growth milestones together."
       />
+
+      <LinearGradient
+        colors={[colors.brand[50], colors.surface]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroCard}
+      >
+        <View style={styles.heroRow}>
+          <View style={styles.heroCopy}>
+            <Text style={styles.heroTitle}>Shared Milestones</Text>
+            <Text style={styles.heroSubtitle}>
+              Align on what matters most. Track commitments and reflections in one calm space.
+            </Text>
+          </View>
+          <View style={styles.heroPill}>
+            <Text style={styles.heroMetric}>{completionRate}%</Text>
+            <Text style={styles.heroMetricLabel}>complete</Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => setShowCreateForm((prev) => !prev)}
+          activeOpacity={0.85}
+        >
+          <Ionicons name={showCreateForm ? 'close' : 'add'} size={18} color={colors.surface} />
+          <Text style={styles.primaryButtonText}>{showCreateForm ? 'Close Composer' : 'Add New Goal'}</Text>
+        </TouchableOpacity>
+      </LinearGradient>
+
+      <View style={styles.statsRow}>
+        {goalStats.map((stat) => (
+          <View key={stat.label} style={styles.statCard}>
+            <View style={[styles.statIcon, { backgroundColor: `${stat.accent}22` }]}>
+              <Ionicons name={stat.icon as any} size={18} color={stat.accent} />
+            </View>
+            <Text style={styles.statValue}>{stat.value}</Text>
+            <Text style={styles.statLabel}>{stat.label}</Text>
+            <Text style={styles.statSubtitle}>{stat.subtitle}</Text>
+          </View>
+        ))}
+      </View>
 
       {error && (
         <Card style={styles.errorCard}>
@@ -116,8 +164,9 @@ export default function GoalsScreen() {
       )}
 
       {showCreateForm && (
-        <Card>
+        <Card style={styles.formCard}>
           <Text style={styles.sectionTitle}>Create New Goal</Text>
+          <Text style={styles.sectionSubtitle}>Define what success looks like this week.</Text>
           <TextInput
             style={styles.input}
             placeholder="Goal Title"
@@ -134,47 +183,56 @@ export default function GoalsScreen() {
             multiline
           />
           <TouchableOpacity
-            style={[styles.button, isCreating && styles.buttonDisabled]}
+            style={[styles.secondaryButton, isCreating && styles.buttonDisabled]}
             onPress={handleCreateGoal}
             disabled={isCreating}
           >
-            <Text style={styles.buttonText}>{isCreating ? 'Creating...' : 'Create Goal'}</Text>
+            <Text style={styles.secondaryButtonText}>{isCreating ? 'Creating...' : 'Save Goal'}</Text>
           </TouchableOpacity>
         </Card>
       )}
 
-      {goals.length === 0 && !showCreateForm && (
-        <Card>
+      {goals.length === 0 && !showCreateForm ? (
+        <Card style={styles.emptyCard}>
+          <Ionicons name="leaf-outline" size={24} color={colors.neutral[300]} />
           <Text style={styles.emptyText}>No goals yet. Create one to get started!</Text>
         </Card>
-      )}
+      ) : (
+        <>
+          {activeGoals.length > 0 && (
+            <View style={styles.sectionBlock}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Active Goals</Text>
+                <Text style={styles.sectionSubtitle}>Tap to view progress or mark complete.</Text>
+              </View>
+              {activeGoals.map((goal) => (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  onPress={() => router.push(`/goals/${goal.id}`)}
+                  onComplete={() => handleCompleteGoal(goal.id)}
+                />
+              ))}
+            </View>
+          )}
 
-      {activeGoals.length > 0 && (
-        <View>
-          <Text style={styles.sectionTitle}>Active Goals</Text>
-          {activeGoals.map((goal) => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              onPress={() => router.push(`/goals/${goal.id}`)}
-              onComplete={() => handleCompleteGoal(goal.id)}
-            />
-          ))}
-        </View>
-      )}
-
-      {completedGoals.length > 0 && (
-        <View style={{ marginTop: spacing.xl }}>
-          <Text style={styles.sectionTitle}>Completed Goals</Text>
-          {completedGoals.map((goal) => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              onPress={() => router.push(`/goals/${goal.id}`)}
-              onComplete={() => {}}
-            />
-          ))}
-        </View>
+          {completedGoals.length > 0 && (
+            <View style={styles.sectionBlock}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Completed</Text>
+                <Text style={styles.sectionSubtitle}>Moments worth celebrating and reflecting on.</Text>
+              </View>
+              {completedGoals.map((goal) => (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  onPress={() => router.push(`/goals/${goal.id}`)}
+                  onComplete={() => {}}
+                />
+              ))}
+            </View>
+          )}
+        </>
       )}
     </ScrollView>
   );
@@ -186,6 +244,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: spacing.lg,
+    paddingBottom: spacing['2xl'],
   },
   centeredContainer: {
     flex: 1,
@@ -193,25 +252,111 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surfaceMuted,
   },
-  button: {
-    backgroundColor: colors.brand[600],
-    paddingVertical: spacing.md,
+  heroCard: {
+    borderRadius: radii.lg,
+    padding: spacing['2xl'],
+    borderWidth: 1,
+    borderColor: colors.brand[200],
+    ...shadows.card,
+  },
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: spacing.lg,
+  },
+  heroCopy: {
+    flex: 1,
+    marginRight: spacing.lg,
+  },
+  heroTitle: {
+    ...typography.heading,
+    fontSize: 22,
+    color: colors.neutral[100],
+    marginBottom: spacing.sm,
+  },
+  heroSubtitle: {
+    ...typography.body,
+    color: colors.neutral[400],
+    lineHeight: 20,
+  },
+  heroPill: {
+    backgroundColor: colors.surface,
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderRadius: radii.md,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.neutral[700],
   },
-  buttonText: {
+  heroMetric: {
+    ...typography.heading,
+    color: colors.brand[600],
+    fontSize: 24,
+  },
+  heroMetricLabel: {
+    ...typography.label,
+    color: colors.neutral[400],
+    fontSize: 10,
+    textTransform: 'uppercase',
+  },
+  primaryButton: {
+    backgroundColor: colors.brand[600],
+    borderRadius: radii.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  primaryButtonText: {
     ...typography.label,
     color: colors.surface,
+    fontSize: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  statCard: {
+    flexBasis: '30%',
+    flexGrow: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.neutral[700],
+  },
+  statIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  statValue: {
+    ...typography.heading,
+    fontSize: 26,
+    color: colors.neutral[100],
+  },
+  statLabel: {
+    ...typography.label,
+    color: colors.neutral[300],
+    marginTop: spacing.xs,
+  },
+  statSubtitle: {
+    ...typography.body,
+    color: colors.neutral[500],
+    fontSize: 12,
+    marginTop: spacing.xs,
   },
   buttonDisabled: {
     backgroundColor: colors.brand[400],
   },
-  sectionTitle: {
-    ...typography.heading,
-    fontSize: 20,
-    color: colors.neutral[100],
-    marginBottom: spacing.lg,
+  formCard: {
+    gap: spacing.md,
   },
   input: {
     ...typography.body,
@@ -221,11 +366,20 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[600],
     padding: spacing.md,
     color: colors.neutral[100],
-    marginBottom: spacing.md,
   },
   textArea: {
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  secondaryButton: {
+    backgroundColor: colors.neutral[700],
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+    alignItems: 'center',
+  },
+  secondaryButtonText: {
+    ...typography.label,
+    color: colors.neutral[100],
   },
   errorCard: {
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -238,10 +392,31 @@ const styles = StyleSheet.create({
     color: colors.danger,
     textAlign: 'center',
   },
+  sectionBlock: {
+    marginTop: spacing.xl,
+  },
+  sectionHeader: {
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    ...typography.heading,
+    fontSize: 20,
+    color: colors.neutral[100],
+  },
+  sectionSubtitle: {
+    ...typography.body,
+    color: colors.neutral[400],
+    marginTop: spacing.xs,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing['2xl'],
+    gap: spacing.md,
+  },
   emptyText: {
     ...typography.body,
     color: colors.neutral[400],
     textAlign: 'center',
-    padding: spacing.lg,
   },
 });

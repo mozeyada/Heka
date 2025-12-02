@@ -92,9 +92,9 @@ export default function DashboardPage() {
           console.error('Failed to fetch usage:', error);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load dashboard data:', error);
-      setError('Failed to load dashboard data. Please try again.');
+      setError(error.response?.data?.detail || error.message || 'Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -123,7 +123,9 @@ export default function DashboardPage() {
     return 'Good evening';
   };
 
-  const userName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'there';
+  // Extract user name: prefer user.name, fallback to email username, capitalize first letter
+  const rawUserName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'there';
+  const userName = rawUserName.charAt(0).toUpperCase() + rawUserName.slice(1).toLowerCase();
   const userInitial = userName.charAt(0).toUpperCase();
   const elevatedCardClasses =
     'border-0 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.06)] hover:shadow-[0_24px_45px_rgba(15,23,42,0.12)] transition-all';

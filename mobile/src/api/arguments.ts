@@ -35,3 +35,7 @@ export async function createArgument(data: {
   const response = await api.post<ArgumentDetail>('/api/arguments/', data);
   return response.data;
 }
+
+export async function deleteArgument(argumentId: string): Promise<void> {
+  await api.delete(`/api/arguments/${argumentId}`);
+}

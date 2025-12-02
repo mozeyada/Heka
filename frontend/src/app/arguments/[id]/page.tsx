@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
-import { perspectivesAPI } from '@/lib/api';
+import { perspectivesAPI, argumentsAPI } from '@/lib/api';
 import { CrisisResources } from '@/components/CrisisResources';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -47,12 +47,13 @@ export default function ArgumentDetailPage() {
   const params = useParams();
   const argumentId = params?.id as string;
   const { user } = useAuthStore();
-  const { currentArgument, fetchArgumentById } = useArgumentsStore();
+  const { currentArgument, fetchArgumentById, clearCurrentArgument } = useArgumentsStore();
   const [perspectives, setPerspectives] = useState<Perspective[]>([]);
   const [aiInsights, setAIInsights] = useState<AIInsight | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPerspectiveForm, setShowPerspectiveForm] = useState(false);
   const [perspectiveContent, setPerspectiveContent] = useState('');
@@ -71,8 +72,8 @@ export default function ArgumentDetailPage() {
       setIsLoading(true);
       const data = await perspectivesAPI.getByArgument(argumentId);
       setPerspectives(data);
-    } catch (err) {
-      setError('Failed to load perspectives');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to load perspectives');
     } finally {
       setIsLoading(false);
     }
@@ -142,6 +143,24 @@ export default function ArgumentDetailPage() {
       setError(detail);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this argument? This action cannot be undone and will also delete all associated perspectives and insights.')) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      setError(null);
+      await argumentsAPI.delete(argumentId);
+      clearCurrentArgument();
+      router.push('/dashboard');
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || 'Failed to delete argument';
+      setError(detail);
+      setIsDeleting(false);
     }
   };
 
@@ -225,28 +244,49 @@ export default function ArgumentDetailPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div>
-                <span className="text-neutral-500">Category:</span>{' '}
-                <span className="font-medium text-neutral-900">{formatCategory(currentArgument.category)}</span>
+            <div className="flex flex-col gap-4 lg:items-end">
+              <div className="flex flex-wrap gap-4 text-sm">
+                <div>
+                  <span className="text-neutral-500">Category:</span>{' '}
+                  <span className="font-medium text-neutral-900">{formatCategory(currentArgument.category)}</span>
+                </div>
+                <div>
+                  <span className="text-neutral-500">Priority:</span>{' '}
+                  <span
+                    className={classNames(
+                      'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium border capitalize',
+                      priorityTone[currentArgument.priority] || 'bg-neutral-100 text-neutral-600 border-neutral-200'
+                    )}
+                  >
+                    {currentArgument.priority}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-neutral-500">Created:</span>{' '}
+                  <span className="text-neutral-700">
+                    {new Date(currentArgument.created_at).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
-              <div>
-                <span className="text-neutral-500">Priority:</span>{' '}
-                <span
-                  className={classNames(
-                    'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium border capitalize',
-                    priorityTone[currentArgument.priority] || 'bg-neutral-100 text-neutral-600 border-neutral-200'
-                  )}
-                >
-                  {currentArgument.priority}
-                </span>
-              </div>
-              <div>
-                <span className="text-neutral-500">Created:</span>{' '}
-                <span className="text-neutral-700">
-                  {new Date(currentArgument.created_at).toLocaleDateString()}
-                </span>
-              </div>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? (
+                  <>
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-red-700 border-t-transparent"></span>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete Argument
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </section>

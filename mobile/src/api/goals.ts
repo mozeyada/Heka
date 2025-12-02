@@ -1,8 +1,8 @@
 import { api } from './client';
-import { Goal } from '../models/goal';
+import { Goal, GoalDetail } from '../models/goal';
 
 // Re-export for convenience
-export type { Goal } from '../models/goal';
+export type { Goal, GoalDetail } from '../models/goal';
 export type GoalListItem = Goal;
 
 export async function fetchGoals(params?: {
@@ -14,6 +14,11 @@ export async function fetchGoals(params?: {
   const response = await api.get<GoalListItem[]>('/api/goals/', {
     params,
   });
+  return response.data;
+}
+
+export async function fetchGoal(goalId: string): Promise<GoalDetail> {
+  const response = await api.get<GoalDetail>(`/api/goals/${goalId}`);
   return response.data;
 }
 

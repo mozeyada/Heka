@@ -246,3 +246,56 @@ async def get_argument(
         updated_at=argument.updated_at
     )
 
+
+@router.delete("/{argument_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_argument(
+    argument_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Delete an argument and all associated data."""
+    
+    # Validate ObjectId
+    try:
+        validated_argument_id = validate_object_id(argument_id)
+        argument_oid = ObjectId(validated_argument_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    
+    # Get argument and verify it exists
+    arg_doc = await db.arguments.find_one({"_id": argument_oid})
+    
+    if not arg_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Argument not found"
+        )
+    
+    # Verify user has access to this argument (through couple)
+    argument = ArgumentInDB.from_mongo(arg_doc)
+    
+    couple_doc = await db.couples.find_one({
+        "_id": ObjectId(argument.couple_id),
+        "$or": [
+            {"user1_id": ObjectId(current_user.id)},
+            {"user2_id": ObjectId(current_user.id)}
+        ]
+    })
+    
+    if not couple_doc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this argument"
+        )
+    
+    # Delete associated data: perspectives
+    await db.perspectives.delete_many({"argument_id": argument_oid})
+    
+    # Delete the argument itself
+    await db.arguments.delete_one({"_id": argument_oid})
+    
+    return None
+

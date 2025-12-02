@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,20 +8,49 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchArguments, Argument } from '../api/arguments';
-import { useAuthStore } from '../store/auth';
-import { colors, spacing, typography } from '../theme/tokens';
+import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
 import { PageHeading } from '../components/PageHeading';
 import { ArgumentCard } from '../components/ArgumentCard';
+import { Card } from '../components/common';
+
+type IoniconName = keyof typeof Ionicons.glyphMap;
 
 export default function ArgumentsScreen() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
   const [args, setArgs] = useState<Argument[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
+
+  const statusCounts = useMemo(() => {
+    return args.reduce(
+      (acc, arg) => {
+        const key = arg.status?.toLowerCase() ?? 'draft';
+        if (key === 'draft') acc.draft += 1;
+        else if (key === 'analyzed') acc.analyzed += 1;
+        else acc.active += 1;
+        return acc;
+      },
+      { active: 0, draft: 0, analyzed: 0 }
+    );
+  }, [args]);
+
+  const statCards: Array<{ label: string; value: number; icon: IoniconName; accent: string; subtitle: string }> = [
+    { label: 'Active', value: statusCounts.active, icon: 'flame', accent: colors.brand[600], subtitle: 'Needs action' },
+    { label: 'Drafts', value: statusCounts.draft, icon: 'pencil', accent: colors.neutral[300], subtitle: 'In progress' },
+    { label: 'Analyzed', value: statusCounts.analyzed, icon: 'sparkles', accent: colors.success, subtitle: 'Insight ready' },
+  ];
+
+  const contentContainerStyle = useMemo(
+    () => [styles.container, { paddingTop: spacing.lg + insets.top }],
+    [insets.top]
+  );
 
   const loadArguments = useCallback(async () => {
     setLoading(true);
@@ -29,20 +58,17 @@ export default function ArgumentsScreen() {
     try {
       const data = await fetchArguments();
       setArgs(data);
-    } catch (err) {
-      setError('Failed to load arguments.');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to load arguments.');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else {
-      loadArguments();
-    }
-  }, [isAuthenticated, router, loadArguments]);
+    // No need to check auth here - we're already in protected (tabs) route
+    loadArguments();
+  }, [loadArguments]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -60,38 +86,90 @@ export default function ArgumentsScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={contentContainerStyle}
+      contentInsetAdjustmentBehavior="always"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} />}
     >
       <PageHeading
         title="Arguments"
-        description="Track and manage your arguments."
+        description="Track open conflicts, gather insights, and move toward resolution."
         actions={
-          <TouchableOpacity style={styles.button} onPress={() => router.push('/arguments/create')}>
-            <Text style={styles.buttonText}>New Argument</Text>
+          <TouchableOpacity style={styles.headingAction} onPress={() => router.push('/arguments/create')}>
+            <Ionicons name="add" size={16} color={colors.brand[600]} />
+            <Text style={styles.headingActionText}>New</Text>
           </TouchableOpacity>
         }
       />
 
+      <LinearGradient
+        colors={[colors.brand[50], colors.surface]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroCard}
+      >
+        <View style={styles.heroRow}>
+          <View style={styles.heroCopy}>
+            <Text style={styles.heroTitle}>Resolve Smart</Text>
+            <Text style={styles.heroSubtitle}>
+              Use structured prompts to capture both perspectives before tensions rise.
+            </Text>
+          </View>
+          <View style={styles.heroIcon}>
+            <Ionicons name="sparkles" size={24} color={colors.brand[600]} />
+          </View>
+        </View>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/arguments/create')} activeOpacity={0.85}>
+          <Ionicons name="create-outline" size={16} color={colors.surface} />
+          <Text style={styles.primaryButtonText}>Start Argument Intake</Text>
+        </TouchableOpacity>
+      </LinearGradient>
+
+      <View style={styles.statsRow}>
+        {statCards.map((stat) => (
+          <View key={stat.label} style={styles.statCard}>
+            <View style={styles.statCardHeader}>
+              <View style={[styles.statIcon, { backgroundColor: `${stat.accent}22` }]}>
+                <Ionicons name={stat.icon} size={16} color={stat.accent} />
+              </View>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </View>
+            <Text style={styles.statValue}>{stat.value}</Text>
+            <Text style={styles.statSubtitle}>{stat.subtitle}</Text>
+          </View>
+        ))}
+      </View>
+
       {error && (
-        <View style={styles.errorCard}>
+        <Card style={styles.errorCard}>
           <Text style={styles.errorText}>{error}</Text>
-        </View>
+        </Card>
       )}
 
-      {args.length === 0 && !loading && (
-        <View style={styles.emptyState}>
+      <View style={styles.sectionHeader}>
+        <View>
+          <Text style={styles.sectionTitle}>Active Issues</Text>
+          <Text style={styles.sectionSubtitle}>
+            Tap an issue to continue mediation or review AI analysis.
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.sectionAction} onPress={() => router.push('/arguments/create')}>
+          <Text style={styles.sectionActionText}>Log new</Text>
+          <Ionicons name="arrow-forward" size={14} color={colors.brand[600]} />
+        </TouchableOpacity>
+      </View>
+
+      {args.length === 0 && !loading ? (
+        <Card style={styles.emptyCard}>
+          <Ionicons name="leaf-outline" size={24} color={colors.neutral[300]} />
           <Text style={styles.emptyText}>No arguments yet. Create one to get started!</Text>
+        </Card>
+      ) : (
+        <View style={styles.argumentList}>
+          {args.map((arg) => (
+            <ArgumentCard key={arg.id} argument={arg} onPress={() => router.push(`/arguments/${arg.id}`)} />
+          ))}
         </View>
       )}
-
-      {args.map((arg) => (
-        <ArgumentCard
-          key={arg.id}
-          argument={arg}
-          onPress={() => router.push(`/argument?id=${arg.id}`)}
-        />
-      ))}
     </ScrollView>
   );
 }
@@ -102,6 +180,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: spacing.lg,
+    gap: spacing.lg,
   },
   centeredContainer: {
     flex: 1,
@@ -109,38 +188,160 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surfaceMuted,
   },
-  button: {
+  headingAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.neutral[700],
+  },
+  headingActionText: {
+    ...typography.label,
+    color: colors.brand[600],
+  },
+  heroCard: {
+    borderRadius: radii.lg,
+    padding: spacing['2xl'],
+    borderWidth: 1,
+    borderColor: colors.brand[200],
+    ...shadows.card,
+  },
+  heroRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  heroCopy: {
+    flex: 1,
+    gap: spacing.sm,
+  },
+  heroTitle: {
+    ...typography.heading,
+    fontSize: 22,
+    color: colors.neutral[100],
+  },
+  heroSubtitle: {
+    ...typography.body,
+    color: colors.neutral[400],
+    lineHeight: 20,
+  },
+  heroIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.brand[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButton: {
+    marginTop: spacing.lg,
     backgroundColor: colors.brand[600],
+    borderRadius: radii.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
-    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
   },
-  buttonText: {
+  primaryButtonText: {
     ...typography.label,
     color: colors.surface,
+    fontSize: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    flexWrap: 'wrap',
+  },
+  statCard: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.neutral[700],
+  },
+  statCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  statIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statLabel: {
+    ...typography.label,
+    color: colors.neutral[400],
+    textTransform: 'uppercase',
+    fontSize: 11,
+  },
+  statValue: {
+    ...typography.heading,
+    fontSize: 28,
+    color: colors.neutral[100],
+  },
+  statSubtitle: {
+    ...typography.body,
+    color: colors.neutral[400],
+    marginTop: spacing.xs,
   },
   errorCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderColor: colors.danger,
     borderWidth: 1,
-    padding: spacing.lg,
-    borderRadius: 12,
-    marginBottom: spacing.lg,
   },
   errorText: {
     ...typography.body,
     color: colors.danger,
     textAlign: 'center',
   },
-  emptyState: {
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    alignItems: 'flex-start',
+  },
+  sectionTitle: {
+    ...typography.heading,
+    fontSize: 20,
+    color: colors.neutral[100],
+  },
+  sectionSubtitle: {
+    ...typography.body,
+    color: colors.neutral[400],
+    marginTop: spacing.xs,
+  },
+  sectionAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  sectionActionText: {
+    ...typography.label,
+    color: colors.brand[600],
+  },
+  emptyCard: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.xl,
+    gap: spacing.md,
+    paddingVertical: spacing['2xl'],
   },
   emptyText: {
     ...typography.body,
     color: colors.neutral[400],
     textAlign: 'center',
+  },
+  argumentList: {
+    gap: spacing.md,
   },
 });
