@@ -126,7 +126,6 @@ export default function DashboardPage() {
   // Extract user name: prefer user.name, fallback to email username, capitalize first letter
   const rawUserName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'there';
   const userName = rawUserName.charAt(0).toUpperCase() + rawUserName.slice(1).toLowerCase();
-  const userInitial = userName.charAt(0).toUpperCase();
   const elevatedCardClasses =
     'border-0 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.06)] hover:shadow-[0_24px_45px_rgba(15,23,42,0.12)] transition-all';
   const categoryIconMap = {
@@ -174,16 +173,11 @@ export default function DashboardPage() {
         )}
 
         {/* Hero Section - Warm Greeting */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-              {getGreeting()}, {userName}.
-            </h1>
-            <p className="text-base font-medium text-slate-500">Your relationship pulse.</p>
-          </div>
-          <div className="h-12 w-12 rounded-full bg-white shadow-lg border border-white flex items-center justify-center text-primary font-semibold">
-            {userInitial}
-          </div>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
+            {getGreeting()}, {userName}.
+          </h1>
+          <p className="text-base font-medium text-slate-500">Your relationship pulse.</p>
         </div>
 
         {/* Primary Action Card - Start New Session */}
