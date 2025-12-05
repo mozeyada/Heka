@@ -34,7 +34,7 @@ apiClient.interceptors.response.use(
       // Don't redirect on login/register endpoints - these are expected to return 401 for wrong credentials
       const url = error.config?.url || '';
       const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/register');
-      
+
       if (!isAuthEndpoint) {
         // Token expired or invalid on protected endpoints
         localStorage.removeItem('access_token');
@@ -70,13 +70,13 @@ export const authAPI = {
       const formData = new FormData();
       formData.append('username', email); // OAuth2 uses 'username' field
       formData.append('password', password);
-      
+
       const response = await apiClient.post('/api/auth/login', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
+
       // Store token
       if (response.data.access_token) {
         localStorage.setItem('access_token', response.data.access_token);
@@ -85,7 +85,7 @@ export const authAPI = {
           email: response.data.email,
         }));
       }
-      
+
       return response.data;
     } catch (error: any) {
       // Provide better error messages for login failures
@@ -168,6 +168,11 @@ export const argumentsAPI = {
 
   delete: async (id: string) => {
     await apiClient.delete(`/api/arguments/${id}`);
+  },
+
+  updateStatus: async (id: string, status: string) => {
+    const response = await apiClient.patch(`/api/arguments/${id}/status`, { status });
+    return response.data;
   },
 };
 

@@ -27,6 +27,7 @@ export default function ArgumentsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"active" | "history">("active");
   const insets = useSafeAreaInsets();
 
   const statusCounts = useMemo(() => {
@@ -35,10 +36,11 @@ export default function ArgumentsScreen() {
         const key = arg.status?.toLowerCase() ?? "draft";
         if (key === "draft") acc.draft += 1;
         else if (key === "analyzed") acc.analyzed += 1;
+        else if (key === "resolved") acc.resolved += 1;
         else acc.active += 1;
         return acc;
       },
-      { active: 0, draft: 0, analyzed: 0 },
+      { active: 0, draft: 0, analyzed: 0, resolved: 0 },
     );
   }, [args]);
 
@@ -49,28 +51,28 @@ export default function ArgumentsScreen() {
     accent: string;
     subtitle: string;
   }[] = [
-    {
-      label: "Active",
-      value: statusCounts.active,
-      icon: "flame",
-      accent: colors.brand[600],
-      subtitle: "Needs action",
-    },
-    {
-      label: "Drafts",
-      value: statusCounts.draft,
-      icon: "pencil",
-      accent: colors.neutral[300],
-      subtitle: "In progress",
-    },
-    {
-      label: "Analyzed",
-      value: statusCounts.analyzed,
-      icon: "sparkles",
-      accent: colors.success,
-      subtitle: "Insight ready",
-    },
-  ];
+      {
+        label: "Active",
+        value: statusCounts.active,
+        icon: "flame",
+        accent: colors.brand[600],
+        subtitle: "Needs action",
+      },
+      {
+        label: "History",
+        value: statusCounts.resolved,
+        icon: "checkmark-circle",
+        accent: colors.success,
+        subtitle: "Resolved",
+      },
+      {
+        label: "Drafts",
+        value: statusCounts.draft,
+        icon: "pencil",
+        accent: colors.neutral[300],
+        subtitle: "In progress",
+      },
+    ];
 
   const contentContainerStyle = useMemo(
     () => [
@@ -89,8 +91,8 @@ export default function ArgumentsScreen() {
     } catch (err: any) {
       setError(
         err.response?.data?.detail ||
-          err.message ||
-          "Failed to load arguments.",
+        err.message ||
+        "Failed to load arguments.",
       );
     } finally {
       setLoading(false);
@@ -98,7 +100,6 @@ export default function ArgumentsScreen() {
   }, []);
 
   useEffect(() => {
-    // No need to check auth here - we're already in protected (tabs) route
     loadArguments();
   }, [loadArguments]);
 
@@ -106,6 +107,13 @@ export default function ArgumentsScreen() {
     setRefreshing(true);
     loadArguments().finally(() => setRefreshing(false));
   }, [loadArguments]);
+
+  const filteredArgs = args.filter((arg) => {
+    if (activeTab === "active") {
+      return arg.status !== "resolved";
+    }
+    return arg.status === "resolved";
+  });
 
   if (loading && !refreshing) {
     return (
@@ -142,33 +150,65 @@ export default function ArgumentsScreen() {
         }
       />
 
-      <LinearGradient
-        colors={[colors.brand[50], colors.surface]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroCard}
-      >
-        <View style={styles.heroRow}>
-          <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>Resolve Smart</Text>
-            <Text style={styles.heroSubtitle}>
-              Use structured prompts to capture both perspectives before
-              tensions rise.
-            </Text>
-          </View>
-          <View style={styles.heroIcon}>
-            <Ionicons name="sparkles" size={24} color={colors.brand[600]} />
-          </View>
-        </View>
+      {/* Tabs */}
+      <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => router.push("/arguments/create")}
-          activeOpacity={0.85}
+          style={[styles.tab, activeTab === "active" && styles.activeTab]}
+          onPress={() => setActiveTab("active")}
         >
-          <Ionicons name="create-outline" size={16} color={colors.surface} />
-          <Text style={styles.primaryButtonText}>Start Argument Intake</Text>
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "active" && styles.activeTabText,
+            ]}
+          >
+            Active
+          </Text>
         </TouchableOpacity>
-      </LinearGradient>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "history" && styles.activeTab]}
+          onPress={() => setActiveTab("history")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "history" && styles.activeTabText,
+            ]}
+          >
+            History
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {activeTab === "active" && (
+        <LinearGradient
+          colors={[colors.brand[50], colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroRow}>
+            <View style={styles.heroCopy}>
+              <Text style={styles.heroTitle}>Resolve Smart</Text>
+              <Text style={styles.heroSubtitle}>
+                Use structured prompts to capture both perspectives before
+                tensions rise.
+              </Text>
+            </View>
+            <View style={styles.heroIcon}>
+              <Ionicons name="sparkles" size={24} color={colors.brand[600]} />
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push("/arguments/create")}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="create-outline" size={16} color={colors.surface} />
+            <Text style={styles.primaryButtonText}>Start Argument Intake</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      )}
 
       <View style={styles.statsRow}>
         {statCards.map((stat) => (
@@ -198,30 +238,48 @@ export default function ArgumentsScreen() {
 
       <View style={styles.sectionHeader}>
         <View>
-          <Text style={styles.sectionTitle}>Active Issues</Text>
+          <Text style={styles.sectionTitle}>
+            {activeTab === "active" ? "Active Issues" : "Resolution History"}
+          </Text>
           <Text style={styles.sectionSubtitle}>
-            Tap an issue to continue mediation or review AI analysis.
+            {activeTab === "active"
+              ? "Tap an issue to continue mediation."
+              : "Review past resolutions and insights."}
           </Text>
         </View>
-        <TouchableOpacity
-          style={styles.sectionAction}
-          onPress={() => router.push("/arguments/create")}
-        >
-          <Text style={styles.sectionActionText}>Log new</Text>
-          <Ionicons name="arrow-forward" size={14} color={colors.brand[600]} />
-        </TouchableOpacity>
+        {activeTab === "active" && (
+          <TouchableOpacity
+            style={styles.sectionAction}
+            onPress={() => router.push("/arguments/create")}
+          >
+            <Text style={styles.sectionActionText}>Log new</Text>
+            <Ionicons
+              name="arrow-forward"
+              size={14}
+              color={colors.brand[600]}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
-      {args.length === 0 && !loading ? (
+      {filteredArgs.length === 0 && !loading ? (
         <Card style={styles.emptyCard}>
-          <Ionicons name="leaf-outline" size={24} color={colors.neutral[300]} />
+          <Ionicons
+            name={
+              activeTab === "active" ? "leaf-outline" : "file-tray-outline"
+            }
+            size={24}
+            color={colors.neutral[300]}
+          />
           <Text style={styles.emptyText}>
-            No arguments yet. Create one to get started!
+            {activeTab === "active"
+              ? "No active conflicts. Great job!"
+              : "No resolved arguments yet."}
           </Text>
         </Card>
       ) : (
         <View style={styles.argumentList}>
-          {args.map((arg) => (
+          {filteredArgs.map((arg) => (
             <ArgumentCard
               key={arg.id}
               argument={arg}
@@ -403,5 +461,29 @@ const styles = StyleSheet.create({
   },
   argumentList: {
     gap: spacing.md,
+  },
+  tabContainer: {
+    flexDirection: "row",
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  tab: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 100,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.neutral[300],
+  },
+  activeTab: {
+    backgroundColor: colors.brand[600],
+    borderColor: colors.brand[600],
+  },
+  tabText: {
+    ...typography.label,
+    color: colors.neutral[500],
+  },
+  activeTabText: {
+    color: colors.surface,
   },
 });

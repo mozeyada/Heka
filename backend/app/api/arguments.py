@@ -1,7 +1,7 @@
 """Arguments endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.api.schemas import ArgumentCreate, ArgumentResponse
+from app.api.schemas import ArgumentCreate, ArgumentResponse, ArgumentUpdate
 from app.api.dependencies import get_current_user
 from app.core.sanitization import sanitize_text, validate_object_id
 from app.db.database import get_database
@@ -240,6 +240,93 @@ async def get_argument(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this argument"
         )
+    
+    return ArgumentResponse(
+        id=argument.id,
+        couple_id=argument.couple_id,
+        title=argument.title,
+        category=argument.category.value,
+        priority=argument.priority.value,
+        status=argument.status.value,
+        created_at=argument.created_at,
+        updated_at=argument.updated_at
+    )
+
+
+@router.patch("/{argument_id}/status", response_model=ArgumentResponse)
+async def update_argument_status(
+    argument_id: str,
+    status_update: ArgumentUpdate,
+    current_user: UserInDB = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Update argument status."""
+    
+    # Validate ObjectId
+    try:
+        validated_argument_id = validate_object_id(argument_id)
+        argument_oid = ObjectId(validated_argument_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    
+    # Get argument and verify it exists
+    arg_doc = await db.arguments.find_one({"_id": argument_oid})
+    
+    if not arg_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Argument not found"
+        )
+    
+    # Verify user has access to this argument (through couple)
+    argument = ArgumentInDB.from_mongo(arg_doc)
+    
+    couple_doc = await db.couples.find_one({
+        "_id": ObjectId(argument.couple_id),
+        "$or": [
+            {"user1_id": ObjectId(current_user.id)},
+            {"user2_id": ObjectId(current_user.id)}
+        ]
+    })
+    
+    if not couple_doc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this argument"
+        )
+        
+    if not status_update.status:
+         raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Status is required"
+        )
+
+    # Validate status enum
+    try:
+        new_status = ArgumentStatus(status_update.status)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid status. Must be one of: {[s.value for s in ArgumentStatus]}"
+        )
+
+    # Update timestamp
+    updated_at = datetime.utcnow()
+    
+    await db.arguments.update_one(
+        {"_id": argument_oid},
+        {"$set": {
+            "status": new_status.value,
+            "updated_at": updated_at
+        }}
+    )
+    
+    # Return updated argument
+    argument.status = new_status
+    argument.updated_at = updated_at
     
     return ArgumentResponse(
         id=argument.id,

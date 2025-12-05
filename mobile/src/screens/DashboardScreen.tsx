@@ -195,9 +195,9 @@ export default function DashboardScreen() {
   const usagePercentage = data.usage.is_unlimited
     ? 0
     : Math.min(
-        Math.round((data.usage.count / Math.max(data.usage.limit, 1)) * 100),
-        100,
-      );
+      Math.round((data.usage.count / Math.max(data.usage.limit, 1)) * 100),
+      100,
+    );
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -216,7 +216,9 @@ export default function DashboardScreen() {
   const isCheckinCompleted = data.current_checkin?.status === "completed";
   const goalsCount = data.goals.length;
   const activeGoalsLabel = goalsCount === 1 ? "Goal" : "Goals";
-  const topArguments = data.arguments.slice(0, 3);
+  const topArguments = data.arguments
+    .filter((arg) => arg.status !== "resolved")
+    .slice(0, 3);
   const hasArguments = topArguments.length > 0;
 
   return (
@@ -449,7 +451,7 @@ export default function DashboardScreen() {
                   style={[
                     styles.argumentItem,
                     index < topArguments.length - 1 &&
-                      styles.argumentItemBorder,
+                    styles.argumentItemBorder,
                   ]}
                   onPress={() => router.push(`/arguments/${arg.id}`)}
                   activeOpacity={0.85}

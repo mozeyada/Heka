@@ -56,7 +56,7 @@ api.interceptors.request.use(
     const isRetry = !!(
       config as InternalAxiosRequestConfig & { _retry?: boolean }
     )?._retry;
-    console.log(`🌐 ${config.method?.toUpperCase()} ${config.url}`, {
+    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`, {
       hasAuth: !!authHeader,
       authPreview: authHeader ? `${authHeader.substring(0, 30)}...` : "none",
       isRetry,
@@ -81,7 +81,7 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     // Log all 401 errors for debugging
     if (error.response?.status === 401) {
-      console.log("🔴 401 Error detected:", {
+      console.log("[API] 401 Error detected:", {
         url: error.config?.url,
         hasConfig: !!error.config,
         hasOriginalRequest: !!error.config,
@@ -104,7 +104,7 @@ api.interceptors.response.use(
     const isNotRetry = !originalRequest?._retry;
     const conditionMet = is401 && hasConfig && isNotRetry;
 
-    console.log("🔍 Interceptor condition check:", {
+    console.log("[API] Interceptor condition check:", {
       is401,
       hasConfig,
       isNotRetry,
@@ -119,7 +119,7 @@ api.interceptors.response.use(
         originalRequest.url?.includes("/api/notifications/device")
       ) {
         console.error(
-          "🚫 401 Unauthorized (skipping refresh):",
+          "[API] 401 Unauthorized (skipping refresh):",
           originalRequest.url,
         );
         return Promise.reject(error);
@@ -127,7 +127,7 @@ api.interceptors.response.use(
 
       // Check if we have a refresh token before attempting refresh
       const authStore = useAuthStore.getState();
-      console.log("🔍 Checking for refresh token before refresh attempt:", {
+      console.log("[API] Checking for refresh token before refresh attempt:", {
         hasRefreshToken: !!authStore.refreshToken,
         refreshTokenPreview: authStore.refreshToken
           ? `${authStore.refreshToken.substring(0, 20)}...`
@@ -138,7 +138,7 @@ api.interceptors.response.use(
       });
 
       if (!authStore.refreshToken) {
-        console.error("🚫 No refresh token available, cannot refresh");
+        console.error("[API] No refresh token available, cannot refresh");
         console.error("Current auth store state:", {
           accessToken: authStore.accessToken ? "present" : "missing",
           refreshToken: authStore.refreshToken ? "present" : "missing",
@@ -168,13 +168,13 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        console.log("🔄 Attempting token refresh...");
+        console.log("[API] Attempting token refresh...");
         const authStore = useAuthStore.getState();
         await authStore.refreshSession();
         const newToken = useAuthStore.getState().accessToken;
 
         if (newToken) {
-          console.log("✅ Token refreshed successfully");
+          console.log("[API] Token refreshed successfully");
           setAuthToken(newToken);
           processQueue(null, newToken);
 
@@ -189,7 +189,7 @@ api.interceptors.response.use(
             _retry: true, // Mark as retry to prevent infinite loop
           };
 
-          console.log("🔄 Retrying original request with new token:", {
+          console.log("[API] Retrying original request with new token:", {
             url: newRequestConfig.url,
             hasNewToken: !!newToken,
             tokenPreview: newToken ? `${newToken.substring(0, 20)}...` : "none",
@@ -200,17 +200,17 @@ api.interceptors.response.use(
           throw new Error("No token after refresh");
         }
       } catch (refreshError) {
-        console.error("❌ Token refresh failed:", refreshError);
+        console.error("[API] Token refresh failed:", refreshError);
         processQueue(refreshError as Error, null);
 
         // Only logout if we're not in the middle of a login operation
         const authStore = useAuthStore.getState();
         if (!authStore.loading) {
-          console.log("🔄 Refresh failed, calling logout (not during login)");
+          console.log("[API] Refresh failed, calling logout (not during login)");
           authStore.logout();
         } else {
           console.log(
-            "⏸️ Refresh failed but login in progress, skipping logout",
+            "[API] Refresh failed but login in progress, skipping logout",
           );
         }
         return Promise.reject(refreshError);
@@ -226,17 +226,17 @@ api.interceptors.response.use(
         : originalRequest?._retry
           ? "already retried"
           : "condition not met";
-      console.error("🚫 401 Unauthorized (not handled):", {
+      console.error("[API] 401 Unauthorized (not handled):", {
         url: originalRequest?.url || error.config?.url,
         reason,
         hasAuthHeader: !!normalizeAuthHeader(
           originalRequest?.headers?.Authorization ||
-            error.config?.headers?.Authorization,
+          error.config?.headers?.Authorization,
         ),
         authHeader: (() => {
           const header = normalizeAuthHeader(
             originalRequest?.headers?.Authorization ||
-              error.config?.headers?.Authorization,
+            error.config?.headers?.Authorization,
           );
           return header ? `${header.substring(0, 30)}...` : "none";
         })(),
@@ -247,15 +247,21 @@ api.interceptors.response.use(
   },
 );
 
+const logDebug = (message: string, data?: any) => {
+  if (__DEV__) {
+    console.log(`[API] ${message}`, data || "");
+  }
+};
+
 export const setAuthToken = (token: string | null) => {
   if (token) {
     api.defaults.headers.common.Authorization = `Bearer ${token}`;
     console.log(
-      "🔐 Authorization header set:",
+      "[API] Authorization header set:",
       `Bearer ${token.substring(0, 20)}...`,
     );
   } else {
     delete api.defaults.headers.common.Authorization;
-    console.log("🔓 Authorization header cleared");
+    console.log("[API] Authorization header cleared");
   }
 };

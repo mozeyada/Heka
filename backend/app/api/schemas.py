@@ -142,6 +142,12 @@ class ArgumentCreate(BaseModel):
     priority: str = "medium"  # Will be validated against ArgumentPriority enum
 
 
+class ArgumentUpdate(BaseModel):
+    """Update argument request."""
+    status: Optional[str] = None  # Will be validated against ArgumentStatus enum
+
+
+
 class ArgumentResponse(BaseModel):
     """Argument response."""
     id: str

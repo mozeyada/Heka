@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,10 +12,11 @@ import {
   RefreshControl,
   Alert,
 } from "react-native";
+import ConfettiCannon from "react-native-confetti-cannon";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getAIInsights, analyzeArgument, AIInsight } from "../api/ai";
-import { fetchArgument, deleteArgument } from "../api/arguments";
+import { fetchArgument, deleteArgument, updateArgumentStatus } from "../api/arguments";
 import {
   submitPerspective,
   getPerspectivesForArgument,
@@ -38,8 +39,10 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const confettiRef = useRef<ConfettiCannon>(null);
   const { userId } = useAuthStore();
   const insets = useSafeAreaInsets();
   const contentContainerStyle = useMemo(
@@ -91,6 +94,27 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
       setError(errorMessage);
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (!argumentId) return;
+    setUpdating(true);
+    setError(null);
+    try {
+      const updatedArg = await updateArgumentStatus(argumentId, newStatus);
+      setArgument(updatedArg);
+
+      // Trigger confetti if resolving
+      if (newStatus === "resolved") {
+        confettiRef.current?.start();
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.detail || "Failed to update status";
+      setError(errorMessage);
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -152,41 +176,53 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
   }
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={contentContainerStyle}
-      contentInsetAdjustmentBehavior="always"
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.brand[500]}
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={contentContainerStyle}
+        contentInsetAdjustmentBehavior="always"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.brand[500]}
+          />
+        }
+      >
+        <ArgumentHeader
+          argument={argument}
+          onDelete={handleDelete}
+          isDeleting={deleting}
+          onResolve={() => handleStatusUpdate("resolved")}
+          onReopen={() => handleStatusUpdate("active")}
+          isUpdating={updating}
         />
-      }
-    >
-      <ArgumentHeader
-        argument={argument}
-        onDelete={handleDelete}
-        isDeleting={deleting}
-      />
 
-      {error && <ErrorCard message={error} />}
+        {error && <ErrorCard message={error} />}
 
-      <PerspectivesSection
-        argumentId={argumentId!}
-        perspectives={perspectives}
-        userId={userId}
-        onUpdate={loadData}
-      />
+        <PerspectivesSection
+          argumentId={argumentId!}
+          perspectives={perspectives}
+          userId={userId}
+          onUpdate={loadData}
+        />
 
-      <AIInsightsSection
-        argumentId={argumentId!}
-        perspectivesCount={perspectives.length}
-        aiInsights={aiInsights}
-        isAnalyzing={analyzing}
-        onAnalyze={handleAnalyze}
+        <AIInsightsSection
+          argumentId={argumentId!}
+          perspectivesCount={perspectives.length}
+          aiInsights={aiInsights}
+          isAnalyzing={analyzing}
+          onAnalyze={handleAnalyze}
+        />
+      </ScrollView>
+      <ConfettiCannon
+        count={200}
+        origin={{ x: -10, y: 0 }}
+        autoStart={false}
+        ref={confettiRef}
+        fadeOut={true}
       />
-    </ScrollView>
+    </View>
   );
 }
 
@@ -228,10 +264,16 @@ const ArgumentHeader = ({
   argument,
   onDelete,
   isDeleting,
+  onResolve,
+  onReopen,
+  isUpdating,
 }: {
   argument: any;
   onDelete?: () => void;
   isDeleting?: boolean;
+  onResolve?: () => void;
+  onReopen?: () => void;
+  isUpdating?: boolean;
 }) => (
   <Card>
     <View style={styles.headerRow}>
@@ -261,6 +303,51 @@ const ArgumentHeader = ({
             <ActivityIndicator size="small" color={colors.danger} />
           ) : (
             <Ionicons name="trash-outline" size={20} color={colors.danger} />
+          )}
+        </TouchableOpacity>
+      )}
+    </View>
+
+    {/* Actions Row */}
+    <View style={styles.actionRow}>
+      {argument.status !== "resolved" ? (
+        <TouchableOpacity
+          style={[styles.resolveButton, isUpdating && styles.buttonDisabled]}
+          onPress={onResolve}
+          disabled={isUpdating}
+        >
+          {isUpdating ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Ionicons
+                name="checkmark-circle"
+                size={18}
+                color="#fff"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.resolveButtonText}>Mark as Resolved</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={[styles.reopenButton, isUpdating && styles.buttonDisabled]}
+          onPress={onReopen}
+          disabled={isUpdating}
+        >
+          {isUpdating ? (
+            <ActivityIndicator size="small" color={colors.neutral[600]} />
+          ) : (
+            <>
+              <Ionicons
+                name="refresh"
+                size={18}
+                color={colors.neutral[600]}
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.reopenButtonText}>Reopen Argument</Text>
+            </>
           )}
         </TouchableOpacity>
       )}
@@ -778,5 +865,37 @@ const styles = StyleSheet.create({
   },
   deleteButtonDisabled: {
     opacity: 0.5,
+  },
+  actionRow: {
+    marginTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[200],
+    paddingTop: spacing.md,
+  },
+  resolveButton: {
+    backgroundColor: colors.success,
+    borderRadius: radii.md,
+    paddingVertical: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  resolveButtonText: {
+    ...typography.label,
+    color: "#fff",
+  },
+  reopenButton: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.neutral[300],
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reopenButtonText: {
+    ...typography.label,
+    color: colors.neutral[600],
   },
 });

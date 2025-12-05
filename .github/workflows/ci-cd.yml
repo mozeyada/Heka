@@ -36,6 +36,9 @@ jobs:
     - name: Test with Pytest
       run: pytest
 
+    - name: Verify Docker Build
+      run: docker build . --file Dockerfile
+
   validate-frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -61,6 +64,9 @@ jobs:
     - name: Test with Vitest
       run: npm test -- --run  # --run flag to disable watch mode
 
+    - name: Verify Production Build
+      run: npm run build
+
   validate-mobile:
     runs-on: ubuntu-latest
     defaults:
@@ -85,4 +91,7 @@ jobs:
 
     - name: Test with Jest
       run: npm test
+
+    - name: Type Check
+      run: npx tsc --noEmit
 

@@ -43,3 +43,14 @@ export async function createArgument(data: {
 export async function deleteArgument(argumentId: string): Promise<void> {
   await api.delete(`/api/arguments/${argumentId}`);
 }
+
+export async function updateArgumentStatus(
+  argumentId: string,
+  status: string,
+): Promise<ArgumentDetail> {
+  const response = await api.patch<ArgumentDetail>(
+    `/api/arguments/${argumentId}/status`,
+    { status },
+  );
+  return response.data;
+}

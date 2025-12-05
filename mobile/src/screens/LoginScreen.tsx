@@ -23,14 +23,14 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     try {
-      console.log("🔵 Login button pressed");
+      console.log("Login button pressed");
       const deviceId = await getDeviceId();
-      console.log("🔵 Calling login function...");
+      console.log("Calling login function...");
       await login(email.trim().toLowerCase(), password, deviceId);
-      console.log("✅ Login function completed successfully");
+      console.log("Login function completed successfully");
       // Navigation is handled by _layout.tsx based on accessToken
     } catch (err) {
-      console.error("❌ Login failed in handleLogin:", err);
+      console.error("Login failed in handleLogin:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);
       console.error("Error details:", { errorMessage, err });
     }

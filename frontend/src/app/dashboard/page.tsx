@@ -296,7 +296,7 @@ export default function DashboardPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Active Issues</CardTitle>
-              {couple && args.length > 0 && (
+              {couple && args.filter(a => a.status !== 'resolved').length > 0 && (
                 <Button variant="ghost" size="sm" asChild>
                   <Link href="/arguments">View All</Link>
                 </Button>
@@ -304,7 +304,7 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            {args.length === 0 ? (
+            {args.filter(a => a.status !== 'resolved').length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-sm text-muted-foreground mb-4">
                   No active conflicts. You're in a good place.
@@ -320,7 +320,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-1">
-                {args.slice(0, 3).map((arg) => {
+                {args.filter(a => a.status !== 'resolved').slice(0, 3).map((arg) => {
                   const { icon: CategoryIcon, bg, color, text } = getCategoryIconConfig(arg.category);
                   return (
                     <button
@@ -391,9 +391,8 @@ export default function DashboardPage() {
                 </div>
                 <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      usageCount >= usageLimit ? 'bg-destructive' : 'bg-primary'
-                    }`}
+                    className={`h-full rounded-full transition-all duration-500 ${usageCount >= usageLimit ? 'bg-destructive' : 'bg-primary'
+                      }`}
                     style={{ width: `${usagePercentage}%` }}
                   />
                 </div>

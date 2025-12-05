@@ -73,6 +73,7 @@ export default function ArgumentsPage() {
   const { arguments: args, fetchArguments, isLoading } = useArgumentsStore();
   const [error, setError] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const hasRequestedAuth = useRef(false);
   const hasLoadedArguments = useRef(false);
 
@@ -126,6 +127,10 @@ export default function ArgumentsPage() {
     return <LoadingPage />;
   }
 
+  const activeArguments = args.filter((arg) => arg.status !== 'resolved');
+  const resolvedArguments = args.filter((arg) => arg.status === 'resolved');
+  const currentList = activeTab === 'active' ? activeArguments : resolvedArguments;
+
   return (
     <div className="bg-slate-100/80 min-h-screen pb-32">
       <div className="app-container py-8 space-y-8 pb-28">
@@ -171,33 +176,60 @@ export default function ArgumentsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Tabs */}
+            <div className="flex items-center gap-1 mt-6 border-b border-slate-200">
+              <button
+                onClick={() => setActiveTab('active')}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'active'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                Active Issues ({activeArguments.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'history'
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                History ({resolvedArguments.length})
+              </button>
+            </div>
           </CardContent>
         </Card>
 
-        {args.length === 0 ? (
+        {currentList.length === 0 ? (
           <Card className={`${elevatedCardClasses} text-center`}>
             <CardContent className="space-y-4 p-10">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
                 <FileText className="h-6 w-6" />
               </div>
               <div className="space-y-2">
-                <CardTitle>No active issues logged</CardTitle>
+                <CardTitle>
+                  {activeTab === 'active' ? 'No active issues' : 'No history yet'}
+                </CardTitle>
                 <CardDescription>
-                  When conflict arises, capture each partner&apos;s perspective here to start a guided
-                  resolution.
+                  {activeTab === 'active'
+                    ? "You're all caught up! No open conflicts."
+                    : "Resolved arguments will appear here."}
                 </CardDescription>
               </div>
-              <Button asChild size="lg" className="gap-2">
-                <Link href="/arguments/create">
-                  <PlusCircle className="h-5 w-5" />
-                  Start a new session
-                </Link>
-              </Button>
+              {activeTab === 'active' && (
+                <Button asChild size="lg" className="gap-2">
+                  <Link href="/arguments/create">
+                    <PlusCircle className="h-5 w-5" />
+                    Start a new session
+                  </Link>
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
-            {args.map((arg) => {
+            {currentList.map((arg) => {
               const { icon: CategoryIcon, bg, color, label } =
                 categoryIconMap[arg.category?.toLowerCase() ?? ''] ?? defaultCategoryIcon;
 
