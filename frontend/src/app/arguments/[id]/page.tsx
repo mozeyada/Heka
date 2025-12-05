@@ -297,6 +297,13 @@ export default function ArgumentDetailPage() {
                 )}
 
                 <button
+                  onClick={() => setShowCementModal(true)}
+                  className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 transition-colors"
+                >
+                  🌱 View Action Plan
+                </button>
+
+                <button
                   onClick={handleDelete}
                   disabled={isDeleting}
                   className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

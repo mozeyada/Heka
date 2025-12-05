@@ -370,7 +370,7 @@ async def get_checkin_suggestions(
 
 
 @router.post("/arguments/{argument_id}/generate-goals", response_model=AIGoalsResponse)
-@limiter.limit("10/hour")
+@limiter.limit("60/hour")
 async def generate_argument_goals(
     request: Request,
     argument_id: str,
@@ -407,7 +407,7 @@ async def generate_argument_goals(
 
 
 @router.post("/arguments/{argument_id}/generate-checkins", response_model=AICheckInsResponse)
-@limiter.limit("10/hour")
+@limiter.limit("60/hour")
 async def generate_argument_checkins(
     request: Request,
     argument_id: str,

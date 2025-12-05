@@ -24,6 +24,7 @@ export default function CementWinModal({ isOpen, onClose, argumentId }: CementWi
     const [goals, setGoals] = useState<GoalSuggestion[]>([]);
     const [checkins, setCheckins] = useState<CheckInSuggestion[]>([]);
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen && argumentId) {
@@ -40,8 +41,10 @@ export default function CementWinModal({ isOpen, onClose, argumentId }: CementWi
             ]);
             setGoals(goalsRes.suggestions);
             setCheckins(checkinsRes.suggestions);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to load suggestions:', error);
+            const msg = error.response?.data?.detail || 'The AI service is temporarily unavailable. Please try again.';
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -92,10 +95,22 @@ export default function CementWinModal({ isOpen, onClose, argumentId }: CementWi
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
                             <p>Generating personalized steps...</p>
                         </div>
+                    ) : error ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-center bg-red-50 rounded-xl p-6 border border-red-100">
+                            <div className="text-red-500 text-4xl mb-3">⚠️</div>
+                            <h3 className="text-lg font-medium text-red-900 mb-2">Could not generate action items</h3>
+                            <p className="text-red-600 text-sm mb-6">{error}</p>
+                            <button
+                                onClick={loadSuggestions}
+                                className="px-4 py-2 bg-white border border-red-200 text-red-700 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors"
+                            >
+                                Try Again
+                            </button>
+                        </div>
                     ) : (
                         <>
                             {/* Goals Section */}
-                            {goals.length > 0 && (
+                            {goals.length > 0 ? (
                                 <section>
                                     <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Suggested Shared Goals</h3>
                                     <div className="space-y-4">
@@ -114,6 +129,10 @@ export default function CementWinModal({ isOpen, onClose, argumentId }: CementWi
                                         ))}
                                     </div>
                                 </section>
+                            ) : (
+                                <div className="text-center py-8 text-gray-500 italic">
+                                    No specific goals suggested from this argument.
+                                </div>
                             )}
 
                             {/* Check-in Section */}

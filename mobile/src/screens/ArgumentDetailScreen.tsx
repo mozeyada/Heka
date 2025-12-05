@@ -341,38 +341,40 @@ const ArgumentHeader = ({
           )}
         </TouchableOpacity>
       ) : (
-        <View style={{ gap: 8, flex: 1, flexDirection: "row" }}>
-          <TouchableOpacity
-            style={[styles.reopenButton, isUpdating && styles.buttonDisabled, { flex: 1 }]}
-            onPress={onReopen}
-            disabled={isUpdating}
-          >
-            {isUpdating ? (
-              <ActivityIndicator size="small" color={colors.neutral[600]} />
-            ) : (
+        <TouchableOpacity
+          style={[styles.reopenButton, isUpdating && styles.buttonDisabled]}
+          onPress={onReopen}
+          disabled={isUpdating}
+        >
+          {isUpdating ? (
+            <ActivityIndicator size="small" color={colors.neutral[600]} />
+          ) : (
+            <>
               <Ionicons
                 name="refresh"
                 size={18}
                 color={colors.neutral[600]}
+                style={{ marginRight: 6 }}
               />
-            )}
-            {!isUpdating && <Text style={[styles.reopenButtonText, { marginLeft: 6 }]}>Reopen</Text>}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.resolveButton, { backgroundColor: colors.success, flex: 2 }]}
-            onPress={onViewActionPlan}
-          >
-            <Ionicons
-              name="leaf"
-              size={18}
-              color="#fff"
-              style={{ marginRight: 6 }}
-            />
-            <Text style={styles.resolveButtonText}>View Action Plan</Text>
-          </TouchableOpacity>
-        </View>
+              <Text style={styles.reopenButtonText}>Reopen Argument</Text>
+            </>
+          )}
+        </TouchableOpacity>
       )}
+
+      {/* Always Visible Action Plan Button */}
+      <TouchableOpacity
+        style={[styles.resolveButton, { backgroundColor: colors.success, marginTop: 12 }]}
+        onPress={onViewActionPlan}
+      >
+        <Ionicons
+          name="leaf"
+          size={18}
+          color="#fff"
+          style={{ marginRight: 6 }}
+        />
+        <Text style={styles.resolveButtonText}>View Action Plan</Text>
+      </TouchableOpacity>
     </View>
   </Card>
 );

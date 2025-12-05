@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     
     # CORS
-    ALLOWED_ORIGINS: Union[List[str], str] = ["http://localhost:3000"]
+    ALLOWED_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "https://heka-nine.vercel.app"]
     
     @validator('ALLOWED_ORIGINS', pre=True)
     def parse_allowed_origins(cls, v):

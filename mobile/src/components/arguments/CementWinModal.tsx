@@ -32,6 +32,7 @@ export function CementWinModal({ visible, onClose, argumentId }: Props) {
     const [goals, setGoals] = useState<GoalSuggestion[]>([]);
     const [checkins, setCheckins] = useState<CheckInSuggestion[]>([]);
     const [savingGoalIndex, setSavingGoalIndex] = useState<number | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (visible && argumentId) {
@@ -49,9 +50,10 @@ export function CementWinModal({ visible, onClose, argumentId }: Props) {
             ]);
             setGoals(goalsParams.suggestions);
             setCheckins(checkinsParams.suggestions);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to load suggestions:", error);
-            // Don't alert blocking error, just show empty state or partials
+            const msg = error.response?.data?.detail || "Could not generate steps.";
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -103,10 +105,20 @@ export function CementWinModal({ visible, onClose, argumentId }: Props) {
                             <ActivityIndicator size="large" color={colors.brand[500]} />
                             <Text style={styles.loadingText}>Generating personalized steps...</Text>
                         </View>
+                    ) : error ? (
+                        <View style={styles.loadingContainer}>
+                            <Ionicons name="warning-outline" size={48} color={colors.danger} />
+                            <Text style={[styles.title, { fontSize: 18, marginTop: 16, color: colors.danger, textAlign: 'center' }]}>
+                                {error}
+                            </Text>
+                            <TouchableOpacity style={[styles.actionButton, { marginTop: 16 }]} onPress={loadSuggestions}>
+                                <Text style={styles.actionButtonText}>Try Again</Text>
+                            </TouchableOpacity>
+                        </View>
                     ) : (
                         <ScrollView contentContainerStyle={styles.content}>
                             {/* Goals Section */}
-                            {goals.length > 0 && (
+                            {goals.length > 0 ? (
                                 <View style={styles.section}>
                                     <Text style={styles.sectionTitle}>Suggested Shared Goals</Text>
                                     {goals.map((goal, index) => (
@@ -130,6 +142,12 @@ export function CementWinModal({ visible, onClose, argumentId }: Props) {
                                             </TouchableOpacity>
                                         </View>
                                     ))}
+                                </View>
+                            ) : (
+                                <View style={{ padding: 20, alignItems: 'center' }}>
+                                    <Text style={{ color: colors.neutral[300], fontStyle: 'italic' }}>
+                                        No specific goals suggested.
+                                    </Text>
                                 </View>
                             )}
 
