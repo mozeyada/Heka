@@ -2,7 +2,7 @@
 
 AI-powered couple argument resolution platform.
 
-**Status:** 🚀 MVP Complete – Mobile parity polish wrapping up
+**Status:** MVP Complete – Mobile parity polish wrapping up
 
 ## What is Heka?
 
@@ -10,22 +10,22 @@ Heka helps couples resolve arguments using AI-powered mediation. Each partner sh
 
 ## Current Status (Dec 2025)
 
-✅ **MVP Complete (Production-ready web + mobile core)**
+**MVP Complete (Production-ready web + mobile core)**
 - Full-stack application deployed and operational
 - 17 responsive web pages with cohesive design system
-- Native mobile app (Expo) with polished dashboard, subscription management, goal detail timeline, and settings (data export + deletion)
+- Native mobile app (Expo) with polished dashboard, glassmorphic navigation, and offline-first ready architecture
+- **Action Plans:** Convert resolved arguments into shared goals and check-ins (Cement the Win)
 - AI mediation with safety detection
 - Subscription management (Free, Basic, Premium tiers)
 - Stripe payments configured
 - Security hardening complete
 - Production-ready on Railway (backend) + Vercel (frontend)
 
-🚧 **In Progress (Launch Prep)**
-- Final mobile visual finesse (glassmorphic nav, iconography tweaks)
+**In Progress (Launch Prep)**
 - Device QA (iOS + Android) following smoke runbook
 - Beta collateral refresh (screenshots, marketing copy)
 
-📍 **Next Phase: Beta Launch** (4-6 weeks)
+**Next Phase: Beta Launch** (4-6 weeks)
 - User feedback collection
 - Performance monitoring
 - Product iteration
@@ -78,16 +78,16 @@ npm run android # or npm run ios
 
 ## Features
 
-- 🔐 Secure authentication with JWT
-- 👥 Couple profile creation and partner invites
-- 💬 Argument tracking with dual perspectives
-- 🤖 AI-powered mediation and insights
-- 🎯 Goal setting and progress tracking
-- 📊 Weekly relationship check-ins
-- 💳 Subscription management (Stripe)
-- 📱 Native mobile app (Expo) with polished dashboard, subscription, settings, and goal detail flows
-- 🔒 Security hardening (rate limiting, input sanitization, crisis detection)
-- 📄 Legal compliance (Terms, Privacy Policy, data export/deletion)
+- Secure authentication with JWT
+- Couple profile creation and partner invites
+- Argument tracking with dual perspectives
+- AI-powered mediation and insights
+- Goal setting and progress tracking
+- Weekly relationship check-ins
+- Subscription management (Stripe)
+- Native mobile app (Expo) with polished dashboard, subscription, settings, and goal detail flows
+- Security hardening (rate limiting, input sanitization, crisis detection)
+- Legal compliance (Terms, Privacy Policy, data export/deletion)
 
 ## License
 

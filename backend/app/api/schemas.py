@@ -262,12 +262,12 @@ class AIGoalSuggestion(BaseModel):
     """A single AI-generated goal suggestion."""
     title: str
     description: str
-    category: str
+    category: str = "General"
 
 class AICheckInSuggestion(BaseModel):
     """A single AI-generated check-in question."""
     question: str
-    category: str
+    category: str = "General"
 
 class AIGoalsResponse(BaseModel):
     """Response for AI-generated goal suggestions."""
