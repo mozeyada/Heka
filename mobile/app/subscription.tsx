@@ -333,7 +333,7 @@ export default function SubscriptionScreen() {
                   styles.upgradeButton,
                   styles.premiumButton,
                   creatingCheckout === "premium" &&
-                    styles.upgradeButtonDisabled,
+                  styles.upgradeButtonDisabled,
                 ]}
                 onPress={() => handleUpgrade("premium")}
                 disabled={creatingCheckout === "premium"}
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   heroBadge: {
-    borderRadius: radii.full,
+    borderRadius: 100,
     backgroundColor: "rgba(15,23,42,0.1)",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: spacing.sm,
-    backgroundColor: colors.neutral[900],
+    backgroundColor: colors.neutral[800],
     paddingVertical: spacing.md,
     borderRadius: radii.md,
   },

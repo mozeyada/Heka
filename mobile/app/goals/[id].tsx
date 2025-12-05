@@ -473,7 +473,7 @@ const styles = StyleSheet.create({
   heroBadge: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
-    borderRadius: radii.full,
+    borderRadius: 100,
     backgroundColor: "rgba(15, 23, 42, 0.15)",
   },
   heroBadgeText: {
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     ...typography.body,
     color: colors.neutral[100],
-    backgroundColor: colors.neutral[900],
+    backgroundColor: colors.neutral[800],
   },
   secondaryAction: {
     flexDirection: "row",

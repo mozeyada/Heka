@@ -37,7 +37,7 @@ jobs:
       run: pytest
 
     - name: Verify Docker Build
-      run: docker build . --file Dockerfile
+      run: docker build .. --file Dockerfile
 
   validate-frontend:
     runs-on: ubuntu-latest

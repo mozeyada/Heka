@@ -147,7 +147,7 @@ export default function SettingsScreen() {
         {/* Account Overview */}
         <Section
           title="Account Overview"
-          subtitle={`Joined ${new Date(user.created_at || Date.now()).toLocaleDateString()}`}
+          subtitle={user.email}
         >
           <Card>
             <View style={styles.accountInfo}>
