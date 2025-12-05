@@ -234,6 +234,19 @@ export const goalsAPI = {
   },
 };
 
+// AI Suggestions API
+export const aiSuggestionsAPI = {
+  getGoalSuggestions: async () => {
+    const response = await apiClient.get('/api/ai/goals/suggestions');
+    return response.data;
+  },
+
+  getCheckinSuggestions: async () => {
+    const response = await apiClient.get('/api/ai/checkins/suggestions');
+    return response.data;
+  },
+};
+
 // Subscriptions API
 export const subscriptionsAPI = {
   getMySubscription: async () => {

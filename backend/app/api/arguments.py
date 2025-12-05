@@ -104,6 +104,12 @@ async def create_argument(
     result = await db.arguments.insert_one(argument.to_mongo())
     argument.id = str(result.inserted_id)
     
+    # Invalidate suggestion cache if high-priority argument is created
+    if priority in [ArgumentPriority.HIGH, ArgumentPriority.URGENT]:
+        from app.services.ai_suggestion_cache import ai_suggestion_cache_service
+        # Invalidate both types of suggestions
+        await ai_suggestion_cache_service.invalidate_cache(couple.id)
+
     # Track usage
     await usage_service.track_usage(
         couple.id,

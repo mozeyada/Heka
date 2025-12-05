@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { colors, spacing, typography } from '../theme/tokens';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+
+import { colors, spacing, typography } from "../theme/tokens";
 
 interface PageHeadingProps {
   title: string;
@@ -8,7 +9,11 @@ interface PageHeadingProps {
   actions?: React.ReactNode;
 }
 
-export const PageHeading: React.FC<PageHeadingProps> = ({ title, description, actions }) => {
+export const PageHeading: React.FC<PageHeadingProps> = ({
+  title,
+  description,
+  actions,
+}) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -25,9 +30,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   title: {
     ...typography.heading,

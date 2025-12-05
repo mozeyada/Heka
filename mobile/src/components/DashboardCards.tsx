@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
-import { Card } from './common';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+
+import { Card } from "./common";
+import { colors, spacing, typography, radii, shadows } from "../theme/tokens";
 
 interface StatCardProps {
   label: string;
@@ -9,7 +10,11 @@ interface StatCardProps {
   description: string;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({ label, value, description }) => {
+export const StatCard: React.FC<StatCardProps> = ({
+  label,
+  value,
+  description,
+}) => {
   return (
     <Card style={styles.statCard}>
       <Text style={styles.statLabel}>{label}</Text>
@@ -26,7 +31,12 @@ interface ActionCardProps {
   buttonText: string;
 }
 
-export const ActionCard: React.FC<ActionCardProps> = ({ title, description, onPress, buttonText }) => {
+export const ActionCard: React.FC<ActionCardProps> = ({
+  title,
+  description,
+  onPress,
+  buttonText,
+}) => {
   return (
     <Card style={styles.actionCard}>
       <Text style={styles.actionTitle}>{title}</Text>
@@ -41,12 +51,12 @@ export const ActionCard: React.FC<ActionCardProps> = ({ title, description, onPr
 const styles = StyleSheet.create({
   statCard: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statLabel: {
     ...typography.label,
     color: colors.neutral[400],
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   statValue: {
     ...typography.heading,
@@ -57,7 +67,7 @@ const styles = StyleSheet.create({
   statDescription: {
     ...typography.body,
     color: colors.neutral[400],
-    textAlign: 'center',
+    textAlign: "center",
   },
   actionCard: {
     flex: 1,
@@ -77,7 +87,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand[600],
     paddingVertical: spacing.md,
     borderRadius: radii.md,
-    alignItems: 'center',
+    alignItems: "center",
   },
   actionButtonText: {
     ...typography.label,

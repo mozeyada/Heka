@@ -32,7 +32,8 @@ python3 -m venv venv
 source ~/.venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+# Install dependencies (editable mode with dev tools)
+pip install -e .[dev]
 
 # Copy environment file
 cp .env.example .env
@@ -79,6 +80,26 @@ npm run dev
 ```
 
 Frontend will run at: http://localhost:3000
+
+---
+
+### 3. Mobile Setup
+
+```bash
+cd mobile
+
+# Install dependencies
+npm install
+
+# Run on Android
+npm run android
+
+# Run on iOS (Mac only)
+npm run ios
+
+# Run tests
+npm test
+```
 
 ---
 
@@ -140,16 +161,22 @@ MongoDB collections will be created automatically. Indexes can be created progra
 
 1. Make changes to code
 2. Run tests: `pytest`
-3. Format code: `black app/`
+3. Format code: `ruff check .`
 4. Create migration (if model changes): `alembic revision --autogenerate -m "description"`
 5. Apply migration: `alembic upgrade head`
 
 ### Frontend
 
 1. Make changes to code
-2. Type check: `npm run type-check`
-3. Lint: `npm run lint`
+2. Run tests: `npm test`
+3. Functionality/Integration: `npm run dev`
 4. Build: `npm run build`
+
+### Mobile
+
+1. Make changes to code
+2. Run tests: `npm test`
+3. Run on device: `npx expo start`
 
 ---
 
@@ -169,6 +196,10 @@ Heka/
 │   │   ├── app/     # Next.js pages
 │   │   ├── components/
 │   │   └── lib/
+│   └── package.json
+├── mobile/           # Expo/React Native app
+│   ├── app/         # Expo Router pages
+│   ├── src/         # Components and logic
 │   └── package.json
 └── docs/            # Documentation
 ```

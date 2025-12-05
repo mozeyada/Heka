@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api } from "./client";
 
 export type Perspective = {
   id: string;
@@ -9,14 +9,18 @@ export type Perspective = {
 };
 
 export async function submitPerspective(argumentId: string, content: string) {
-  const response = await api.post('/api/perspectives/create', {
+  const response = await api.post("/api/perspectives/create", {
     argument_id: argumentId,
     content,
   });
   return response.data;
 }
 
-export async function getPerspectivesForArgument(argumentId: string): Promise<Perspective[]> {
-  const response = await api.get<Perspective[]>(`/api/perspectives/argument/${argumentId}`);
+export async function getPerspectivesForArgument(
+  argumentId: string,
+): Promise<Perspective[]> {
+  const response = await api.get<Perspective[]>(
+    `/api/perspectives/argument/${argumentId}`,
+  );
   return response.data;
 }

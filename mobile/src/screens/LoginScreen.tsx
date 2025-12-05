@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { LinearGradient } from "expo-linear-gradient";
+import { StatusBar } from "expo-status-bar";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -8,36 +10,35 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StatusBar } from 'expo-status-bar';
-import { useAuthStore } from '../store/auth';
-import { getDeviceId } from '../services/deviceId';
-import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
+} from "react-native";
+
+import { getDeviceId } from "../services/deviceId";
+import { useAuthStore } from "../store/auth";
+import { colors, spacing, typography, radii, shadows } from "../theme/tokens";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const { login, loading, error } = useAuthStore();
 
   const handleLogin = async () => {
     try {
-      console.log('🔵 Login button pressed');
+      console.log("🔵 Login button pressed");
       const deviceId = await getDeviceId();
-      console.log('🔵 Calling login function...');
+      console.log("🔵 Calling login function...");
       await login(email.trim().toLowerCase(), password, deviceId);
-      console.log('✅ Login function completed successfully');
+      console.log("✅ Login function completed successfully");
       // Navigation is handled by _layout.tsx based on accessToken
     } catch (err) {
-      console.error('❌ Login failed in handleLogin:', err);
+      console.error("❌ Login failed in handleLogin:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error('Error details:', { errorMessage, err });
+      console.error("Error details:", { errorMessage, err });
     }
   };
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.container}
     >
       <StatusBar style="light" />
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     color: colors.brand[200],
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 4,
     fontSize: 12,
   },
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
     color: colors.neutral[800],
     fontSize: typography.heading.fontSize,
     fontFamily: typography.heading.fontFamily,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   subtitle: {
     marginTop: spacing.sm,
@@ -159,8 +160,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.brand[500],
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   buttonDisabled: {
     backgroundColor: colors.brand[300],
@@ -168,7 +169,6 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.neutral[800],
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
-

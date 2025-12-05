@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api } from "./client";
 
 export type DashboardOverview = {
   subscription: {
@@ -15,20 +15,20 @@ export type DashboardOverview = {
     period_start: string | null;
     period_end: string | null;
   };
-  arguments: Array<{
+  arguments: {
     id: string;
     title: string;
     priority: string;
     status: string;
     category: string;
     created_at: string;
-  }>;
-  goals: Array<{
+  }[];
+  goals: {
     id: string;
     title: string;
     status: string;
     target_date: string | null;
-  }>;
+  }[];
   current_checkin: {
     id?: string;
     status: string;
@@ -38,6 +38,6 @@ export type DashboardOverview = {
 };
 
 export async function fetchDashboardOverview(): Promise<DashboardOverview> {
-  const response = await api.get<DashboardOverview>('/api/dashboard/overview');
+  const response = await api.get<DashboardOverview>("/api/dashboard/overview");
   return response.data;
 }

@@ -1,4 +1,7 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -7,16 +10,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchArguments, Argument } from '../api/arguments';
-import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
-import { PageHeading } from '../components/PageHeading';
-import { ArgumentCard } from '../components/ArgumentCard';
-import { Card } from '../components/common';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { fetchArguments, Argument } from "../api/arguments";
+import { ArgumentCard } from "../components/ArgumentCard";
+import { PageHeading } from "../components/PageHeading";
+import { Card } from "../components/common";
+import { colors, spacing, typography, radii, shadows } from "../theme/tokens";
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -31,25 +32,52 @@ export default function ArgumentsScreen() {
   const statusCounts = useMemo(() => {
     return args.reduce(
       (acc, arg) => {
-        const key = arg.status?.toLowerCase() ?? 'draft';
-        if (key === 'draft') acc.draft += 1;
-        else if (key === 'analyzed') acc.analyzed += 1;
+        const key = arg.status?.toLowerCase() ?? "draft";
+        if (key === "draft") acc.draft += 1;
+        else if (key === "analyzed") acc.analyzed += 1;
         else acc.active += 1;
         return acc;
       },
-      { active: 0, draft: 0, analyzed: 0 }
+      { active: 0, draft: 0, analyzed: 0 },
     );
   }, [args]);
 
-  const statCards: Array<{ label: string; value: number; icon: IoniconName; accent: string; subtitle: string }> = [
-    { label: 'Active', value: statusCounts.active, icon: 'flame', accent: colors.brand[600], subtitle: 'Needs action' },
-    { label: 'Drafts', value: statusCounts.draft, icon: 'pencil', accent: colors.neutral[300], subtitle: 'In progress' },
-    { label: 'Analyzed', value: statusCounts.analyzed, icon: 'sparkles', accent: colors.success, subtitle: 'Insight ready' },
+  const statCards: {
+    label: string;
+    value: number;
+    icon: IoniconName;
+    accent: string;
+    subtitle: string;
+  }[] = [
+    {
+      label: "Active",
+      value: statusCounts.active,
+      icon: "flame",
+      accent: colors.brand[600],
+      subtitle: "Needs action",
+    },
+    {
+      label: "Drafts",
+      value: statusCounts.draft,
+      icon: "pencil",
+      accent: colors.neutral[300],
+      subtitle: "In progress",
+    },
+    {
+      label: "Analyzed",
+      value: statusCounts.analyzed,
+      icon: "sparkles",
+      accent: colors.success,
+      subtitle: "Insight ready",
+    },
   ];
 
   const contentContainerStyle = useMemo(
-    () => [styles.container, { paddingTop: spacing.lg + insets.top }],
-    [insets.top]
+    () => [
+      styles.container,
+      { paddingTop: spacing.lg + insets.top, paddingBottom: 110 },
+    ],
+    [insets.top],
   );
 
   const loadArguments = useCallback(async () => {
@@ -59,7 +87,11 @@ export default function ArgumentsScreen() {
       const data = await fetchArguments();
       setArgs(data);
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to load arguments.');
+      setError(
+        err.response?.data?.detail ||
+          err.message ||
+          "Failed to load arguments.",
+      );
     } finally {
       setLoading(false);
     }
@@ -88,13 +120,22 @@ export default function ArgumentsScreen() {
       style={styles.screen}
       contentContainerStyle={contentContainerStyle}
       contentInsetAdjustmentBehavior="always"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.brand[500]}
+        />
+      }
     >
       <PageHeading
         title="Arguments"
         description="Track open conflicts, gather insights, and move toward resolution."
         actions={
-          <TouchableOpacity style={styles.headingAction} onPress={() => router.push('/arguments/create')}>
+          <TouchableOpacity
+            style={styles.headingAction}
+            onPress={() => router.push("/arguments/create")}
+          >
             <Ionicons name="add" size={16} color={colors.brand[600]} />
             <Text style={styles.headingActionText}>New</Text>
           </TouchableOpacity>
@@ -111,14 +152,19 @@ export default function ArgumentsScreen() {
           <View style={styles.heroCopy}>
             <Text style={styles.heroTitle}>Resolve Smart</Text>
             <Text style={styles.heroSubtitle}>
-              Use structured prompts to capture both perspectives before tensions rise.
+              Use structured prompts to capture both perspectives before
+              tensions rise.
             </Text>
           </View>
           <View style={styles.heroIcon}>
             <Ionicons name="sparkles" size={24} color={colors.brand[600]} />
           </View>
         </View>
-        <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/arguments/create')} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => router.push("/arguments/create")}
+          activeOpacity={0.85}
+        >
           <Ionicons name="create-outline" size={16} color={colors.surface} />
           <Text style={styles.primaryButtonText}>Start Argument Intake</Text>
         </TouchableOpacity>
@@ -128,7 +174,12 @@ export default function ArgumentsScreen() {
         {statCards.map((stat) => (
           <View key={stat.label} style={styles.statCard}>
             <View style={styles.statCardHeader}>
-              <View style={[styles.statIcon, { backgroundColor: `${stat.accent}22` }]}>
+              <View
+                style={[
+                  styles.statIcon,
+                  { backgroundColor: `${stat.accent}22` },
+                ]}
+              >
                 <Ionicons name={stat.icon} size={16} color={stat.accent} />
               </View>
               <Text style={styles.statLabel}>{stat.label}</Text>
@@ -152,7 +203,10 @@ export default function ArgumentsScreen() {
             Tap an issue to continue mediation or review AI analysis.
           </Text>
         </View>
-        <TouchableOpacity style={styles.sectionAction} onPress={() => router.push('/arguments/create')}>
+        <TouchableOpacity
+          style={styles.sectionAction}
+          onPress={() => router.push("/arguments/create")}
+        >
           <Text style={styles.sectionActionText}>Log new</Text>
           <Ionicons name="arrow-forward" size={14} color={colors.brand[600]} />
         </TouchableOpacity>
@@ -161,12 +215,18 @@ export default function ArgumentsScreen() {
       {args.length === 0 && !loading ? (
         <Card style={styles.emptyCard}>
           <Ionicons name="leaf-outline" size={24} color={colors.neutral[300]} />
-          <Text style={styles.emptyText}>No arguments yet. Create one to get started!</Text>
+          <Text style={styles.emptyText}>
+            No arguments yet. Create one to get started!
+          </Text>
         </Card>
       ) : (
         <View style={styles.argumentList}>
           {args.map((arg) => (
-            <ArgumentCard key={arg.id} argument={arg} onPress={() => router.push(`/arguments/${arg.id}`)} />
+            <ArgumentCard
+              key={arg.id}
+              argument={arg}
+              onPress={() => router.push(`/arguments/${arg.id}`)}
+            />
           ))}
         </View>
       )}
@@ -184,13 +244,13 @@ const styles = StyleSheet.create({
   },
   centeredContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: colors.surfaceMuted,
   },
   headingAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
     backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
@@ -205,14 +265,14 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderRadius: radii.lg,
-    padding: spacing['2xl'],
+    padding: spacing["2xl"],
     borderWidth: 1,
     borderColor: colors.brand[200],
     ...shadows.card,
   },
   heroRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: spacing.lg,
   },
   heroCopy: {
@@ -234,8 +294,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     backgroundColor: colors.brand[100],
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   primaryButton: {
     marginTop: spacing.lg,
@@ -243,9 +303,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.sm,
   },
   primaryButtonText: {
@@ -254,12 +314,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   statsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   statCard: {
-    flexBasis: '48%',
+    flexBasis: "48%",
     flexGrow: 1,
     backgroundColor: colors.surface,
     borderRadius: radii.md,
@@ -268,22 +328,22 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[700],
   },
   statCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.md,
   },
   statIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   statLabel: {
     ...typography.label,
     color: colors.neutral[400],
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     fontSize: 11,
   },
   statValue: {
@@ -303,13 +363,13 @@ const styles = StyleSheet.create({
   errorText: {
     ...typography.body,
     color: colors.danger,
-    textAlign: 'center',
+    textAlign: "center",
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: spacing.md,
-    alignItems: 'flex-start',
+    alignItems: "flex-start",
   },
   sectionTitle: {
     ...typography.heading,
@@ -322,8 +382,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   sectionAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
   },
   sectionActionText: {
@@ -331,15 +391,15 @@ const styles = StyleSheet.create({
     color: colors.brand[600],
   },
   emptyCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.md,
-    paddingVertical: spacing['2xl'],
+    paddingVertical: spacing["2xl"],
   },
   emptyText: {
     ...typography.body,
     color: colors.neutral[400],
-    textAlign: 'center',
+    textAlign: "center",
   },
   argumentList: {
     gap: spacing.md,

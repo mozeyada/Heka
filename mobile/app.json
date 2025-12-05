@@ -35,13 +35,7 @@
       "bundler": "metro",
       "output": "static"
     },
-    "plugins": [
-      "sentry-expo",
-      [
-        "expo-notifications",
-        {}
-      ]
-    ],
+    "plugins": ["sentry-expo", ["expo-notifications", {}]],
     "extra": {
       "eas": {
         "projectId": "6ed8b76f-a657-4a77-8ede-c2a0fcffc794"

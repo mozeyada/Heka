@@ -1,8 +1,8 @@
-import { api } from './client';
-import { Goal, GoalDetail } from '../models/goal';
+import { api } from "./client";
+import { Goal, GoalDetail } from "../models/goal";
 
 // Re-export for convenience
-export type { Goal, GoalDetail } from '../models/goal';
+export type { Goal, GoalDetail } from "../models/goal";
 export type GoalListItem = Goal;
 
 export async function fetchGoals(params?: {
@@ -11,7 +11,7 @@ export async function fetchGoals(params?: {
   offset?: number;
 }): Promise<GoalListItem[]> {
   // CRITICAL: Use trailing slash to avoid 307 redirect that loses Authorization header
-  const response = await api.get<GoalListItem[]>('/api/goals/', {
+  const response = await api.get<GoalListItem[]>("/api/goals/", {
     params,
   });
   return response.data;
@@ -27,7 +27,7 @@ export async function createGoal(data: {
   description: string;
   target_date: string;
 }): Promise<Goal> {
-  const response = await api.post<Goal>('/api/goals/', data);
+  const response = await api.post<Goal>("/api/goals/", data);
   return response.data;
 }
 
@@ -36,7 +36,11 @@ export async function updateGoalStatus(goalId: string, status: string) {
   return response.data;
 }
 
-export async function addGoalProgress(goalId: string, notes?: string, progressValue?: number) {
+export async function addGoalProgress(
+  goalId: string,
+  notes?: string,
+  progressValue?: number,
+) {
   const response = await api.post(`/api/goals/${goalId}/progress`, {
     notes,
     progress_value: progressValue,

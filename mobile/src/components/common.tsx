@@ -1,6 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, ViewProps } from 'react-native';
-import { colors, spacing, radii, shadows, typography } from '../theme/tokens';
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ViewProps,
+  DimensionValue,
+} from "react-native";
+
+import { colors, spacing, radii, shadows, typography } from "../theme/tokens";
 
 export const Card: React.FC<ViewProps> = ({ style, ...props }) => {
   return <View style={[styles.card, style]} {...props} />;
@@ -11,7 +18,12 @@ interface SectionProps extends ViewProps {
   subtitle?: string;
 }
 
-export const Section: React.FC<SectionProps> = ({ title, subtitle, children, style }) => {
+export const Section: React.FC<SectionProps> = ({
+  title,
+  subtitle,
+  children,
+  style,
+}) => {
   return (
     <Card style={style}>
       <View style={styles.sectionHeader}>
@@ -23,15 +35,17 @@ export const Section: React.FC<SectionProps> = ({ title, subtitle, children, sty
   );
 };
 
-import { DimensionValue } from 'react-native';
-
 interface SkeletonProps {
   height: number;
   width?: DimensionValue;
-  style?: ViewProps['style'];
+  style?: ViewProps["style"];
 }
 
-export const Skeleton: React.FC<SkeletonProps> = ({ height, width = '100%', style }) => {
+export const Skeleton: React.FC<SkeletonProps> = ({
+  height,
+  width = "100%",
+  style,
+}) => {
   return <View style={[styles.skeleton, { height, width }, style]} />;
 };
 

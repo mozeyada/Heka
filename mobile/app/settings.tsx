@@ -1,5 +1,6 @@
-import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -9,16 +10,22 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 // Note: For mobile, we'll show the data in an Alert or copy to clipboard
 // Full file export would require expo-file-system and expo-sharing
-import { useAuthStore } from '../src/store/auth';
-import { exportUserData, deleteAccount } from '../src/api/users';
-import { colors, spacing, typography, radii, shadows } from '../src/theme/tokens';
-import { Card, Section } from '../src/components/common';
-import { PageHeading } from '../src/components/PageHeading';
+import { exportUserData, deleteAccount } from "../src/api/users";
+import { PageHeading } from "../src/components/PageHeading";
+import { Card, Section } from "../src/components/common";
+import { useAuthStore } from "../src/store/auth";
+import {
+  colors,
+  spacing,
+  typography,
+  radii,
+  shadows,
+} from "../src/theme/tokens";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -28,7 +35,7 @@ export default function SettingsScreen() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
 
   const handleExportData = async () => {
     try {
@@ -39,66 +46,72 @@ export default function SettingsScreen() {
       // For mobile, show the data in an alert with option to copy
       // In production, you might want to use expo-file-system + expo-sharing
       const jsonString = JSON.stringify(data.data, null, 2);
-      
+
       Alert.alert(
-        'Data Export Ready',
-        'Your data export is ready. The data has been prepared and can be accessed via the web version for full file download, or you can view it here.',
+        "Data Export Ready",
+        "Your data export is ready. The data has been prepared and can be accessed via the web version for full file download, or you can view it here.",
         [
           {
-            text: 'View Data',
+            text: "View Data",
             onPress: () => {
               // Show in a scrollable view or copy to clipboard
-              Alert.alert('Export Data', `Data size: ${(jsonString.length / 1024).toFixed(2)} KB\n\nFor full file download, please use the web version at heka.app/settings`, [
-                { text: 'OK' },
-              ]);
+              Alert.alert(
+                "Export Data",
+                `Data size: ${(jsonString.length / 1024).toFixed(2)} KB\n\nFor full file download, please use the web version at heka.app/settings`,
+                [{ text: "OK" }],
+              );
             },
           },
-          { text: 'OK' },
-        ]
+          { text: "OK" },
+        ],
       );
     } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to export data';
+      const errorMessage =
+        err.response?.data?.detail || err.message || "Failed to export data";
       setError(errorMessage);
-      Alert.alert('Error', errorMessage);
+      Alert.alert("Error", errorMessage);
     } finally {
       setExporting(false);
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmation !== 'DELETE') {
-      Alert.alert('Error', 'Please type DELETE to confirm account deletion');
+    if (deleteConfirmation !== "DELETE") {
+      Alert.alert("Error", "Please type DELETE to confirm account deletion");
       return;
     }
 
     Alert.alert(
-      'Delete Account',
-      'Are you absolutely sure? This will permanently delete your account, couple profile, and all stored data. This action cannot be undone.',
+      "Delete Account",
+      "Are you absolutely sure? This will permanently delete your account, couple profile, and all stored data. This action cannot be undone.",
       [
         {
-          text: 'Cancel',
-          style: 'cancel',
+          text: "Cancel",
+          style: "cancel",
         },
         {
-          text: 'Delete Forever',
-          style: 'destructive',
+          text: "Delete Forever",
+          style: "destructive",
           onPress: async () => {
             try {
               setDeleting(true);
               setError(null);
-              await deleteAccount('DELETE');
+              await deleteAccount("DELETE");
               logout();
-              router.replace('/');
+              router.replace("/");
             } catch (err: any) {
-              const errorMessage = err.response?.data?.detail || err.message || 'Failed to delete account';
+              const errorMessage =
+                err.response?.data?.detail ||
+                err.message ||
+                "Failed to delete account";
               setError(errorMessage);
               setDeleting(false);
               setShowDeleteConfirm(false);
-              Alert.alert('Error', errorMessage);
+              Alert.alert("Error", errorMessage);
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -115,7 +128,10 @@ export default function SettingsScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg }]}
+        contentContainerStyle={[
+          styles.container,
+          { paddingTop: insets.top + spacing.lg },
+        ]}
       >
         <PageHeading
           title="Settings"
@@ -129,7 +145,10 @@ export default function SettingsScreen() {
         )}
 
         {/* Account Overview */}
-        <Section title="Account Overview" subtitle={`Joined ${new Date(user.created_at || Date.now()).toLocaleDateString()}`}>
+        <Section
+          title="Account Overview"
+          subtitle={`Joined ${new Date(user.created_at || Date.now()).toLocaleDateString()}`}
+        >
           <Card>
             <View style={styles.accountInfo}>
               <View style={styles.infoRow}>
@@ -152,7 +171,11 @@ export default function SettingsScreen() {
           subtitle="Download a complete copy of your arguments, perspectives, and insights in JSON format."
         >
           <TouchableOpacity
-            style={[styles.button, styles.exportButton, exporting && styles.buttonDisabled]}
+            style={[
+              styles.button,
+              styles.exportButton,
+              exporting && styles.buttonDisabled,
+            ]}
             onPress={handleExportData}
             disabled={exporting}
           >
@@ -160,7 +183,11 @@ export default function SettingsScreen() {
               <ActivityIndicator color={colors.surface} />
             ) : (
               <>
-                <Ionicons name="download-outline" size={20} color={colors.surface} />
+                <Ionicons
+                  name="download-outline"
+                  size={20}
+                  color={colors.surface}
+                />
                 <Text style={styles.buttonText}>Export Data</Text>
               </>
             )}
@@ -178,12 +205,15 @@ export default function SettingsScreen() {
               onPress={() => setShowDeleteConfirm(true)}
             >
               <Ionicons name="trash-outline" size={20} color={colors.danger} />
-              <Text style={[styles.buttonText, styles.deleteButtonText]}>Delete Account</Text>
+              <Text style={[styles.buttonText, styles.deleteButtonText]}>
+                Delete Account
+              </Text>
             </TouchableOpacity>
           ) : (
             <Card style={styles.deleteConfirmCard}>
               <Text style={styles.deleteConfirmText}>
-                Type <Text style={styles.deleteConfirmBold}>DELETE</Text> to confirm:
+                Type <Text style={styles.deleteConfirmBold}>DELETE</Text> to
+                confirm:
               </Text>
               <TextInput
                 style={styles.deleteInput}
@@ -195,9 +225,13 @@ export default function SettingsScreen() {
               />
               <View style={styles.deleteActions}>
                 <TouchableOpacity
-                  style={[styles.button, styles.confirmDeleteButton, deleting && styles.buttonDisabled]}
+                  style={[
+                    styles.button,
+                    styles.confirmDeleteButton,
+                    deleting && styles.buttonDisabled,
+                  ]}
                   onPress={handleDeleteAccount}
-                  disabled={deleting || deleteConfirmation !== 'DELETE'}
+                  disabled={deleting || deleteConfirmation !== "DELETE"}
                 >
                   {deleting ? (
                     <ActivityIndicator color={colors.surface} />
@@ -209,10 +243,12 @@ export default function SettingsScreen() {
                   style={[styles.button, styles.cancelButton]}
                   onPress={() => {
                     setShowDeleteConfirm(false);
-                    setDeleteConfirmation('');
+                    setDeleteConfirmation("");
                   }}
                 >
-                  <Text style={[styles.buttonText, styles.cancelButtonText]}>Cancel</Text>
+                  <Text style={[styles.buttonText, styles.cancelButtonText]}>
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
               </View>
             </Card>
@@ -229,10 +265,10 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: spacing.lg,
-    paddingBottom: spacing['2xl'],
+    paddingBottom: spacing["2xl"],
   },
   errorCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
     borderColor: colors.danger,
     borderWidth: 1,
     marginBottom: spacing.lg,
@@ -240,15 +276,15 @@ const styles = StyleSheet.create({
   errorText: {
     ...typography.body,
     color: colors.danger,
-    textAlign: 'center',
+    textAlign: "center",
   },
   accountInfo: {
     gap: spacing.md,
   },
   infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   infoLabel: {
     ...typography.label,
@@ -257,12 +293,12 @@ const styles = StyleSheet.create({
   infoValue: {
     ...typography.body,
     color: colors.neutral[100],
-    fontWeight: '600',
+    fontWeight: "600",
   },
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.sm,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
@@ -273,7 +309,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral[800],
   },
   deleteButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: colors.danger,
   },
@@ -282,7 +318,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cancelButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: colors.neutral[600],
     flex: 1,
@@ -311,7 +347,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   deleteConfirmBold: {
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.neutral[100],
   },
   deleteInput: {
@@ -323,14 +359,13 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     color: colors.neutral[100],
     marginBottom: spacing.md,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 2,
   },
   deleteActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
   },
 });
-

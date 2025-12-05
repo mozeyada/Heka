@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import { checkinsAPI } from '@/lib/api';
+import { checkinsAPI, aiSuggestionsAPI } from '@/lib/api';
 import { PageHeading } from '@/components/PageHeading';
 
 export default function CheckInPage() {
@@ -18,6 +19,8 @@ export default function CheckInPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -27,7 +30,16 @@ export default function CheckInPage() {
     }
 
     loadCheckin();
+    if (checkin?.status !== 'completed') {
+      loadAISuggestions();
+    }
   }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    if (checkin?.status !== 'completed') {
+      loadAISuggestions();
+    }
+  }, [checkin]);
 
   const loadCheckin = async () => {
     try {
@@ -42,6 +54,19 @@ export default function CheckInPage() {
       setError(error.response?.data?.detail || error.message || 'Failed to load check-in. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAISuggestions = async () => {
+    try {
+      setLoadingSuggestions(true);
+      const response = await aiSuggestionsAPI.getCheckinSuggestions();
+      setAiSuggestions(response.suggestions || []);
+    } catch (error: any) {
+      console.error('Failed to load AI suggestions:', error);
+      // Don't show error to user - suggestions are optional
+    } finally {
+      setLoadingSuggestions(false);
     }
   };
 
@@ -125,6 +150,37 @@ export default function CheckInPage() {
             {error && (
               <div className="section-shell border border-red-200 bg-red-50 p-5">
                 <p className="text-sm font-semibold text-red-600">{error}</p>
+              </div>
+            )}
+
+            {aiSuggestions.length > 0 && (
+              <div className="section-shell border border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-white p-6">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="rounded-lg bg-indigo-100 p-2">
+                    <Sparkles className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-neutral-900">Personalized Reflection Questions</h3>
+                    <p className="mt-1 text-sm text-neutral-600">
+                      Based on your recent arguments, consider these additional questions for deeper reflection.
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {aiSuggestions.slice(0, 2).map((suggestion, index) => (
+                    <div
+                      key={index}
+                      className="rounded-lg border border-indigo-100 bg-white p-4"
+                    >
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
+                          {suggestion.category}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm text-neutral-700">{suggestion.question}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

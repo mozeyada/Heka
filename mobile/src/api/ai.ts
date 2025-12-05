@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api } from "./client";
 
 export type AIInsight = {
   id: string;
@@ -6,11 +6,11 @@ export type AIInsight = {
   common_ground: string[];
   disagreements: string[];
   root_causes: string[];
-  suggestions: Array<{
+  suggestions: {
     title: string;
     description: string;
     actionable_steps: string[];
-  }>;
+  }[];
   communication_tips: string[];
   generated_at: string;
   model_used: string;
@@ -20,9 +20,13 @@ export type AIInsight = {
   };
 };
 
-export async function getAIInsights(argumentId: string): Promise<AIInsight | null> {
+export async function getAIInsights(
+  argumentId: string,
+): Promise<AIInsight | null> {
   try {
-    const response = await api.get<AIInsight>(`/api/ai/arguments/${argumentId}/insights`);
+    const response = await api.get<AIInsight>(
+      `/api/ai/arguments/${argumentId}/insights`,
+    );
     return response.data;
   } catch (error: any) {
     if (error.response?.status === 404) {
@@ -33,7 +37,8 @@ export async function getAIInsights(argumentId: string): Promise<AIInsight | nul
 }
 
 export async function analyzeArgument(argumentId: string): Promise<AIInsight> {
-  const response = await api.post<AIInsight>(`/api/ai/arguments/${argumentId}/analyze`);
+  const response = await api.post<AIInsight>(
+    `/api/ai/arguments/${argumentId}/analyze`,
+  );
   return response.data;
 }
-

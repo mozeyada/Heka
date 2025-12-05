@@ -1,2 +1,1 @@
-export { default } from '../../src/screens/CheckinsScreen';
-
+export { default } from "../../src/screens/CheckinsScreen";

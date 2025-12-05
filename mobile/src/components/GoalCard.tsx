@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Goal } from '../models/goal';
-import { colors, spacing, typography, radii } from '../theme/tokens';
-import { Card } from './common';
+import React from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+
+import { Card } from "./common";
+import { Goal } from "../models/goal";
+import { colors, spacing, typography, radii } from "../theme/tokens";
 
 interface GoalCardProps {
   goal: Goal;
@@ -10,8 +11,12 @@ interface GoalCardProps {
   onComplete: () => void;
 }
 
-export const GoalCard: React.FC<GoalCardProps> = ({ goal, onPress, onComplete }) => {
-  const isCompleted = goal.status === 'completed';
+export const GoalCard: React.FC<GoalCardProps> = ({
+  goal,
+  onPress,
+  onComplete,
+}) => {
+  const isCompleted = goal.status === "completed";
 
   return (
     <Card style={isCompleted ? styles.completedCard : styles.card}>
@@ -23,16 +28,23 @@ export const GoalCard: React.FC<GoalCardProps> = ({ goal, onPress, onComplete })
           </View>
         )}
       </View>
-      {goal.description && <Text style={styles.description}>{goal.description}</Text>}
+      {goal.description && (
+        <Text style={styles.description}>{goal.description}</Text>
+      )}
       {goal.target_date && (
-        <Text style={styles.date}>Target: {new Date(goal.target_date).toLocaleDateString()}</Text>
+        <Text style={styles.date}>
+          Target: {new Date(goal.target_date).toLocaleDateString()}
+        </Text>
       )}
       <View style={styles.actions}>
         <TouchableOpacity style={styles.button} onPress={onPress}>
           <Text style={styles.buttonText}>View</Text>
         </TouchableOpacity>
         {!isCompleted && (
-          <TouchableOpacity style={[styles.button, styles.completeButton]} onPress={onComplete}>
+          <TouchableOpacity
+            style={[styles.button, styles.completeButton]}
+            onPress={onComplete}
+          >
             <Text style={styles.buttonText}>Complete</Text>
           </TouchableOpacity>
         )}
@@ -47,13 +59,13 @@ const styles = StyleSheet.create({
   },
   completedCard: {
     marginBottom: spacing.lg,
-    backgroundColor: 'rgba(34, 197, 94, 0.05)',
+    backgroundColor: "rgba(34, 197, 94, 0.05)",
     borderColor: colors.success,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: spacing.sm,
   },
   title: {
@@ -85,8 +97,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     gap: spacing.md,
     marginTop: spacing.md,
   },

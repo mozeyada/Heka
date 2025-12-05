@@ -73,6 +73,7 @@ config/secrets.json
 !SETUP.md
 !DEPLOYMENT_ENV_VARS.md
 
+
 .cursor/
 backend/debug_token.py
 backend/temp_debug_env/

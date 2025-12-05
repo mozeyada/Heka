@@ -1,1 +1,1 @@
-export { default } from '../../src/screens/CreateArgumentScreen';
+export { default } from "../../src/screens/CreateArgumentScreen";

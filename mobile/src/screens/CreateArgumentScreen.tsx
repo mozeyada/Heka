@@ -1,33 +1,46 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { createArgument } from '../api/arguments';
-import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
-import { Card } from '../components/common';
-import { PageHeading } from '../components/PageHeading';
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { createArgument } from "../api/arguments";
+import { PageHeading } from "../components/PageHeading";
+import { Card } from "../components/common";
+import { colors, spacing, typography, radii, shadows } from "../theme/tokens";
 
 export default function CreateArgumentScreen() {
   const router = useRouter();
-  const [newArgument, setNewArgument] = useState({ title: '', category: 'communication', priority: 'medium' });
+  const [newArgument, setNewArgument] = useState({
+    title: "",
+    category: "communication",
+    priority: "medium",
+  });
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const categoryOptions = [
-    { label: 'Communication', value: 'communication' },
-    { label: 'Values & Beliefs', value: 'values' },
-    { label: 'Trust & Safety', value: 'trust' },
-    { label: 'Finances', value: 'finances' },
+    { label: "Communication", value: "communication" },
+    { label: "Values & Beliefs", value: "values" },
+    { label: "Trust & Safety", value: "trust" },
+    { label: "Finances", value: "finances" },
   ];
-  const priorityOptions = ['low', 'medium', 'high', 'urgent'] as const;
+  const priorityOptions = ["low", "medium", "high", "urgent"] as const;
   const selectedCategoryLabel =
-    categoryOptions.find((option) => option.value === newArgument.category)?.label ?? 'General';
+    categoryOptions.find((option) => option.value === newArgument.category)
+      ?.label ?? "General";
   const insets = useSafeAreaInsets();
 
   const handleCreateArgument = async () => {
     if (!newArgument.title.trim()) {
-      setError('Title is required.');
+      setError("Title is required.");
       return;
     }
     setIsCreating(true);
@@ -36,7 +49,7 @@ export default function CreateArgumentScreen() {
       const created = await createArgument(newArgument);
       router.push(`/arguments/${created.id}`);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to create argument.');
+      setError(err.response?.data?.detail || "Failed to create argument.");
     } finally {
       setIsCreating(false);
     }
@@ -47,7 +60,10 @@ export default function CreateArgumentScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={[styles.container, { paddingTop: spacing.lg + insets.top }]}
+      contentContainerStyle={[
+        styles.container,
+        { paddingTop: spacing.lg + insets.top },
+      ]}
       contentInsetAdjustmentBehavior="always"
     >
       <PageHeading
@@ -65,7 +81,8 @@ export default function CreateArgumentScreen() {
           <View style={styles.heroCopy}>
             <Text style={styles.heroTitle}>Intake in minutes</Text>
             <Text style={styles.heroSubtitle}>
-              A focused prompt helps both of you stay objective when emotions are high.
+              A focused prompt helps both of you stay objective when emotions
+              are high.
             </Text>
           </View>
           <View style={styles.heroIcon}>
@@ -97,7 +114,9 @@ export default function CreateArgumentScreen() {
           placeholder="e.g., Household Chores"
           placeholderTextColor={colors.neutral[400]}
           value={newArgument.title}
-          onChangeText={(text) => setNewArgument({ ...newArgument, title: text })}
+          onChangeText={(text) =>
+            setNewArgument({ ...newArgument, title: text })
+          }
         />
 
         <Text style={styles.label}>Category</Text>
@@ -108,9 +127,18 @@ export default function CreateArgumentScreen() {
               <TouchableOpacity
                 key={option.value}
                 style={[styles.chip, isActive && styles.chipActive]}
-                onPress={() => setNewArgument((prev) => ({ ...prev, category: option.value }))}
+                onPress={() =>
+                  setNewArgument((prev) => ({
+                    ...prev,
+                    category: option.value,
+                  }))
+                }
               >
-                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{option.label}</Text>
+                <Text
+                  style={[styles.chipText, isActive && styles.chipTextActive]}
+                >
+                  {option.label}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -124,9 +152,15 @@ export default function CreateArgumentScreen() {
               <TouchableOpacity
                 key={priority}
                 style={[styles.chip, isActive && styles.chipActive]}
-                onPress={() => setNewArgument((prev) => ({ ...prev, priority }))}
+                onPress={() =>
+                  setNewArgument((prev) => ({ ...prev, priority }))
+                }
               >
-                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{priority}</Text>
+                <Text
+                  style={[styles.chipText, isActive && styles.chipTextActive]}
+                >
+                  {priority}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -137,8 +171,14 @@ export default function CreateArgumentScreen() {
           onPress={handleCreateArgument}
           disabled={isCreating}
         >
-          <Ionicons name={isCreating ? 'time-outline' : 'paper-plane-outline'} size={16} color={colors.surface} />
-          <Text style={styles.primaryButtonText}>{isCreating ? 'Saving...' : 'Create Argument'}</Text>
+          <Ionicons
+            name={isCreating ? "time-outline" : "paper-plane-outline"}
+            size={16}
+            color={colors.surface}
+          />
+          <Text style={styles.primaryButtonText}>
+            {isCreating ? "Saving..." : "Create Argument"}
+          </Text>
         </TouchableOpacity>
       </Card>
     </ScrollView>
@@ -151,19 +191,19 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: spacing.lg,
-    paddingBottom: spacing['2xl'],
+    paddingBottom: spacing["2xl"],
     gap: spacing.lg,
   },
   heroCard: {
     borderRadius: radii.lg,
-    padding: spacing['2xl'],
+    padding: spacing["2xl"],
     borderWidth: 1,
     borderColor: colors.brand[200],
     ...shadows.card,
   },
   heroHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     gap: spacing.lg,
     marginBottom: spacing.md,
   },
@@ -186,12 +226,12 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     backgroundColor: colors.brand[100],
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   heroMetaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: spacing.lg,
   },
   heroMetaItem: {
@@ -201,7 +241,7 @@ const styles = StyleSheet.create({
     ...typography.label,
     fontSize: 11,
     color: colors.neutral[400],
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   metaValue: {
     ...typography.heading,
@@ -226,8 +266,8 @@ const styles = StyleSheet.create({
     color: colors.neutral[100],
   },
   chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   chip: {
@@ -254,9 +294,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand[600],
     paddingVertical: spacing.md,
     borderRadius: radii.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.sm,
   },
   primaryButtonText: {
@@ -268,13 +308,13 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   errorCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
     borderColor: colors.danger,
     borderWidth: 1,
   },
   errorText: {
     ...typography.body,
     color: colors.danger,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });

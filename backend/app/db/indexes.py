@@ -63,6 +63,10 @@ async def create_indexes(db: AsyncIOMotorDatabase):
     await db.usages.create_index([("couple_id", ASCENDING), ("usage_type", ASCENDING), ("period_start", ASCENDING)])
     await db.usages.create_index("period_start")
     await db.usages.create_index("period_end")
+
+    # AI Suggestion Cache collection indexes
+    await db.ai_suggestion_cache.create_index([("couple_id", ASCENDING), ("suggestion_type", ASCENDING)], unique=True)
+    await db.ai_suggestion_cache.create_index("expires_at")
     
     print("Database indexes created successfully")
 

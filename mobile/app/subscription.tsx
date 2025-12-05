@@ -1,5 +1,8 @@
-import { Stack } from 'expo-router';
-import { useEffect, useState, useCallback } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Linking from "expo-linking";
+import { Stack } from "expo-router";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,44 +12,67 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Linking from 'expo-linking';
-import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, radii, shadows } from '../src/theme/tokens';
-import { Card, Section } from '../src/components/common';
-import { PageHeading } from '../src/components/PageHeading';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import {
   fetchSubscription,
   fetchUsage,
   createCheckoutSession,
   Subscription,
   Usage,
-} from '../src/api/subscriptions';
+} from "../src/api/subscriptions";
+import { PageHeading } from "../src/components/PageHeading";
+import { Card, Section } from "../src/components/common";
+import {
+  colors,
+  spacing,
+  typography,
+  radii,
+  shadows,
+} from "../src/theme/tokens";
 
-const PLAN_DESCRIPTIONS: Record<string, { headline: string; benefits: string[]; accent: string }> = {
+const PLAN_DESCRIPTIONS: Record<
+  string,
+  { headline: string; benefits: string[]; accent: string }
+> = {
   free: {
-    headline: 'Starter Plan',
-    benefits: ['5 guided mediations per month', 'Weekly relationship pulse', 'Foundational AI insights'],
+    headline: "Starter Plan",
+    benefits: [
+      "5 guided mediations per month",
+      "Weekly relationship pulse",
+      "Foundational AI insights",
+    ],
     accent: colors.brand[500],
   },
   basic: {
-    headline: 'Growth Plan',
-    benefits: ['Unlimited mediations', 'Shared journal & summaries', 'Priority email support'],
+    headline: "Growth Plan",
+    benefits: [
+      "Unlimited mediations",
+      "Shared journal & summaries",
+      "Priority email support",
+    ],
     accent: colors.success,
   },
   premium: {
-    headline: 'Premium Plan',
-    benefits: ['Unlimited mediations + AI coaching', 'Advanced analytics & reports', 'Live session concierge'],
+    headline: "Premium Plan",
+    benefits: [
+      "Unlimited mediations + AI coaching",
+      "Advanced analytics & reports",
+      "Live session concierge",
+    ],
     accent: colors.warning,
   },
 };
 
 function formatDate(value?: string | null) {
-  if (!value) return 'N/A';
+  if (!value) return "N/A";
   const date = new Date(value);
-  return date.toLocaleDateString('en-AU', { month: 'long', day: 'numeric', year: 'numeric' });
+  return date.toLocaleDateString("en-AU", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function SubscriptionScreen() {
@@ -56,16 +82,24 @@ export default function SubscriptionScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [creatingCheckout, setCreatingCheckout] = useState<'basic' | 'premium' | null>(null);
+  const [creatingCheckout, setCreatingCheckout] = useState<
+    "basic" | "premium" | null
+  >(null);
 
   const loadData = useCallback(async () => {
     try {
       setError(null);
-      const [sub, usageData] = await Promise.all([fetchSubscription(), fetchUsage()]);
+      const [sub, usageData] = await Promise.all([
+        fetchSubscription(),
+        fetchUsage(),
+      ]);
       setSubscription(sub);
       setUsage(usageData);
     } catch (err: any) {
-      const detail = err.response?.data?.detail || err.message || 'Failed to load subscription details.';
+      const detail =
+        err.response?.data?.detail ||
+        err.message ||
+        "Failed to load subscription details.";
       setError(detail);
     } finally {
       setLoading(false);
@@ -82,15 +116,18 @@ export default function SubscriptionScreen() {
     loadData();
   }, [loadData]);
 
-  const handleUpgrade = async (tier: 'basic' | 'premium') => {
+  const handleUpgrade = async (tier: "basic" | "premium") => {
     try {
       setCreatingCheckout(tier);
-      const returnUrl = Linking.createURL('/subscription');
+      const returnUrl = Linking.createURL("/subscription");
       const { checkout_url } = await createCheckoutSession(tier, returnUrl);
       await Linking.openURL(checkout_url);
     } catch (err: any) {
-      const detail = err.response?.data?.detail || err.message || 'Unable to start upgrade flow.';
-      Alert.alert('Upgrade Failed', detail);
+      const detail =
+        err.response?.data?.detail ||
+        err.message ||
+        "Unable to start upgrade flow.";
+      Alert.alert("Upgrade Failed", detail);
     } finally {
       setCreatingCheckout(null);
     }
@@ -110,13 +147,18 @@ export default function SubscriptionScreen() {
     </View>
   );
 
-  const planKey = subscription?.tier ?? 'free';
+  const planKey = subscription?.tier ?? "free";
   const planCopy = PLAN_DESCRIPTIONS[planKey] ?? PLAN_DESCRIPTIONS.free;
   const usagePercent = getUsagePercentage();
 
   if (loading && !subscription) {
     return (
-      <View style={[styles.loadingContainer, { paddingTop: insets.top + spacing.lg }] }>
+      <View
+        style={[
+          styles.loadingContainer,
+          { paddingTop: insets.top + spacing.lg },
+        ]}
+      >
         <ActivityIndicator size="large" color={colors.brand[500]} />
         <Text style={styles.loadingText}>Fetching your subscription…</Text>
       </View>
@@ -128,8 +170,17 @@ export default function SubscriptionScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing.lg }]}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} />}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.lg },
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.brand[500]}
+          />
+        }
       >
         <PageHeading
           title="Subscription"
@@ -153,22 +204,32 @@ export default function SubscriptionScreen() {
               <View>
                 <Text style={styles.heroEyebrow}>Your plan</Text>
                 <Text style={styles.heroTitle}>{planCopy.headline}</Text>
-                <Text style={styles.heroSubtitle}>Status: {subscription.status.toUpperCase()}</Text>
+                <Text style={styles.heroSubtitle}>
+                  Status: {subscription.status.toUpperCase()}
+                </Text>
               </View>
               <View style={styles.heroBadge}>
-                <Text style={styles.heroBadgeText}>{subscription.tier.toUpperCase()}</Text>
+                <Text style={styles.heroBadgeText}>
+                  {subscription.tier.toUpperCase()}
+                </Text>
               </View>
             </View>
             <View style={styles.heroDates}>
               <View style={styles.dateColumn}>
                 <Text style={styles.dateLabel}>Current period</Text>
-                <Text style={styles.dateValue}>Started {formatDate(subscription.current_period_start)}</Text>
-                <Text style={styles.dateValue}>Renews {formatDate(subscription.current_period_end)}</Text>
+                <Text style={styles.dateValue}>
+                  Started {formatDate(subscription.current_period_start)}
+                </Text>
+                <Text style={styles.dateValue}>
+                  Renews {formatDate(subscription.current_period_end)}
+                </Text>
               </View>
               {subscription.trial_end && (
                 <View style={styles.dateColumn}>
                   <Text style={styles.dateLabel}>Trial ends</Text>
-                  <Text style={styles.dateValue}>{formatDate(subscription.trial_end)}</Text>
+                  <Text style={styles.dateValue}>
+                    {formatDate(subscription.trial_end)}
+                  </Text>
                 </View>
               )}
             </View>
@@ -178,17 +239,30 @@ export default function SubscriptionScreen() {
         {usage && (
           <Section
             title="Usage"
-            subtitle={usage.is_unlimited ? 'Unlimited guided sessions for this cycle' : 'Stay within your monthly allowance'}
+            subtitle={
+              usage.is_unlimited
+                ? "Unlimited guided sessions for this cycle"
+                : "Stay within your monthly allowance"
+            }
           >
             <Card style={styles.usageCard}>
               <View style={styles.usageHeader}>
                 <Text style={styles.usageHeadline}>
-                  {usage.is_unlimited ? 'Unlimited access unlocked' : `${usage.usage_count} of ${usage.limit} sessions used`}
+                  {usage.is_unlimited
+                    ? "Unlimited access unlocked"
+                    : `${usage.usage_count} of ${usage.limit} sessions used`}
                 </Text>
-                {!usage.is_unlimited && <Text style={styles.usagePercentage}>{usagePercent}%</Text>}
+                {!usage.is_unlimited && (
+                  <Text style={styles.usagePercentage}>{usagePercent}%</Text>
+                )}
               </View>
               <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${usage.is_unlimited ? 100 : usagePercent}%` }]} />
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${usage.is_unlimited ? 100 : usagePercent}%` },
+                  ]}
+                />
               </View>
               <Text style={styles.usagePeriod}>
                 {`Cycle resets ${formatDate(usage.period_end)} · Started ${formatDate(usage.period_start)}`}
@@ -199,11 +273,16 @@ export default function SubscriptionScreen() {
 
         <Section title="Benefits" subtitle="Everything included with your plan">
           <Card>
-            <View style={styles.benefitList}>{planCopy.benefits.map(renderBenefit)}</View>
+            <View style={styles.benefitList}>
+              {planCopy.benefits.map(renderBenefit)}
+            </View>
           </Card>
         </Section>
 
-        <Section title="Upgrade options" subtitle="Power up your relationship toolkit">
+        <Section
+          title="Upgrade options"
+          subtitle="Power up your relationship toolkit"
+        >
           <View style={styles.upgradeGrid}>
             <Card style={styles.upgradeCard}>
               <View style={styles.upgradeHeader}>
@@ -211,20 +290,30 @@ export default function SubscriptionScreen() {
                 <Text style={styles.upgradePrice}>$9.99/mo</Text>
               </View>
               <Text style={styles.upgradeCopy}>
-                Unlock unlimited sessions and detailed AI summaries to stay aligned every week.
+                Unlock unlimited sessions and detailed AI summaries to stay
+                aligned every week.
               </Text>
               <TouchableOpacity
-                style={[styles.upgradeButton, creatingCheckout === 'basic' && styles.upgradeButtonDisabled]}
-                onPress={() => handleUpgrade('basic')}
-                disabled={creatingCheckout === 'basic'}
+                style={[
+                  styles.upgradeButton,
+                  creatingCheckout === "basic" && styles.upgradeButtonDisabled,
+                ]}
+                onPress={() => handleUpgrade("basic")}
+                disabled={creatingCheckout === "basic"}
                 activeOpacity={0.85}
               >
-                {creatingCheckout === 'basic' ? (
+                {creatingCheckout === "basic" ? (
                   <ActivityIndicator color={colors.surface} />
                 ) : (
                   <>
-                    <Ionicons name="sparkles" size={18} color={colors.surface} />
-                    <Text style={styles.upgradeButtonText}>Upgrade to Growth</Text>
+                    <Ionicons
+                      name="sparkles"
+                      size={18}
+                      color={colors.surface}
+                    />
+                    <Text style={styles.upgradeButtonText}>
+                      Upgrade to Growth
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -236,20 +325,32 @@ export default function SubscriptionScreen() {
                 <Text style={styles.upgradePrice}>$19.99/mo</Text>
               </View>
               <Text style={styles.upgradeCopy}>
-                Full concierge experience with proactive AI coaching, advanced analytics, and partner trends.
+                Full concierge experience with proactive AI coaching, advanced
+                analytics, and partner trends.
               </Text>
               <TouchableOpacity
-                style={[styles.upgradeButton, styles.premiumButton, creatingCheckout === 'premium' && styles.upgradeButtonDisabled]}
-                onPress={() => handleUpgrade('premium')}
-                disabled={creatingCheckout === 'premium'}
+                style={[
+                  styles.upgradeButton,
+                  styles.premiumButton,
+                  creatingCheckout === "premium" &&
+                    styles.upgradeButtonDisabled,
+                ]}
+                onPress={() => handleUpgrade("premium")}
+                disabled={creatingCheckout === "premium"}
                 activeOpacity={0.85}
               >
-                {creatingCheckout === 'premium' ? (
+                {creatingCheckout === "premium" ? (
                   <ActivityIndicator color={colors.surface} />
                 ) : (
                   <>
-                    <Ionicons name="rocket-outline" size={18} color={colors.surface} />
-                    <Text style={styles.upgradeButtonText}>Upgrade to Premium</Text>
+                    <Ionicons
+                      name="rocket-outline"
+                      size={18}
+                      color={colors.surface}
+                    />
+                    <Text style={styles.upgradeButtonText}>
+                      Upgrade to Premium
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -262,10 +363,17 @@ export default function SubscriptionScreen() {
           subtitle="We are one email away for billing questions or custom plans."
         >
           <Card style={styles.supportCard}>
-            <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.brand[500]} />
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={20}
+              color={colors.brand[500]}
+            />
             <View style={styles.supportTextGroup}>
               <Text style={styles.supportTitle}>Talk to a human</Text>
-              <Text style={styles.supportBody}>Email hello@heka.app and we will guide you through billing or upgrades.</Text>
+              <Text style={styles.supportBody}>
+                Email hello@heka.app and we will guide you through billing or
+                upgrades.
+              </Text>
             </View>
           </Card>
         </Section>
@@ -280,14 +388,14 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    paddingBottom: spacing['2xl'],
+    paddingBottom: spacing["2xl"],
     gap: spacing.lg,
   },
   loadingContainer: {
     flex: 1,
     backgroundColor: colors.surfaceMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: spacing.md,
   },
   loadingText: {
@@ -297,23 +405,23 @@ const styles = StyleSheet.create({
   errorCard: {
     borderWidth: 1,
     borderColor: colors.danger,
-    backgroundColor: 'rgba(239,68,68,0.12)',
+    backgroundColor: "rgba(239,68,68,0.12)",
   },
   errorText: {
     ...typography.body,
     color: colors.danger,
-    textAlign: 'center',
+    textAlign: "center",
   },
   hero: {
     borderRadius: radii.xl,
-    padding: spacing['2xl'],
+    padding: spacing["2xl"],
     ...shadows.card,
     gap: spacing.lg,
   },
   heroHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     gap: spacing.md,
   },
   heroEyebrow: {
@@ -321,7 +429,7 @@ const styles = StyleSheet.create({
     color: colors.surface,
     opacity: 0.8,
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     marginBottom: spacing.xs,
   },
   heroTitle: {
@@ -337,7 +445,7 @@ const styles = StyleSheet.create({
   },
   heroBadge: {
     borderRadius: radii.full,
-    backgroundColor: 'rgba(15,23,42,0.1)',
+    backgroundColor: "rgba(15,23,42,0.1)",
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
@@ -347,8 +455,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   heroDates: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.lg,
   },
   dateColumn: {
@@ -368,9 +476,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   usageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   usageHeadline: {
     ...typography.heading,
@@ -386,10 +494,10 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 999,
     backgroundColor: colors.neutral[700],
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressFill: {
-    height: '100%',
+    height: "100%",
     backgroundColor: colors.brand[500],
   },
   usagePeriod: {
@@ -400,8 +508,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   benefitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   benefitText: {
@@ -419,9 +527,9 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   upgradeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
   },
   upgradeTitle: {
     ...typography.heading,
@@ -431,7 +539,7 @@ const styles = StyleSheet.create({
   upgradePrice: {
     ...typography.body,
     color: colors.brand[500],
-    fontWeight: '700',
+    fontWeight: "700",
   },
   upgradeCopy: {
     ...typography.body,
@@ -439,9 +547,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   upgradeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.sm,
     backgroundColor: colors.neutral[900],
     paddingVertical: spacing.md,
@@ -458,8 +566,8 @@ const styles = StyleSheet.create({
     color: colors.surface,
   },
   supportCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
     padding: spacing.lg,
   },
@@ -478,4 +586,3 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
-

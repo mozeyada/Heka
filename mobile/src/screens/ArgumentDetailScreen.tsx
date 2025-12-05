@@ -1,4 +1,6 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,16 +11,19 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { fetchArgument, deleteArgument } from '../api/arguments';
-import { submitPerspective, getPerspectivesForArgument, Perspective } from '../api/perspectives';
-import { getAIInsights, analyzeArgument, AIInsight } from '../api/ai';
-import { useAuthStore } from '../store/auth';
-import { colors, spacing, radii, typography, shadows } from '../theme/tokens';
-import { Card, Section, Skeleton } from '../components/common';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { getAIInsights, analyzeArgument, AIInsight } from "../api/ai";
+import { fetchArgument, deleteArgument } from "../api/arguments";
+import {
+  submitPerspective,
+  getPerspectivesForArgument,
+  Perspective,
+} from "../api/perspectives";
+import { Card, Section, Skeleton } from "../components/common";
+import { useAuthStore } from "../store/auth";
+import { colors, spacing, radii, typography, shadows } from "../theme/tokens";
 
 type Props = {
   argumentId?: string;
@@ -39,7 +44,7 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
   const insets = useSafeAreaInsets();
   const contentContainerStyle = useMemo(
     () => [styles.container, { paddingTop: spacing.lg + insets.top }],
-    [insets.top]
+    [insets.top],
   );
 
   const loadData = useCallback(async () => {
@@ -56,7 +61,9 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
       setPerspectives(pers);
       setAIInsights(ins);
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to load data.');
+      setError(
+        err.response?.data?.detail || err.message || "Failed to load data.",
+      );
     } finally {
       setLoading(false);
     }
@@ -79,7 +86,8 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
       const insights = await analyzeArgument(argumentId);
       setAIInsights(insights);
     } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || 'Failed to analyze argument';
+      const errorMessage =
+        error.response?.data?.detail || "Failed to analyze argument";
       setError(errorMessage);
     } finally {
       setAnalyzing(false);
@@ -88,18 +96,18 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
 
   const handleDelete = () => {
     if (!argumentId) return;
-    
+
     Alert.alert(
-      'Delete Argument',
-      'Are you sure you want to delete this argument? This action cannot be undone and will also delete all associated perspectives and insights.',
+      "Delete Argument",
+      "Are you sure you want to delete this argument? This action cannot be undone and will also delete all associated perspectives and insights.",
       [
         {
-          text: 'Cancel',
-          style: 'cancel',
+          text: "Cancel",
+          style: "cancel",
         },
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: "Delete",
+          style: "destructive",
           onPress: async () => {
             setDeleting(true);
             setError(null);
@@ -107,13 +115,16 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
               await deleteArgument(argumentId);
               router.back();
             } catch (error: any) {
-              const errorMessage = error.response?.data?.detail || error.message || 'Failed to delete argument';
+              const errorMessage =
+                error.response?.data?.detail ||
+                error.message ||
+                "Failed to delete argument";
               setError(errorMessage);
               setDeleting(false);
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -145,9 +156,19 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
       style={styles.screen}
       contentContainerStyle={contentContainerStyle}
       contentInsetAdjustmentBehavior="always"
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.brand[500]}
+        />
+      }
     >
-      <ArgumentHeader argument={argument} onDelete={handleDelete} isDeleting={deleting} />
+      <ArgumentHeader
+        argument={argument}
+        onDelete={handleDelete}
+        isDeleting={deleting}
+      />
 
       {error && <ErrorCard message={error} />}
 
@@ -180,7 +201,9 @@ const LoadingSkeleton = () => (
     <Card>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Perspectives</Text>
-        <Text style={styles.sectionSubtitle}>Each partner shares their view.</Text>
+        <Text style={styles.sectionSubtitle}>
+          Each partner shares their view.
+        </Text>
       </View>
       <View style={styles.sectionContent}>
         <Skeleton height={80} />
@@ -190,7 +213,9 @@ const LoadingSkeleton = () => (
     <Card>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>AI Insights</Text>
-        <Text style={styles.sectionSubtitle}>Personalized mediation insights.</Text>
+        <Text style={styles.sectionSubtitle}>
+          Personalized mediation insights.
+        </Text>
       </View>
       <View style={styles.sectionContent}>
         <Skeleton height={100} />
@@ -199,7 +224,15 @@ const LoadingSkeleton = () => (
   </View>
 );
 
-const ArgumentHeader = ({ argument, onDelete, isDeleting }: { argument: any; onDelete?: () => void; isDeleting?: boolean }) => (
+const ArgumentHeader = ({
+  argument,
+  onDelete,
+  isDeleting,
+}: {
+  argument: any;
+  onDelete?: () => void;
+  isDeleting?: boolean;
+}) => (
   <Card>
     <View style={styles.headerRow}>
       <View style={styles.headerContent}>
@@ -211,11 +244,16 @@ const ArgumentHeader = ({ argument, onDelete, isDeleting }: { argument: any; onD
           <Text style={styles.metaSeparator}>•</Text>
           <Text style={styles.metaText}>{argument.category}</Text>
         </View>
-        <Text style={styles.dateText}>Created: {new Date(argument.created_at).toLocaleDateString()}</Text>
+        <Text style={styles.dateText}>
+          Created: {new Date(argument.created_at).toLocaleDateString()}
+        </Text>
       </View>
       {onDelete && (
         <TouchableOpacity
-          style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
+          style={[
+            styles.deleteButton,
+            isDeleting && styles.deleteButtonDisabled,
+          ]}
           onPress={onDelete}
           disabled={isDeleting}
         >
@@ -236,13 +274,20 @@ const ErrorCard = ({ message }: { message: string }) => (
   </Card>
 );
 
-const PerspectivesSection = ({ argumentId, perspectives, userId, onUpdate }: any) => {
-  const [content, setContent] = useState('');
+const PerspectivesSection = ({
+  argumentId,
+  perspectives,
+  userId,
+  onUpdate,
+}: any) => {
+  const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasUserSubmitted = perspectives.some((p: Perspective) => p.user_id === userId);
+  const hasUserSubmitted = perspectives.some(
+    (p: Perspective) => p.user_id === userId,
+  );
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
@@ -250,18 +295,21 @@ const PerspectivesSection = ({ argumentId, perspectives, userId, onUpdate }: any
     setError(null);
     try {
       await submitPerspective(argumentId, content.trim());
-      setContent('');
+      setContent("");
       setShowForm(false);
       onUpdate(); // Refresh data
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to submit perspective.');
+      setError(err.response?.data?.detail || "Failed to submit perspective.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Section title="Perspectives" subtitle="Each partner shares their view to give the AI full context.">
+    <Section
+      title="Perspectives"
+      subtitle="Each partner shares their view to give the AI full context."
+    >
       {perspectives.length === 0 ? (
         <EmptyState message="No perspectives yet. Add yours to begin." />
       ) : (
@@ -273,7 +321,10 @@ const PerspectivesSection = ({ argumentId, perspectives, userId, onUpdate }: any
       {error && <Text style={styles.inlineErrorText}>{error}</Text>}
 
       {!hasUserSubmitted && !showForm && (
-        <TouchableOpacity style={styles.button} onPress={() => setShowForm(true)}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => setShowForm(true)}
+        >
           <Text style={styles.buttonText}>Add Your Perspective</Text>
         </TouchableOpacity>
       )}
@@ -290,13 +341,21 @@ const PerspectivesSection = ({ argumentId, perspectives, userId, onUpdate }: any
           />
           <View style={styles.formActions}>
             <TouchableOpacity
-              style={[styles.button, (isSubmitting || !content.trim()) && styles.buttonDisabled]}
+              style={[
+                styles.button,
+                (isSubmitting || !content.trim()) && styles.buttonDisabled,
+              ]}
               onPress={handleSubmit}
               disabled={isSubmitting || !content.trim()}
             >
-              <Text style={styles.buttonText}>{isSubmitting ? 'Saving...' : 'Save Perspective'}</Text>
+              <Text style={styles.buttonText}>
+                {isSubmitting ? "Saving..." : "Save Perspective"}
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setShowForm(false)}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowForm(false)}
+            >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -305,28 +364,46 @@ const PerspectivesSection = ({ argumentId, perspectives, userId, onUpdate }: any
 
       {hasUserSubmitted && !showForm && (
         <View style={styles.submittedMessage}>
-          <Text style={styles.submittedText}>✓ You have submitted your perspective.</Text>
+          <Text style={styles.submittedText}>
+            ✓ You have submitted your perspective.
+          </Text>
         </View>
       )}
     </Section>
   );
 };
 
-const PerspectiveCard = ({ perspective, index }: { perspective: Perspective; index: number }) => (
+const PerspectiveCard = ({
+  perspective,
+  index,
+}: {
+  perspective: Perspective;
+  index: number;
+}) => (
   <View style={styles.perspectiveCard}>
     <View style={styles.perspectiveHeader}>
       <Text style={styles.perspectiveLabel}>Perspective {index + 1}</Text>
-      <Text style={styles.perspectiveDate}>{new Date(perspective.created_at).toLocaleDateString()}</Text>
+      <Text style={styles.perspectiveDate}>
+        {new Date(perspective.created_at).toLocaleDateString()}
+      </Text>
     </View>
     <Text style={styles.perspectiveContent}>{perspective.content}</Text>
   </View>
 );
 
-const AIInsightsSection = ({ perspectivesCount, aiInsights, isAnalyzing, onAnalyze }: any) => {
+const AIInsightsSection = ({
+  perspectivesCount,
+  aiInsights,
+  isAnalyzing,
+  onAnalyze,
+}: any) => {
   const canAnalyze = perspectivesCount >= 2;
 
   return (
-    <Section title="AI Insights" subtitle="Get personalized mediation insights based on both perspectives.">
+    <Section
+      title="AI Insights"
+      subtitle="Get personalized mediation insights based on both perspectives."
+    >
       {canAnalyze && !aiInsights && (
         <TouchableOpacity
           style={[styles.button, isAnalyzing && styles.buttonDisabled]}
@@ -346,7 +423,7 @@ const AIInsightsSection = ({ perspectivesCount, aiInsights, isAnalyzing, onAnaly
           message={
             canAnalyze
               ? 'Click "Generate Insights" to get personalized mediation guidance.'
-              : 'Add at least two perspectives to unlock AI insights.'
+              : "Add at least two perspectives to unlock AI insights."
           }
         />
       ) : aiInsights.safety_check?.blocked ? (
@@ -354,13 +431,26 @@ const AIInsightsSection = ({ perspectivesCount, aiInsights, isAnalyzing, onAnaly
       ) : (
         <View style={styles.insightsContainer}>
           <InsightCard title="Summary" content={aiInsights.summary} />
-          <InsightCard title="Common Ground" items={aiInsights.common_ground} type="success" />
+          <InsightCard
+            title="Common Ground"
+            items={aiInsights.common_ground}
+            type="success"
+          />
           <InsightCard title="Root Causes" items={aiInsights.root_causes} />
-          <InsightCard title="Key Disagreements" items={aiInsights.disagreements} type="warning" />
-          <InsightCard title="Communication Tips" items={aiInsights.communication_tips} />
-          {aiInsights.suggestions?.map((suggestion: AIInsight['suggestions'][0], idx: number) => (
-            <SuggestionCard key={idx} suggestion={suggestion} />
-          ))}
+          <InsightCard
+            title="Key Disagreements"
+            items={aiInsights.disagreements}
+            type="warning"
+          />
+          <InsightCard
+            title="Communication Tips"
+            items={aiInsights.communication_tips}
+          />
+          {aiInsights.suggestions?.map(
+            (suggestion: AIInsight["suggestions"][0], idx: number) => (
+              <SuggestionCard key={idx} suggestion={suggestion} />
+            ),
+          )}
         </View>
       )}
     </Section>
@@ -371,30 +461,38 @@ interface InsightCardProps {
   title: string;
   content?: string;
   items?: string[];
-  type?: 'success' | 'warning' | 'danger';
+  type?: "success" | "warning" | "danger";
 }
 
-const InsightCard: React.FC<InsightCardProps> = ({ title, content, items, type }) => {
+const InsightCard: React.FC<InsightCardProps> = ({
+  title,
+  content,
+  items,
+  type,
+}) => {
   const cardStyles = [
     styles.insightCard,
-    type === 'success' && styles.successCard,
-    type === 'warning' && styles.warningCard,
-    type === 'danger' && styles.dangerCard,
+    type === "success" && styles.successCard,
+    type === "warning" && styles.warningCard,
+    type === "danger" && styles.dangerCard,
   ];
   const titleStyles = [
     styles.insightTitle,
-    type === 'success' && styles.successTitle,
-    type === 'warning' && styles.warningTitle,
-    type === 'danger' && styles.dangerTitle,
+    type === "success" && styles.successTitle,
+    type === "warning" && styles.warningTitle,
+    type === "danger" && styles.dangerTitle,
   ];
 
   return (
     <View style={cardStyles}>
       <Text style={titleStyles}>{title}</Text>
       {content && <Text style={styles.insightContent}>{content}</Text>}
-      {items && items.map((item: string, idx: number) => (
-        <Text key={idx} style={styles.insightBullet}>• {item}</Text>
-      ))}
+      {items &&
+        items.map((item: string, idx: number) => (
+          <Text key={idx} style={styles.insightBullet}>
+            • {item}
+          </Text>
+        ))}
     </View>
   );
 };
@@ -404,16 +502,21 @@ const SuggestionCard = ({ suggestion }: any) => (
     <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
     <Text style={styles.suggestionDescription}>{suggestion.description}</Text>
     {suggestion.actionable_steps?.map((step: string, idx: number) => (
-      <Text key={idx} style={styles.stepText}>{idx + 1}. {step}</Text>
+      <Text key={idx} style={styles.stepText}>
+        {idx + 1}. {step}
+      </Text>
     ))}
   </View>
 );
 
 const SafetyCard = ({ reason }: { reason?: string }) => (
   <View style={[styles.insightCard, styles.dangerCard]}>
-    <Text style={[styles.insightTitle, styles.dangerTitle]}>Safety Concern Detected</Text>
+    <Text style={[styles.insightTitle, styles.dangerTitle]}>
+      Safety Concern Detected
+    </Text>
     <Text style={styles.insightContent}>
-      {reason || 'This situation may require professional help. Please consider reaching out to a licensed therapist or counselor.'}
+      {reason ||
+        "This situation may require professional help. Please consider reaching out to a licensed therapist or counselor."}
     </Text>
   </View>
 );
@@ -434,8 +537,8 @@ const styles = StyleSheet.create({
   },
   centeredContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: spacing.lg,
     backgroundColor: colors.surfaceMuted,
   },
@@ -445,14 +548,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   metaContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.xs,
   },
   metaText: {
     ...typography.label,
     color: colors.neutral[400],
-    textTransform: 'capitalize',
+    textTransform: "capitalize",
   },
   metaSeparator: {
     marginHorizontal: spacing.sm,
@@ -468,7 +571,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radii.md,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: spacing.md,
   },
   buttonText: {
@@ -479,13 +582,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand[400],
   },
   cancelButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.neutral[500],
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: spacing.md,
   },
   cancelButtonText: {
@@ -504,7 +607,7 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[600],
     padding: spacing.md,
     color: colors.neutral[100],
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   formActions: {
     marginTop: spacing.sm,
@@ -518,9 +621,9 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[700],
   },
   perspectiveHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.sm,
   },
   perspectiveLabel: {
@@ -546,23 +649,23 @@ const styles = StyleSheet.create({
   submittedText: {
     ...typography.label,
     color: colors.brand[200],
-    textAlign: 'center',
+    textAlign: "center",
   },
   emptyState: {
     padding: spacing.xl,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.neutral[700],
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: spacing.md,
   },
   emptyText: {
     ...typography.body,
     color: colors.neutral[400],
-    textAlign: 'center',
+    textAlign: "center",
   },
   insightsContainer: {
     gap: spacing.md,
@@ -607,40 +710,40 @@ const styles = StyleSheet.create({
   },
   successCard: {
     borderColor: colors.success,
-    backgroundColor: 'rgba(34, 197, 94, 0.05)',
+    backgroundColor: "rgba(34, 197, 94, 0.05)",
   },
   successTitle: {
     color: colors.success,
   },
   warningCard: {
     borderColor: colors.warning,
-    backgroundColor: 'rgba(249, 115, 22, 0.05)',
+    backgroundColor: "rgba(249, 115, 22, 0.05)",
   },
   warningTitle: {
     color: colors.warning,
   },
   dangerCard: {
     borderColor: colors.danger,
-    backgroundColor: 'rgba(239, 68, 68, 0.05)',
+    backgroundColor: "rgba(239, 68, 68, 0.05)",
   },
   dangerTitle: {
     color: colors.danger,
   },
   errorCard: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
     borderColor: colors.danger,
     borderWidth: 1,
   },
   errorText: {
     ...typography.body,
     color: colors.danger,
-    textAlign: 'center',
+    textAlign: "center",
   },
   inlineErrorText: {
     ...typography.body,
     color: colors.danger,
     marginTop: spacing.md,
-    textAlign: 'center',
+    textAlign: "center",
   },
   sectionHeader: {
     borderBottomWidth: 1,
@@ -662,9 +765,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   headerContent: {
     flex: 1,

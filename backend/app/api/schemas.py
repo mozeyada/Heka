@@ -1,7 +1,7 @@
 """Pydantic schemas for API requests/responses."""
 
 from pydantic import BaseModel, EmailStr, Field, validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 import re
 
@@ -247,4 +247,26 @@ class CreateCheckoutSessionRequest(BaseModel):
     tier: str  # "basic" or "premium"
     success_url: str
     cancel_url: str
+
+
+# AI Suggestions Schemas
+
+class AIGoalSuggestion(BaseModel):
+    """A single AI-generated goal suggestion."""
+    title: str
+    description: str
+    category: str
+
+class AICheckInSuggestion(BaseModel):
+    """A single AI-generated check-in question."""
+    question: str
+    category: str
+
+class AIGoalsResponse(BaseModel):
+    """Response for AI-generated goal suggestions."""
+    suggestions: List[AIGoalSuggestion] = Field(default_factory=list)
+
+class AICheckInsResponse(BaseModel):
+    """Response for AI-generated check-in questions."""
+    suggestions: List[AICheckInSuggestion] = Field(default_factory=list)
 

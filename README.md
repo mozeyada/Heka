@@ -32,8 +32,9 @@ Heka helps couples resolve arguments using AI-powered mediation. Each partner sh
 
 ## Tech Stack
 
-- **Backend:** FastAPI, MongoDB (Motor), Python 3.11
-- **Frontend:** Next.js 14, React, TypeScript, Tailwind CSS
+- **Backend:** FastAPI, MongoDB (Motor), Python 3.11, Pytest
+- **Frontend:** Next.js 14, React, TypeScript, Tailwind CSS, Vitest
+- **Mobile:** React Native, Expo, Jest, React Native Testing Library
 - **AI:** OpenAI GPT-4o-mini (cost-optimized)
 - **Payments:** Stripe (subscriptions + webhooks)
 - **Deployment:** Railway (backend), Vercel (frontend)
@@ -54,6 +55,13 @@ uvicorn app.main:app --reload --port 8001
 cd frontend
 npm install
 npm run dev
+```
+
+### Mobile
+```bash
+cd mobile
+npm install
+npm run android # or npm run ios
 ```
 
 ## Documentation

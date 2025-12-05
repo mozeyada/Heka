@@ -1,2 +1,1 @@
-export { default } from '../../src/screens/ArgumentsScreen';
-
+export { default } from "../../src/screens/ArgumentsScreen";

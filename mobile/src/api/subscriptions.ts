@@ -1,6 +1,6 @@
-import { api } from './client';
+import { api } from "./client";
 
-export type SubscriptionTier = 'free' | 'basic' | 'premium';
+export type SubscriptionTier = "free" | "basic" | "premium";
 
 export interface Subscription {
   id: string;
@@ -24,20 +24,26 @@ export interface Usage {
 }
 
 export async function fetchSubscription(): Promise<Subscription> {
-  const response = await api.get<Subscription>('/api/subscriptions/me');
+  const response = await api.get<Subscription>("/api/subscriptions/me");
   return response.data;
 }
 
 export async function fetchUsage(): Promise<Usage> {
-  const response = await api.get<Usage>('/api/subscriptions/usage');
+  const response = await api.get<Usage>("/api/subscriptions/usage");
   return response.data;
 }
 
-export async function createCheckoutSession(tier: 'basic' | 'premium', returnUrl: string) {
-  const response = await api.post<{ checkout_url: string }>('/api/subscriptions/create-checkout-session', {
-    tier,
-    success_url: returnUrl,
-    cancel_url: returnUrl,
-  });
+export async function createCheckoutSession(
+  tier: "basic" | "premium",
+  returnUrl: string,
+) {
+  const response = await api.post<{ checkout_url: string }>(
+    "/api/subscriptions/create-checkout-session",
+    {
+      tier,
+      success_url: returnUrl,
+      cancel_url: returnUrl,
+    },
+  );
   return response.data;
 }

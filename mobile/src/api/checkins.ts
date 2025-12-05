@@ -1,4 +1,4 @@
-import { api } from './client';
+import { api } from "./client";
 
 export type Checkin = {
   id: string;
@@ -8,7 +8,7 @@ export type Checkin = {
   responses: Record<string, string> | null;
 };
 
-export type CheckinHistoryItem = Omit<Checkin, 'responses'>;
+export type CheckinHistoryItem = Omit<Checkin, "responses">;
 
 export type CheckinHistoryResponse = {
   checkins: CheckinHistoryItem[];
@@ -19,19 +19,24 @@ export async function fetchCheckinHistory(params?: {
   limit?: number;
   offset?: number;
 }): Promise<CheckinHistoryResponse> {
-  const response = await api.get<CheckinHistoryResponse>('/api/checkins/history', {
-    params,
-  });
+  const response = await api.get<CheckinHistoryResponse>(
+    "/api/checkins/history",
+    {
+      params,
+    },
+  );
   return response.data;
 }
 
 export async function getCurrentCheckin(): Promise<Checkin> {
-  const response = await api.get<Checkin>('/api/checkins/current');
+  const response = await api.get<Checkin>("/api/checkins/current");
   return response.data;
 }
 
-export async function completeCheckin(responses: Record<string, string>): Promise<Checkin> {
-  const response = await api.post<Checkin>('/api/checkins/current/complete', {
+export async function completeCheckin(
+  responses: Record<string, string>,
+): Promise<Checkin> {
+  const response = await api.post<Checkin>("/api/checkins/current/complete", {
     responses,
   });
   return response.data;

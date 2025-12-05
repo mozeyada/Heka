@@ -28,4 +28,3 @@ Configure these (e.g., via `app.config.js` or `eas.json` secrets) before shippin
 
 - `EXPO_PUBLIC_MIXPANEL_TOKEN`
 - `EXPO_PUBLIC_SENTRY_DSN`
-

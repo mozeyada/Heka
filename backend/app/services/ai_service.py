@@ -304,6 +304,151 @@ Respond in JSON format only."""
             output_cost = (output_tokens / 1_000_000) * 60.00
         return input_cost + output_cost
 
+    async def generate_goal_suggestions(self, arguments: List[Dict], db: AsyncIOMotorDatabase) -> (List[Dict], List[str]):
+        """
+        Generate relationship goal suggestions based on recent arguments.
+        """
+        insights = await self._get_insights_for_arguments(arguments, db)
+        if not insights:
+            return [], []
+
+        system_prompt = """You are Heka, an AI relationship coach. Based on the provided argument summaries and root causes, generate 3-5 actionable and positive relationship goals.
+
+RESPONSE STYLE:
+- Focus on building positive behaviors.
+- Frame goals collaboratively ("We will...", "Let's practice...").
+- Ensure goals are specific, measurable, achievable, relevant, and time-bound (SMART), where applicable.
+
+Respond in JSON format with:
+{
+  "goals": [
+    {
+      "title": "Specific goal title (e.g., 'Practice Active Listening')",
+      "description": "Detailed explanation of the goal and why it's important for the couple's specific issues.",
+      "category": "Communication"
+    }
+  ]
+}"""
+        user_prompt = f"""Based on these argument insights, suggest 3-5 relationship goals:
+
+{json.dumps(insights, indent=2)}
+
+Generate goals in the specified JSON format."""
+
+        response_json = await self._call_openai(system_prompt, user_prompt)
+        
+        linked_ids = [str(arg["_id"]) for arg in arguments]
+        return response_json.get("goals", []), linked_ids
+
+    async def generate_checkin_questions(self, arguments: List[Dict], db: AsyncIOMotorDatabase) -> (List[Dict], List[str]):
+        """
+        Generate weekly check-in questions based on recent arguments.
+        """
+        insights = await self._get_insights_for_arguments(arguments, db)
+        if not insights:
+            return [], []
+
+        system_prompt = """You are Heka, an AI relationship coach. Based on the provided argument summaries and root causes, generate 3-5 open-ended check-in questions for a weekly review.
+
+RESPONSE STYLE:
+- Questions should be gentle and non-accusatory.
+- Encourage reflection on recent interactions.
+- Focus on feelings, needs, and collaborative solutions.
+- Frame questions to open up dialogue, not shut it down.
+
+Respond in JSON format with:
+{
+  "questions": [
+    {
+      "question": "A specific, open-ended question (e.g., 'When did you feel most connected this week, and what were we doing?')",
+      "category": "Emotional Connection"
+    }
+  ]
+}"""
+        user_prompt = f"""Based on these argument insights, suggest 3-5 weekly check-in questions:
+
+{json.dumps(insights, indent=2)}
+
+Generate questions in the specified JSON format."""
+
+        response_json = await self._call_openai(system_prompt, user_prompt)
+        
+        linked_ids = [str(arg["_id"]) for arg in arguments]
+        return response_json.get("questions", []), linked_ids
+
+    async def _get_insights_for_arguments(self, arguments: List[Dict], db: AsyncIOMotorDatabase) -> List[Dict]:
+        """Helper to fetch AI insights for a list of arguments."""
+        if not arguments:
+            return []
+        
+        # Convert argument _id to ObjectId for query
+        argument_oids = []
+        arg_id_map = {}  # Map ObjectId -> original _id string
+        for arg in arguments:
+            arg_oid = arg["_id"] if isinstance(arg["_id"], ObjectId) else ObjectId(arg["_id"])
+            argument_oids.append(arg_oid)
+            arg_id_map[str(arg_oid)] = arg
+        
+        # Query insights
+        insights_cursor = db.ai_insights.find({"argument_id": {"$in": argument_oids}})
+        insights_list = await insights_cursor.to_list(length=len(argument_oids))
+        
+        # Create a map of argument_id (as string) to insight
+        insights_map = {}
+        for insight in insights_list:
+            # argument_id in insights is stored as ObjectId
+            insight_arg_id = insight.get("argument_id")
+            if isinstance(insight_arg_id, ObjectId):
+                insights_map[str(insight_arg_id)] = insight
+            else:
+                insights_map[str(insight_arg_id)] = insight
+        
+        # Return a simplified version for the prompt, including arguments without insights
+        result = []
+        for arg_oid in argument_oids:
+            arg_id_str = str(arg_oid)
+            arg = arg_id_map[arg_id_str]
+            insight = insights_map.get(arg_id_str)
+            
+            if insight:
+                result.append({
+                    "argument_title": arg.get("title", "N/A"),
+                    "category": arg.get("category", "N/A"),
+                    "summary": insight.get("summary"),
+                    "root_causes": insight.get("root_causes", []),
+                })
+            else:
+                # If no insight, still include the argument with basic info
+                result.append({
+                    "argument_title": arg.get("title", "N/A"),
+                    "category": arg.get("category", "N/A"),
+                    "summary": f"Recent argument about {arg.get('title', 'relationship issues')}",
+                    "root_causes": [],
+                })
+        
+        return result
+
+    async def _call_openai(self, system_prompt: str, user_prompt: str) -> Dict:
+        """Helper to make a structured call to the OpenAI API."""
+        try:
+            api_params = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 1500,
+                "response_format": {"type": "json_object"}
+            }
+            
+            response = self.client.chat.completions.create(**api_params)
+            response_content = response.choices[0].message.content
+            return json.loads(response_content)
+        except Exception as e:
+            logger.error(f"Error calling OpenAI: {e}", exc_info=True)
+            return {}
+
 
 # Singleton instance
 ai_service = AIMediationService()

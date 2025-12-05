@@ -1,6 +1,6 @@
-import { NativeModules } from 'react-native';
+import { NativeModules } from "react-native";
 
-type MixpanelStatic = typeof import('mixpanel-react-native')['Mixpanel'];
+type MixpanelStatic = (typeof import("mixpanel-react-native"))["Mixpanel"];
 
 let mixpanelModule: MixpanelStatic | null | undefined;
 let instance: any = null;
@@ -19,12 +19,12 @@ function loadMixpanel() {
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const pkg = require('mixpanel-react-native') as {
+    const pkg = require("mixpanel-react-native") as {
       Mixpanel?: MixpanelStatic;
     };
     mixpanelModule = pkg?.Mixpanel ?? null;
   } catch (error) {
-    logDebug('Failed to load mixpanel-react-native package', { error });
+    logDebug("Failed to load mixpanel-react-native package", { error });
     mixpanelModule = null;
   }
 
@@ -35,7 +35,7 @@ function isMixpanelSupported() {
   if (supported !== null) return supported;
   supported = Boolean(NativeModules?.MixpanelReactNative);
   if (!supported) {
-    logDebug('Native module unavailable – skipping Mixpanel init');
+    logDebug("Native module unavailable – skipping Mixpanel init");
   }
   return supported;
 }
@@ -51,7 +51,7 @@ export async function initializeMixpanel() {
   }
   const token = process.env.EXPO_PUBLIC_MIXPANEL_TOKEN;
   if (!token) {
-    logDebug('Token missing, analytics disabled');
+    logDebug("Token missing, analytics disabled");
     return null;
   }
   try {
@@ -62,7 +62,7 @@ export async function initializeMixpanel() {
     instance = client;
     return instance;
   } catch (error) {
-    logDebug('Mixpanel init failed', { error });
+    logDebug("Mixpanel init failed", { error });
     return null;
   }
 }
@@ -77,14 +77,15 @@ async function getMixpanel() {
 export async function identifyUser(userId: string) {
   const mp = await getMixpanel();
   if (!mp) return;
-  logDebug('identifyUser', { userId });
+  logDebug("identifyUser", { userId });
   await mp.identify(userId);
 }
 
-export async function trackEvent(event: string, props?: Record<string, unknown>) {
+export async function trackEvent(
+  event: string,
+  props?: Record<string, unknown>,
+) {
   const mp = await getMixpanel();
-  logDebug('trackEvent', { event, props });
+  logDebug("trackEvent", { event, props });
   await mp?.track(event, props);
 }
-
-

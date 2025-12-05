@@ -1,4 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import * as Sentry from "@sentry/react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,22 +11,26 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Sentry from '@sentry/react-native';
-import { trackEvent } from '../services/analytics';
-import { fetchDashboardOverview, DashboardOverview } from '../api/dashboard';
-import { colors, spacing, typography, radii, shadows } from '../theme/tokens';
-import { useAuthStore } from '../store/auth';
-import { Card } from '../components/common';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { fetchDashboardOverview, DashboardOverview } from "../api/dashboard";
+import { Card } from "../components/common";
+import { trackEvent } from "../services/analytics";
+import { useAuthStore } from "../store/auth";
+import {
+  colors,
+  spacing,
+  typography,
+  radii,
+  shadows,
+  gradients,
+} from "../theme/tokens";
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
 const withAlpha = (hex: string, alpha: number) => {
-  const sanitized = hex.replace('#', '');
+  const sanitized = hex.replace("#", "");
   const bigint = parseInt(sanitized, 16);
   const r = (bigint >> 16) & 255;
   const g = (bigint >> 8) & 255;
@@ -32,45 +40,50 @@ const withAlpha = (hex: string, alpha: number) => {
 
 const categoryIconMap: Record<
   string,
-  { icon: IoniconName; backgroundColor: string; iconColor: string; label: string }
+  {
+    icon: IoniconName;
+    backgroundColor: string;
+    iconColor: string;
+    label: string;
+  }
 > = {
   communication: {
-    icon: 'chatbubbles-outline',
+    icon: "chatbubbles-outline",
     backgroundColor: withAlpha(colors.brand[500], 0.12),
     iconColor: colors.brand[600],
-    label: 'Communication',
+    label: "Communication",
   },
   trust: {
-    icon: 'shield-checkmark',
+    icon: "shield-checkmark",
     backgroundColor: withAlpha(colors.neutral[200], 0.18),
     iconColor: colors.neutral[200],
-    label: 'Trust & Safety',
+    label: "Trust & Safety",
   },
   values: {
-    icon: 'heart-outline',
+    icon: "heart-outline",
     backgroundColor: withAlpha(colors.danger, 0.12),
     iconColor: colors.danger,
-    label: 'Values & Beliefs',
+    label: "Values & Beliefs",
   },
   intimacy: {
-    icon: 'color-wand-outline',
+    icon: "color-wand-outline",
     backgroundColor: withAlpha(colors.brand[300], 0.18),
     iconColor: colors.brand[600],
-    label: 'Intimacy',
+    label: "Intimacy",
   },
   finances: {
-    icon: 'cash-outline',
+    icon: "cash-outline",
     backgroundColor: withAlpha(colors.warning, 0.12),
     iconColor: colors.warning,
-    label: 'Finances',
+    label: "Finances",
   },
 };
 
 const defaultCategoryIcon = {
-  icon: 'chatbubble-ellipses' as IoniconName,
+  icon: "chatbubble-ellipses" as IoniconName,
   backgroundColor: withAlpha(colors.brand[500], 0.12),
   iconColor: colors.brand[600],
-  label: 'Relationship',
+  label: "Relationship",
 };
 
 const getCategoryIconConfig = (category?: string) => {
@@ -79,7 +92,10 @@ const getCategoryIconConfig = (category?: string) => {
   return categoryIconMap[key] ?? defaultCategoryIcon;
 };
 
-const statusBadgeVariants: Record<string, { backgroundColor: string; borderColor: string; textColor: string }> = {
+const statusBadgeVariants: Record<
+  string,
+  { backgroundColor: string; borderColor: string; textColor: string }
+> = {
   analyzed: {
     backgroundColor: withAlpha(colors.success, 0.12),
     borderColor: withAlpha(colors.success, 0.4),
@@ -123,15 +139,15 @@ export default function DashboardScreen() {
     try {
       const overview = await fetchDashboardOverview();
       setData(overview);
-      trackEvent('dashboard_loaded', {
+      trackEvent("dashboard_loaded", {
         arguments_count: overview.arguments.length,
         goals_count: overview.goals.length,
         subscription_tier: overview.subscription.tier,
       });
     } catch (error) {
-      console.log('Failed to load dashboard overview', error);
+      console.log("Failed to load dashboard overview", error);
       Sentry.captureException(error);
-      trackEvent('dashboard_load_failed');
+      trackEvent("dashboard_load_failed");
     } finally {
       setLoading(false);
     }
@@ -142,18 +158,18 @@ export default function DashboardScreen() {
     try {
       await refreshSession();
       await loadData();
-      trackEvent('dashboard_refreshed');
+      trackEvent("dashboard_refreshed");
     } catch (error) {
-      console.log('Refresh failed', error);
+      console.log("Refresh failed", error);
       Sentry.captureException(error);
-      trackEvent('dashboard_refresh_failed');
+      trackEvent("dashboard_refresh_failed");
     } finally {
       setRefreshing(false);
     }
   }, [loadData, refreshSession]);
 
   useEffect(() => {
-    trackEvent('dashboard_viewed');
+    trackEvent("dashboard_viewed");
     loadData();
   }, [loadData]);
 
@@ -178,44 +194,75 @@ export default function DashboardScreen() {
 
   const usagePercentage = data.usage.is_unlimited
     ? 0
-    : Math.min(Math.round((data.usage.count / Math.max(data.usage.limit, 1)) * 100), 100);
+    : Math.min(
+        Math.round((data.usage.count / Math.max(data.usage.limit, 1)) * 100),
+        100,
+      );
 
   // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
   };
 
   // Extract user name: prefer user.name, fallback to email username, capitalize first letter
-  const rawUserName = user?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? null;
-  const userName = rawUserName ? rawUserName.charAt(0).toUpperCase() + rawUserName.slice(1).toLowerCase() : null;
-  const userInitial = userName ? userName.charAt(0).toUpperCase() : '?';
-  const isCheckinCompleted = data.current_checkin?.status === 'completed';
+  const rawUserName =
+    user?.name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? null;
+  const userName = rawUserName
+    ? rawUserName.charAt(0).toUpperCase() + rawUserName.slice(1).toLowerCase()
+    : null;
+  const isCheckinCompleted = data.current_checkin?.status === "completed";
   const goalsCount = data.goals.length;
-  const activeGoalsLabel = goalsCount === 1 ? 'Goal' : 'Goals';
+  const activeGoalsLabel = goalsCount === 1 ? "Goal" : "Goals";
   const topArguments = data.arguments.slice(0, 3);
   const hasArguments = topArguments.length > 0;
 
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand[500]} />}
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingTop: insets.top + spacing.lg,
+          paddingBottom: 110, // Added padding for floating tab bar
+        },
+      ]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.brand[500]}
+        />
+      }
     >
+      <LinearGradient
+        colors={gradients.hero}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 0.3 }}
+      />
       {/* Header Section with Safe Area Padding */}
       <View style={styles.headerSection}>
         <View style={styles.headerTextContainer}>
           <Text style={styles.greeting}>
-            {getGreeting()}{userName ? `, ${userName}` : ''}.
+            {getGreeting()}
+            {userName ? `, ${userName}` : ""}.
           </Text>
           <Text style={styles.subtitle}>Your relationship pulse.</Text>
         </View>
         {/* Profile Avatar and Settings */}
         <View style={styles.avatarContainer}>
-          <TouchableOpacity onPress={() => router.push('/settings')} style={styles.settingsButton}>
-            <Ionicons name="settings-outline" size={24} color={colors.neutral[300]} />
+          <TouchableOpacity
+            onPress={() => router.push("/settings")}
+            style={styles.settingsButton}
+          >
+            <Ionicons
+              name="settings-outline"
+              size={24}
+              color={colors.neutral[300]}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -231,9 +278,12 @@ export default function DashboardScreen() {
           <View style={styles.primaryActionContent}>
             <View style={styles.primaryActionHeader}>
               <View style={styles.primaryActionTextContainer}>
-                <Text style={styles.primaryActionTitle}>Resolve a Conflict</Text>
+                <Text style={styles.primaryActionTitle}>
+                  Resolve a Conflict
+                </Text>
                 <Text style={styles.primaryActionDescription}>
-                  Feeling heard is the first step. Start a guided AI mediation session now.
+                  Feeling heard is the first step. Start a guided AI mediation
+                  session now.
                 </Text>
               </View>
               <View style={styles.primaryActionIcon}>
@@ -242,10 +292,15 @@ export default function DashboardScreen() {
             </View>
             <TouchableOpacity
               style={styles.primaryButton}
-              onPress={() => router.push('/arguments/create')}
+              onPress={() => router.push("/arguments/create")}
               activeOpacity={0.8}
             >
-              <Ionicons name="chatbubble-ellipses" size={18} color={colors.surface} style={styles.primaryButtonIcon} />
+              <Ionicons
+                name="chatbubble-ellipses"
+                size={18}
+                color={colors.surface}
+                style={styles.primaryButtonIcon}
+              />
               <Text style={styles.primaryButtonText}>Start New Session</Text>
             </TouchableOpacity>
           </View>
@@ -260,44 +315,60 @@ export default function DashboardScreen() {
               <Text style={styles.statLabel}>Weekly Check-in</Text>
               <View style={[styles.statCardIcon, styles.statCardIconCheckin]}>
                 <Ionicons
-                  name={isCheckinCompleted ? 'checkmark-circle' : 'clipboard-outline'}
+                  name={
+                    isCheckinCompleted
+                      ? "checkmark-circle"
+                      : "clipboard-outline"
+                  }
                   size={22}
-                  color={isCheckinCompleted ? colors.success : colors.brand[600]}
+                  color={
+                    isCheckinCompleted ? colors.success : colors.brand[600]
+                  }
                 />
               </View>
             </View>
             <View style={styles.statCardBody}>
               <View>
-                <Text style={styles.statValue}>{isCheckinCompleted ? '✓' : '—'}</Text>
+                <Text style={styles.statValue}>
+                  {isCheckinCompleted ? "✓" : "—"}
+                </Text>
                 <Text
                   style={[
                     styles.statDescription,
-                    isCheckinCompleted ? styles.statDescriptionPositive : styles.statDescriptionWarning,
+                    isCheckinCompleted
+                      ? styles.statDescriptionPositive
+                      : styles.statDescriptionWarning,
                   ]}
                 >
-                  {isCheckinCompleted ? 'Completed' : 'Pending'}
+                  {isCheckinCompleted ? "Completed" : "Pending"}
                 </Text>
               </View>
               <TouchableOpacity
                 style={[
                   styles.statButton,
-                  isCheckinCompleted ? styles.statButtonSecondary : styles.statButtonPrimary,
+                  isCheckinCompleted
+                    ? styles.statButtonSecondary
+                    : styles.statButtonPrimary,
                 ]}
-                onPress={() => router.push('/checkins')}
+                onPress={() => router.push("/checkins")}
                 activeOpacity={0.9}
               >
                 <Text
                   style={[
                     styles.statButtonText,
-                    isCheckinCompleted ? styles.statButtonTextSecondary : styles.statButtonTextPrimary,
+                    isCheckinCompleted
+                      ? styles.statButtonTextSecondary
+                      : styles.statButtonTextPrimary,
                   ]}
                 >
-                  {isCheckinCompleted ? 'View' : 'Complete Now'}
+                  {isCheckinCompleted ? "View" : "Complete Now"}
                 </Text>
                 <Ionicons
-                  name={isCheckinCompleted ? 'arrow-forward' : 'flash'}
+                  name={isCheckinCompleted ? "arrow-forward" : "flash"}
                   size={16}
-                  color={isCheckinCompleted ? colors.neutral[300] : colors.surface}
+                  color={
+                    isCheckinCompleted ? colors.neutral[300] : colors.surface
+                  }
                   style={styles.statButtonIcon}
                 />
               </TouchableOpacity>
@@ -320,11 +391,19 @@ export default function DashboardScreen() {
               </View>
               <TouchableOpacity
                 style={[styles.statButton, styles.statButtonGhost]}
-                onPress={() => router.push('/goals')}
+                onPress={() => router.push("/goals")}
                 activeOpacity={0.9}
               >
-                <Text style={[styles.statButtonText, styles.statButtonTextGhost]}>View Goals</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.brand[600]} />
+                <Text
+                  style={[styles.statButtonText, styles.statButtonTextGhost]}
+                >
+                  View Goals
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={colors.brand[600]}
+                />
               </TouchableOpacity>
             </View>
           </Card>
@@ -336,7 +415,10 @@ export default function DashboardScreen() {
         <View style={styles.argumentsHeader}>
           <Text style={styles.sectionTitle}>Active Issues</Text>
           {data.arguments.length > 0 && (
-            <TouchableOpacity onPress={() => router.push('/arguments')} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={() => router.push("/arguments")}
+              activeOpacity={0.7}
+            >
               <Text style={styles.viewAllLink}>View All</Text>
             </TouchableOpacity>
           )}
@@ -344,10 +426,12 @@ export default function DashboardScreen() {
 
         {!hasArguments ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No active conflicts. You're in a good place.</Text>
+            <Text style={styles.emptyText}>
+              No active conflicts. You're in a good place.
+            </Text>
             <TouchableOpacity
               style={styles.emptyStateButton}
-              onPress={() => router.push('/arguments/create')}
+              onPress={() => router.push("/arguments/create")}
               activeOpacity={0.8}
             >
               <Text style={styles.emptyStateButtonText}>Start New Session</Text>
@@ -356,12 +440,17 @@ export default function DashboardScreen() {
         ) : (
           <View style={styles.argumentsList}>
             {topArguments.map((arg, index) => {
-              const { icon, backgroundColor, iconColor, label } = getCategoryIconConfig(arg.category);
+              const { icon, backgroundColor, iconColor, label } =
+                getCategoryIconConfig(arg.category);
               const statusVariant = getStatusBadgeVariant(arg.status);
               return (
                 <TouchableOpacity
                   key={arg.id}
-                  style={[styles.argumentItem, index < topArguments.length - 1 && styles.argumentItemBorder]}
+                  style={[
+                    styles.argumentItem,
+                    index < topArguments.length - 1 &&
+                      styles.argumentItemBorder,
+                  ]}
                   onPress={() => router.push(`/arguments/${arg.id}`)}
                   activeOpacity={0.85}
                 >
@@ -383,7 +472,12 @@ export default function DashboardScreen() {
                             },
                           ]}
                         >
-                          <Text style={[styles.statusBadgeText, { color: statusVariant.textColor }]}>
+                          <Text
+                            style={[
+                              styles.statusBadgeText,
+                              { color: statusVariant.textColor },
+                            ]}
+                          >
                             {arg.status}
                           </Text>
                         </View>
@@ -393,7 +487,11 @@ export default function DashboardScreen() {
                       </View>
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color={colors.neutral[400]} />
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={colors.neutral[400]}
+                  />
                 </TouchableOpacity>
               );
             })}
@@ -402,40 +500,46 @@ export default function DashboardScreen() {
       </Card>
 
       {/* Subscription/Usage - Subtle Bottom Section */}
-      {data.subscription && !data.usage.is_unlimited && data.usage.limit > 0 && (
-        <Card style={styles.usageCard}>
-          <View style={styles.usageHeader}>
-            <Text style={styles.usageLabel}>Plan Status</Text>
-            <TouchableOpacity onPress={() => router.push('/subscription')}>
-              <Text style={styles.viewOptionsLink}>View Options</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.usageContent}>
-            <View style={styles.usageTextRow}>
-              <Text style={styles.usageText}>
-                {data.usage.count} of {data.usage.limit} free sessions used
-              </Text>
-              <Text style={styles.usagePercentage}>{usagePercentage}%</Text>
+      {data.subscription &&
+        !data.usage.is_unlimited &&
+        data.usage.limit > 0 && (
+          <Card style={styles.usageCard}>
+            <View style={styles.usageHeader}>
+              <Text style={styles.usageLabel}>Plan Status</Text>
+              <TouchableOpacity onPress={() => router.push("/subscription")}>
+                <Text style={styles.viewOptionsLink}>View Options</Text>
+              </TouchableOpacity>
             </View>
-            <View style={styles.progressWrapper}>
-              <View
-                style={[
-                  styles.progressBar,
-                  {
-                    width: `${usagePercentage}%`,
-                    backgroundColor: usagePercentage >= 100 ? colors.danger : colors.brand[500],
-                  },
-                ]}
-              />
+            <View style={styles.usageContent}>
+              <View style={styles.usageTextRow}>
+                <Text style={styles.usageText}>
+                  {data.usage.count} of {data.usage.limit} free sessions used
+                </Text>
+                <Text style={styles.usagePercentage}>{usagePercentage}%</Text>
+              </View>
+              <View style={styles.progressWrapper}>
+                <View
+                  style={[
+                    styles.progressBar,
+                    {
+                      width: `${usagePercentage}%`,
+                      backgroundColor:
+                        usagePercentage >= 100
+                          ? colors.danger
+                          : colors.brand[500],
+                    },
+                  ]}
+                />
+              </View>
+              {data.subscription.trial_end && (
+                <Text style={styles.trialEndText}>
+                  Trial ends{" "}
+                  {new Date(data.subscription.trial_end).toLocaleDateString()}
+                </Text>
+              )}
             </View>
-            {data.subscription.trial_end && (
-              <Text style={styles.trialEndText}>
-                Trial ends {new Date(data.subscription.trial_end).toLocaleDateString()}
-              </Text>
-            )}
-          </View>
-        </Card>
-      )}
+          </Card>
+        )}
     </ScrollView>
   );
 }
@@ -446,12 +550,12 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: spacing.lg,
-    paddingBottom: spacing['2xl'],
+    paddingBottom: spacing["2xl"],
   },
   centeredContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: colors.surfaceMuted,
   },
   button: {
@@ -459,7 +563,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radii.md,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: spacing.md,
   },
   buttonText: {
@@ -469,14 +573,14 @@ const styles = StyleSheet.create({
   errorText: {
     ...typography.body,
     color: colors.danger,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: spacing.lg,
   },
   // Header Section with Avatar
   headerSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: spacing.xl,
   },
   headerTextContainer: {
@@ -488,7 +592,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: colors.neutral[100],
     marginBottom: spacing.xs,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   subtitle: {
     ...typography.body,
@@ -498,48 +602,31 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     marginTop: spacing.xs,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   settingsButton: {
     padding: spacing.xs,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.brand[50],
-    borderWidth: 1.5,
-    borderColor: colors.brand[200],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    ...typography.heading,
-    fontSize: 18,
-    color: colors.brand[600],
-    fontWeight: '700',
-  },
   // Primary Action Card
   primaryActionCard: {
-    marginBottom: spacing.lg,
     borderRadius: radii.lg,
-    overflow: 'hidden',
-    ...shadows.card,
+    overflow: "hidden",
+    ...shadows.soft,
   },
   primaryActionGradient: {
     borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: colors.brand[200],
+    borderColor: "rgba(255,255,255,0.6)",
   },
   primaryActionContent: {
-    padding: spacing['2xl'],
+    padding: spacing["2xl"],
   },
   primaryActionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: spacing.lg,
   },
   primaryActionTextContainer: {
@@ -551,7 +638,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: colors.neutral[100],
     marginBottom: spacing.sm,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   primaryActionDescription: {
     ...typography.body,
@@ -564,19 +651,19 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.brand[100],
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   primaryButton: {
     backgroundColor: colors.brand[600],
     paddingVertical: spacing.md + 2,
     paddingHorizontal: spacing.lg,
     borderRadius: radii.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    ...shadows.card,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    ...shadows.soft,
   },
   primaryButtonIcon: {
     marginRight: spacing.sm,
@@ -585,11 +672,11 @@ const styles = StyleSheet.create({
     ...typography.label,
     fontSize: 16,
     color: colors.surface,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   // Stats Row - 2 Columns
   statsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: spacing.lg,
     gap: spacing.md,
   },
@@ -599,7 +686,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   statCard: {
-    padding: spacing['2xl'],
+    padding: spacing["2xl"],
     minHeight: 200,
     flex: 1,
     borderWidth: 1,
@@ -608,17 +695,17 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   statCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: spacing.md,
   },
   statCardIcon: {
     width: 40,
     height: 40,
     borderRadius: radii.md,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   statCardIconCheckin: {
     backgroundColor: withAlpha(colors.brand[500], 0.15),
@@ -628,22 +715,22 @@ const styles = StyleSheet.create({
   },
   statCardBody: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   statLabel: {
     ...typography.label,
     fontSize: 11,
     color: colors.neutral[400],
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.8,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statValue: {
     ...typography.heading,
     fontSize: 32,
     color: colors.neutral[100],
     marginBottom: spacing.xs,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   statDescription: {
     ...typography.body,
@@ -661,9 +748,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radii.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: spacing.sm,
     borderWidth: 1,
     gap: spacing.xs,
@@ -671,7 +758,7 @@ const styles = StyleSheet.create({
   statButtonText: {
     ...typography.label,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statButtonPrimary: {
     backgroundColor: colors.brand[600],
@@ -683,7 +770,7 @@ const styles = StyleSheet.create({
   },
   statButtonGhost: {
     backgroundColor: withAlpha(colors.neutral[700], 0.4),
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   statButtonTextPrimary: {
     color: colors.surface,
@@ -700,12 +787,12 @@ const styles = StyleSheet.create({
   // Arguments Card
   argumentsCard: {
     marginBottom: spacing.lg,
-    padding: spacing['2xl'],
+    padding: spacing["2xl"],
   },
   argumentsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.lg,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
@@ -715,21 +802,21 @@ const styles = StyleSheet.create({
     ...typography.heading,
     fontSize: 20,
     color: colors.neutral[100],
-    fontWeight: '700',
+    fontWeight: "700",
   },
   viewAllLink: {
     ...typography.label,
     fontSize: 13,
     color: colors.brand[500],
-    fontWeight: '600',
+    fontWeight: "600",
   },
   argumentsList: {
     marginTop: spacing.sm,
     gap: spacing.sm,
   },
   argumentItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderRadius: radii.md,
@@ -740,8 +827,8 @@ const styles = StyleSheet.create({
   },
   argumentLeft: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   argumentContent: {
     flex: 1,
@@ -751,20 +838,20 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: radii.md,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: spacing.md,
   },
   argumentTitle: {
     ...typography.label,
     fontSize: 16,
     color: colors.neutral[100],
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: spacing.xs,
   },
   argumentMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   statusBadge: {
@@ -776,8 +863,8 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     ...typography.label,
     fontSize: 10,
-    textTransform: 'uppercase',
-    fontWeight: '600',
+    textTransform: "uppercase",
+    fontWeight: "600",
     letterSpacing: 0.8,
   },
   argumentCategory: {
@@ -789,14 +876,14 @@ const styles = StyleSheet.create({
   },
   // Empty State
   emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing['2xl'],
+    alignItems: "center",
+    paddingVertical: spacing["2xl"],
   },
   emptyText: {
     ...typography.body,
     fontSize: 14,
     color: colors.neutral[400],
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: spacing.md,
   },
   emptyStateButton: {
@@ -811,7 +898,7 @@ const styles = StyleSheet.create({
     ...typography.label,
     fontSize: 13,
     color: colors.brand[700],
-    fontWeight: '600',
+    fontWeight: "600",
   },
   // Usage Card (Subtle)
   usageCard: {
@@ -819,31 +906,31 @@ const styles = StyleSheet.create({
     padding: spacing.lg + 4,
   },
   usageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.sm,
   },
   usageLabel: {
     ...typography.label,
     fontSize: 11,
     color: colors.neutral[400],
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   viewOptionsLink: {
     ...typography.label,
     fontSize: 11,
     color: colors.brand[500],
-    fontWeight: '600',
+    fontWeight: "600",
   },
   usageContent: {
     marginTop: spacing.sm,
   },
   usageTextRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.sm,
   },
   usageText: {
@@ -860,11 +947,11 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: colors.neutral[700],
     borderRadius: radii.xl,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: spacing.xs,
   },
   progressBar: {
-    height: '100%',
+    height: "100%",
     borderRadius: radii.xl,
   },
   trialEndText: {
