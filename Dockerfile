@@ -11,8 +11,8 @@ WORKDIR /app
 # Copy backend directory
 COPY backend/ /app/
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies from pyproject.toml
+RUN pip install --no-cache-dir .
 
 # Expose port (Railway sets PORT env var at runtime)
 EXPOSE 8000
