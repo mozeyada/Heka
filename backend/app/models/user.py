@@ -1,10 +1,11 @@
 """User model for MongoDB."""
 
 from datetime import datetime
-from typing import Optional, Dict, Any
+from enum import Enum
+from typing import Any, Dict, Optional
+
 from bson import ObjectId
 from pydantic import BaseModel, EmailStr, Field
-from enum import Enum
 
 
 class UserRole(str, Enum):

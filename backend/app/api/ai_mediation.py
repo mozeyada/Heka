@@ -1,22 +1,25 @@
 """AI Mediation endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from slowapi import Limiter
+import logging
+
+from bson import ObjectId
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
 from app.api.dependencies import get_current_user
-from app.api.schemas import AIGoalsResponse, AICheckInsResponse, AIGoalSuggestion, AICheckInSuggestion
+from app.api.schemas import (
+    AICheckInsResponse,
+    AIGoalsResponse,
+)
+from app.core.limiter import limiter
 from app.core.sanitization import validate_object_id
 from app.db.database import get_database
-from app.models.user import UserInDB
-from app.models.argument import ArgumentInDB, ArgumentStatus, ArgumentPriority
-from app.models.perspective import PerspectiveInDB
+from app.models.argument import ArgumentInDB, ArgumentPriority, ArgumentStatus
 from app.models.couple import CoupleInDB
+from app.models.perspective import PerspectiveInDB
+from app.models.user import UserInDB
 from app.services.ai_service import ai_service
 from app.services.ai_suggestion_cache import ai_suggestion_cache_service
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
-from typing import List
-import logging
-from app.core.limiter import limiter
 
 logger = logging.getLogger(__name__)
 

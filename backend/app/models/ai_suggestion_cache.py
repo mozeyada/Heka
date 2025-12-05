@@ -1,7 +1,8 @@
 """AI Suggestion Cache model for MongoDB."""
 
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 from bson import ObjectId
 from pydantic import BaseModel, Field
 

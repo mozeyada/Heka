@@ -1,11 +1,12 @@
 """Email service for sending invitations and notifications."""
 
-import smtplib
-import os
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from app.config import settings
 import logging
+import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +31,11 @@ class EmailService:
         
         if not self.smtp_host:
             # In development, log instead of sending
-            logger.info(f"INVITATION EMAIL (DEV MODE):")
+            logger.info("INVITATION EMAIL (DEV MODE):")
             logger.info(f"  To: {to_email}")
             logger.info(f"  From: {inviter_name}")
             logger.info(f"  Invitation Link: http://localhost:3000/invite/{invitation_token}")
-            logger.info(f"  (In production, this would send an actual email)")
+            logger.info("  (In production, this would send an actual email)")
             return True
         
         try:

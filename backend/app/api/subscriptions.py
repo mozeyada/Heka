@@ -1,20 +1,26 @@
 """Subscription API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+import logging
+from datetime import datetime
+
+import stripe
+from bson import ObjectId
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
 from app.api.dependencies import get_current_user
+from app.api.schemas import (
+    CreateCheckoutSessionRequest,
+    SubscriptionResponse,
+    UsageResponse,
+)
+from app.config import settings
 from app.db.database import get_database
-from app.api.schemas import SubscriptionResponse, UsageResponse, CreateCheckoutSessionRequest
-from app.models.user import UserInDB
 from app.models.couple import CoupleInDB, CoupleStatus
+from app.models.usage import UsageType
+from app.models.user import UserInDB
 from app.services.subscription_service import subscription_service
 from app.services.usage_service import usage_service
-from app.models.usage import UsageType
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
-from datetime import datetime
-import stripe
-from app.config import settings
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -286,7 +292,7 @@ async def handle_checkout_session_completed(session: dict):
     
     subscription = await subscription_service.get_subscription(couple_id, db)
     if subscription:
-        from app.models.subscription import SubscriptionTier, SubscriptionStatus
+        from app.models.subscription import SubscriptionStatus, SubscriptionTier
         await subscription_service.update_subscription(
             subscription.id,
             {
@@ -404,4 +410,9 @@ async def handle_invoice_payment_failed(invoice: dict):
                 db
             )
             logger.warning(f"Subscription marked as expired due to payment failure: {subscription_id}")
+
+
+async def handle_checkout_payment_failed(session: dict):
+    """Handle failed checkout payment."""
+    logger.warning(f"Checkout payment failed - Session: {session.get('id')}")
 

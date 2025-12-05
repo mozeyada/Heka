@@ -1,17 +1,18 @@
 """Relationship Check-ins API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from app.api.dependencies import get_current_user
-from app.db.database import get_database
-from app.models.user import UserInDB
-from app.models.couple import CoupleInDB, CoupleStatus
-from app.models.relationship_checkin import RelationshipCheckInInDB, CheckInStatus
-from app.api.dashboard import get_dashboard_overview
-from app.api.schemas import CheckInCreate, CheckInResponse
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
-from datetime import datetime, date, timedelta
 import logging
+from datetime import date, datetime, timedelta
+
+from bson import ObjectId
+from fastapi import APIRouter, Depends, HTTPException, status
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
+from app.api.dependencies import get_current_user
+from app.api.schemas import CheckInCreate, CheckInResponse
+from app.db.database import get_database
+from app.models.couple import CoupleInDB, CoupleStatus
+from app.models.relationship_checkin import CheckInStatus, RelationshipCheckInInDB
+from app.models.user import UserInDB
 
 logger = logging.getLogger(__name__)
 

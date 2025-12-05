@@ -1,7 +1,7 @@
 """Safety detection service for crisis situations and abuse indicators."""
 
-from typing import Dict, List, Optional
 import logging
+from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 

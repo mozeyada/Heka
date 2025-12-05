@@ -1,16 +1,24 @@
 """Arguments endpoints."""
 
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.api.schemas import ArgumentCreate, ArgumentResponse, ArgumentUpdate
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
 from app.api.dependencies import get_current_user
+from app.api.schemas import ArgumentCreate, ArgumentResponse, ArgumentUpdate
 from app.core.sanitization import sanitize_text, validate_object_id
 from app.db.database import get_database
-from app.models.user import UserInDB
-from app.models.argument import ArgumentInDB, ArgumentCategory, ArgumentPriority, ArgumentStatus
+from app.models.argument import (
+    ArgumentCategory,
+    ArgumentInDB,
+    ArgumentPriority,
+    ArgumentStatus,
+)
 from app.models.couple import CoupleStatus
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
-from typing import List, Optional, Dict, Any
+from app.models.user import UserInDB
 
 router = APIRouter(prefix="/api/arguments", tags=["Arguments"])
 
@@ -51,9 +59,9 @@ async def create_argument(
     couple = CoupleInDB.from_mongo(couple_doc)
     
     # Check usage limits
+    from app.models.usage import UsageType
     from app.services.subscription_service import subscription_service
     from app.services.usage_service import usage_service
-    from app.models.usage import UsageType
     
     subscription = await subscription_service.get_or_create_subscription(couple.id, db)
     

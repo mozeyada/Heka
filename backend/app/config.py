@@ -1,10 +1,11 @@
 """Application configuration settings."""
 
-from pydantic_settings import BaseSettings
-from pydantic import validator, Field
-from typing import List, Union
-import secrets
 import json
+import secrets
+from typing import List, Union
+
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):

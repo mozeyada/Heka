@@ -1,15 +1,16 @@
 """AI Mediation Service - OpenAI GPT-4 Integration"""
 
-from typing import Dict, List, Optional
-from openai import OpenAI
-from app.config import settings
-from app.db.database import get_database
-from app.models.ai_insight import AIInsightInDB
-from app.services.safety_service import safety_service
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
 import json
 import logging
+from typing import Dict, List
+
+from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from openai import OpenAI
+
+from app.config import settings
+from app.models.ai_insight import AIInsightInDB
+from app.services.safety_service import safety_service
 
 logger = logging.getLogger(__name__)
 

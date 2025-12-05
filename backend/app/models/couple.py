@@ -1,10 +1,11 @@
 """Couple model for MongoDB."""
 
-from datetime import datetime, date
-from typing import Optional, List
+from datetime import date, datetime
+from enum import Enum
+from typing import Optional
+
 from bson import ObjectId
 from pydantic import BaseModel, Field
-from enum import Enum
 
 
 class CoupleStatus(str, Enum):

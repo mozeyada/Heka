@@ -1,10 +1,11 @@
 """Relationship Check-in model for MongoDB."""
 
-from datetime import datetime, date
-from typing import Optional, Dict, Any
+from datetime import date, datetime
+from enum import Enum
+from typing import Any, Dict, Optional
+
 from bson import ObjectId
 from pydantic import BaseModel, Field
-from enum import Enum
 
 
 class CheckInStatus(str, Enum):

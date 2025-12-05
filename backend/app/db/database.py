@@ -1,8 +1,10 @@
 """MongoDB database configuration."""
 
-from motor.motor_asyncio import AsyncIOMotorClient
-from app.config import settings
 from typing import Optional
+
+from motor.motor_asyncio import AsyncIOMotorClient
+
+from app.config import settings
 from app.db import indexes
 
 # Async client for FastAPI

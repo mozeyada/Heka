@@ -1,29 +1,29 @@
 """Authentication endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
-from slowapi import Limiter
+from datetime import datetime
+
 from bson import ObjectId
-from app.api.schemas import (
-    UserRegister,
-    UserLogin,
-    Token,
-    UserResponse,
-    RefreshTokenRequest,
-)
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordRequestForm
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
 from app.api.dependencies import get_current_user
-from app.core.security import verify_password, get_password_hash, create_access_token
-from app.core.sanitization import sanitize_text, sanitize_email
+from app.api.schemas import (
+    RefreshTokenRequest,
+    Token,
+    UserRegister,
+    UserResponse,
+)
+from app.core.limiter import limiter
+from app.core.sanitization import sanitize_email, sanitize_text
+from app.core.security import create_access_token, get_password_hash, verify_password
 from app.db.database import get_database
 from app.models.user import UserInDB
 from app.services.refresh_token_service import (
+    RefreshTokenError,
     create_refresh_token,
     verify_and_rotate_refresh_token,
-    RefreshTokenError,
 )
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from datetime import datetime
-from app.core.limiter import limiter
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 

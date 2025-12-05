@@ -1,10 +1,11 @@
 """Invitation model for MongoDB."""
 
 from datetime import datetime, timedelta
-from typing import Optional
-from bson import ObjectId
-from pydantic import BaseModel, Field, EmailStr
 from enum import Enum
+from typing import Optional
+
+from bson import ObjectId
+from pydantic import BaseModel, EmailStr, Field
 
 
 class InvitationStatus(str, Enum):

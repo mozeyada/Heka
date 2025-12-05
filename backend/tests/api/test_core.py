@@ -1,6 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
+
 @pytest.mark.asyncio
 async def test_root_endpoint(client: AsyncClient):
     """Test the root endpoint returns correct status."""

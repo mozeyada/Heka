@@ -2,9 +2,11 @@
 
 from datetime import datetime, timedelta
 from typing import Optional
-from jose import JWTError, jwt
-from app.config import settings
+
 import bcrypt
+from jose import JWTError, jwt
+
+from app.config import settings
 
 # Bcrypt rounds for password hashing
 BCRYPT_ROUNDS = 12

@@ -1,11 +1,13 @@
 """Service for managing AI suggestion cache in MongoDB."""
 
-from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
-from app.models.ai_suggestion_cache import AISuggestionCacheInDB
 import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
+from app.models.ai_suggestion_cache import AISuggestionCacheInDB
 
 logger = logging.getLogger(__name__)
 

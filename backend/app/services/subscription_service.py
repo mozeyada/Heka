@@ -1,12 +1,18 @@
 """Subscription service for managing subscriptions."""
 
-from datetime import datetime, timedelta
-from app.models.subscription import SubscriptionInDB, SubscriptionTier, SubscriptionStatus, UsageLimit
-from app.models.couple import CoupleInDB, CoupleStatus
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
-from typing import Optional
 import logging
+from datetime import datetime, timedelta
+from typing import Optional
+
+from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
+from app.models.subscription import (
+    SubscriptionInDB,
+    SubscriptionStatus,
+    SubscriptionTier,
+    UsageLimit,
+)
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,9 @@
-import pytest
 import os
-from unittest.mock import MagicMock
-from httpx import AsyncClient
 from typing import AsyncGenerator, Generator
+from unittest.mock import MagicMock
+
+import pytest
+from httpx import AsyncClient
 
 # Set environment for testing BEFORE importing app
 os.environ["ENVIRONMENT"] = "testing"
@@ -11,8 +12,9 @@ os.environ["MONGODB_DB_NAME"] = "heka_test_db"
 os.environ["SECRET_KEY"] = "test_secret_key_needs_to_be_at_least_32_chars_long"
 os.environ["OPENAI_API_KEY"] = "sk-test-key-mock"
 
-from app.main import app
-from app.db.database import get_database
+from app.db.database import get_database  # noqa: E402
+from app.main import app  # noqa: E402
+
 
 @pytest.fixture
 def mock_db() -> Generator[MagicMock, None, None]:

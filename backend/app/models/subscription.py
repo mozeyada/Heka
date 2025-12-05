@@ -1,10 +1,11 @@
 """Subscription model for MongoDB."""
 
-from datetime import datetime, date
-from typing import Optional, ClassVar
+from datetime import datetime
+from enum import Enum
+from typing import ClassVar, Optional
+
 from bson import ObjectId
 from pydantic import BaseModel, Field
-from enum import Enum
 
 
 class SubscriptionTier(str, Enum):

@@ -1,6 +1,8 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from httpx import AsyncClient
-from unittest.mock import MagicMock, AsyncMock
+
 
 @pytest.mark.asyncio
 async def test_login_success(client: AsyncClient, mock_db: MagicMock):

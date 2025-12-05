@@ -1,15 +1,15 @@
 """Dependencies for API endpoints."""
 
+
+from bson import ObjectId
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from typing import Optional
 from jose import JWTError, jwt
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
 from app.config import settings
-from app.core.security import verify_token
 from app.db.database import get_database
 from app.models.user import UserInDB
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 

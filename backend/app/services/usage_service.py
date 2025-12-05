@@ -1,12 +1,14 @@
 """Usage tracking service."""
 
-from datetime import datetime, date, timedelta
-from app.models.usage import UsageInDB, UsageType
-from app.models.subscription import SubscriptionInDB, SubscriptionStatus
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
-from typing import Optional
 import logging
+from datetime import date, datetime, timedelta
+from typing import Optional
+
+from bson import ObjectId
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
+from app.models.subscription import SubscriptionInDB
+from app.models.usage import UsageInDB, UsageType
 
 logger = logging.getLogger(__name__)
 

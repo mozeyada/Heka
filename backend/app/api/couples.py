@@ -1,18 +1,20 @@
 """Couples endpoints with invitation system."""
 
+import logging
+import secrets
+from datetime import datetime, timedelta
+
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, EmailStr
+
 from app.api.dependencies import get_current_user
 from app.db.database import get_database
-from app.models.user import UserInDB
 from app.models.couple import CoupleInDB, CoupleStatus
 from app.models.invitation import InvitationInDB, InvitationStatus
+from app.models.user import UserInDB
 from app.services.email_service import email_service
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
-from datetime import datetime, timedelta
-import secrets
-import logging
 
 logger = logging.getLogger(__name__)
 

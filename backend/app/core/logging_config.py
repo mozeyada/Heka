@@ -2,6 +2,7 @@
 
 import logging
 import sys
+
 from app.config import settings
 
 # Configure logging

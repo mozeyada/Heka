@@ -1,17 +1,19 @@
 """Perspectives endpoints."""
 
+from typing import List
+
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.api.schemas import PerspectiveCreate, PerspectiveResponse
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
 from app.api.dependencies import get_current_user
+from app.api.schemas import PerspectiveCreate, PerspectiveResponse
 from app.core.sanitization import sanitize_text, validate_object_id
 from app.db.database import get_database
-from app.models.user import UserInDB
-from app.models.perspective import PerspectiveInDB
 from app.models.argument import ArgumentInDB, ArgumentStatus
 from app.models.couple import CoupleStatus
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
-from typing import List
+from app.models.perspective import PerspectiveInDB
+from app.models.user import UserInDB
 
 router = APIRouter(prefix="/api/perspectives", tags=["Perspectives"])
 

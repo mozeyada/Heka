@@ -20,6 +20,7 @@ const publicLinks: NavLink[] = [
 
 const authenticatedLinks: NavLink[] = [
   { label: 'Dashboard', href: '/dashboard', requiresAuth: true },
+  { label: 'Arguments', href: '/arguments', requiresAuth: true },
   { label: 'Goals', href: '/goals', requiresAuth: true },
   { label: 'Check-ins', href: '/checkins/current', requiresAuth: true },
   { label: 'Subscription', href: '/subscription', requiresAuth: true },

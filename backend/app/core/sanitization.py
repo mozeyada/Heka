@@ -110,7 +110,7 @@ def sanitize_email(email: str) -> str:
     Raises:
         ValueError: If email format is invalid
     """
-    from email_validator import validate_email, EmailNotValidError
+    from email_validator import EmailNotValidError, validate_email
     
     # Basic sanitization
     email = email.strip().lower()

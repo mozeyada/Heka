@@ -1,14 +1,15 @@
 """User data export and deletion endpoints for Australian Privacy Act compliance."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from datetime import datetime
+from typing import Any, Dict
+
+from bson import ObjectId
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
 from app.api.dependencies import get_current_user
 from app.db.database import get_database
 from app.models.user import UserInDB
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from bson import ObjectId
-from datetime import datetime
-from typing import Dict, Any
-import json
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 

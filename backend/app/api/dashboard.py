@@ -1,19 +1,20 @@
 """Dashboard overview endpoint for mobile/web clients."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Optional, Dict, Any
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, Optional
+
 from bson import ObjectId
-from datetime import datetime, date, timedelta
+from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.api.dependencies import get_current_user
 from app.db.database import get_database
+from app.models.couple import CoupleInDB, CoupleStatus
+from app.models.relationship_checkin import CheckInStatus
+from app.models.usage import UsageType
 from app.models.user import UserInDB
 from app.services.subscription_service import subscription_service
 from app.services.usage_service import usage_service
-from app.models.usage import UsageType
-from app.models.couple import CoupleInDB, CoupleStatus
-from app.models.relationship_checkin import CheckInStatus
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 

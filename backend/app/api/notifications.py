@@ -1,15 +1,15 @@
 """Notification device token endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, Request, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.api.dependencies import get_current_user
 from app.api.schemas import DeviceTokenCreate
-from app.models.user import UserInDB
 from app.db.database import get_database
+from app.models.user import UserInDB
 from app.services.device_token_service import (
-    upsert_device_token,
     revoke_device_token,
+    upsert_device_token,
 )
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
