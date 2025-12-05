@@ -368,6 +368,79 @@ async def get_checkin_suggestions(
         )
 
 
+
+@router.post("/arguments/{argument_id}/generate-goals", response_model=AIGoalsResponse)
+@limiter.limit("10/hour")
+async def generate_argument_goals(
+    argument_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """
+    Generate goal suggestions based on a specific argument.
+    """
+    # Validate and fetch argument
+    try:
+        validated_id = validate_object_id(argument_id)
+        arg_oid = ObjectId(validated_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    arg_doc = await db.arguments.find_one({"_id": arg_oid})
+    if not arg_doc:
+        raise HTTPException(status_code=404, detail="Argument not found")
+        
+    argument = ArgumentInDB.from_mongo(arg_doc)
+    
+    # Verify access
+    couple_doc = await db.couples.find_one({
+        "_id": ObjectId(argument.couple_id),
+        "$or": [{"user1_id": ObjectId(current_user.id)}, {"user2_id": ObjectId(current_user.id)}]
+    })
+    if not couple_doc:
+        raise HTTPException(status_code=403, detail="Access denied")
+        
+    # Reuse existing AI service logic with single argument
+    suggestions, _ = await ai_service.generate_goal_suggestions([arg_doc], db)
+    return AIGoalsResponse(suggestions=suggestions)
+
+
+@router.post("/arguments/{argument_id}/generate-checkins", response_model=AICheckInsResponse)
+@limiter.limit("10/hour")
+async def generate_argument_checkins(
+    argument_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """
+    Generate check-in questions based on a specific argument.
+    """
+    # Validate and fetch argument
+    try:
+        validated_id = validate_object_id(argument_id)
+        arg_oid = ObjectId(validated_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    arg_doc = await db.arguments.find_one({"_id": arg_oid})
+    if not arg_doc:
+        raise HTTPException(status_code=404, detail="Argument not found")
+        
+    argument = ArgumentInDB.from_mongo(arg_doc)
+    
+    # Verify access
+    couple_doc = await db.couples.find_one({
+        "_id": ObjectId(argument.couple_id),
+        "$or": [{"user1_id": ObjectId(current_user.id)}, {"user2_id": ObjectId(current_user.id)}]
+    })
+    if not couple_doc:
+        raise HTTPException(status_code=403, detail="Access denied")
+        
+    # Reuse existing AI service logic with single argument
+    suggestions, _ = await ai_service.generate_checkin_questions([arg_doc], db)
+    return AICheckInsResponse(suggestions=suggestions)
+
+
 async def get_user_couple(user: UserInDB, db: AsyncIOMotorDatabase) -> CoupleInDB:
     """Helper to get the couple associated with the current user."""
     couple_doc = await db.couples.find_one({

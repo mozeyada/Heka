@@ -250,6 +250,16 @@ export const aiSuggestionsAPI = {
     const response = await apiClient.get('/api/ai/checkins/suggestions');
     return response.data;
   },
+
+  generateArgumentGoals: async (argumentId: string) => {
+    const response = await apiClient.post(`/api/ai/arguments/${argumentId}/generate-goals`);
+    return response.data;
+  },
+
+  generateArgumentCheckins: async (argumentId: string) => {
+    const response = await apiClient.post(`/api/ai/arguments/${argumentId}/generate-checkins`);
+    return response.data;
+  },
 };
 
 // Subscriptions API

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getAIInsights, analyzeArgument, AIInsight } from "../api/ai";
 import { fetchArgument, deleteArgument, updateArgumentStatus } from "../api/arguments";
+import { CementWinModal } from "../components/arguments/CementWinModal";
 import {
   submitPerspective,
   getPerspectivesForArgument,
@@ -41,6 +42,7 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showCementModal, setShowCementModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const confettiRef = useRef<ConfettiCannon>(null);
   const { userId } = useAuthStore();
@@ -103,11 +105,11 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
     setError(null);
     try {
       const updatedArg = await updateArgumentStatus(argumentId, newStatus);
-      setArgument(updatedArg);
+      setArgument((prev: any) => ({ ...prev, status: newStatus }));
 
-      // Trigger confetti if resolving
-      if (newStatus === "resolved") {
+      if (newStatus === 'resolved') {
         confettiRef.current?.start();
+        setTimeout(() => setShowCementModal(true), 1500);
       }
     } catch (error: any) {
       const errorMessage =
@@ -221,6 +223,11 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
         autoStart={false}
         ref={confettiRef}
         fadeOut={true}
+      />
+      <CementWinModal
+        visible={showCementModal}
+        onClose={() => setShowCementModal(false)}
+        argumentId={argumentId!}
       />
     </View>
   );

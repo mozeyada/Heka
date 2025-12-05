@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
 import { perspectivesAPI, argumentsAPI } from '@/lib/api';
 import { CrisisResources } from '@/components/CrisisResources';
+import CementWinModal from '@/components/arguments/CementWinModal';
 import confetti from 'canvas-confetti';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -57,6 +58,7 @@ export default function ArgumentDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCementModal, setShowCementModal] = useState(false);
   const [showPerspectiveForm, setShowPerspectiveForm] = useState(false);
   const [perspectiveContent, setPerspectiveContent] = useState('');
   const [safetyConcern, setSafetyConcern] = useState<any>(null);
@@ -162,11 +164,11 @@ export default function ArgumentDetailPage() {
       // Trigger celebration if resolving
       if (newStatus === 'resolved') {
         confetti({
-          particleCount: 100,
+          particleCount: 150,
           spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#10B981', '#34D399', '#6EE7B7', '#A7F3D0'], // Green theme
+          origin: { y: 0.6 }
         });
+        setTimeout(() => setShowCementModal(true), 1500);
       }
     } catch (err: any) {
       const detail = err.response?.data?.detail || 'Failed to update status';
@@ -570,6 +572,11 @@ export default function ArgumentDetailPage() {
           )}
         </section>
       </div>
+      <CementWinModal
+        isOpen={showCementModal}
+        onClose={() => setShowCementModal(false)}
+        argumentId={argumentId}
+      />
     </div>
   );
 }

@@ -42,3 +42,32 @@ export async function analyzeArgument(argumentId: string): Promise<AIInsight> {
   );
   return response.data;
 }
+
+export type GoalSuggestion = {
+  title: string;
+  description: string;
+  category: string;
+};
+
+export type CheckInSuggestion = {
+  question: string;
+  category: string;
+};
+
+export async function generateArgumentGoals(
+  argumentId: string,
+): Promise<{ suggestions: GoalSuggestion[] }> {
+  const response = await api.post<{ suggestions: GoalSuggestion[] }>(
+    `/api/ai/arguments/${argumentId}/generate-goals`,
+  );
+  return response.data;
+}
+
+export async function generateArgumentCheckins(
+  argumentId: string,
+): Promise<{ suggestions: CheckInSuggestion[] }> {
+  const response = await api.post<{ suggestions: CheckInSuggestion[] }>(
+    `/api/ai/arguments/${argumentId}/generate-checkins`,
+  );
+  return response.data;
+}
