@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
 import { aiSuggestionsAPI, perspectivesAPI, argumentsAPI } from '@/lib/api';
 import { CrisisResources } from '@/components/CrisisResources';
-import CementWinModal from '@/components/arguments/CementWinModal';
+import { CementWinModal } from '@/components/arguments/CementWinModal';
 import confetti from 'canvas-confetti';
 
 interface AIInsight {
