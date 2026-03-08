@@ -237,6 +237,11 @@ export const goalsAPI = {
     const response = await apiClient.post(`/api/goals/${goalId}/complete`);
     return response.data;
   },
+
+  reactToProgress: async (goalId: string, progressId: string, emoji: string) => {
+    const response = await apiClient.post(`/api/goals/${goalId}/progress/${progressId}/react`, { emoji });
+    return response.data;
+  },
 };
 
 // AI Suggestions API

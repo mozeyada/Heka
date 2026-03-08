@@ -1,5 +1,6 @@
 """Relationship Goal model for MongoDB."""
 
+import uuid
 from datetime import date, datetime
 from enum import Enum
 from typing import List, Optional
@@ -18,9 +19,12 @@ class GoalStatus(str, Enum):
 
 class GoalProgress(BaseModel):
     """Progress entry for a goal."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: Optional[str] = None  # User who made the update
     date: date
     notes: Optional[str] = None
     progress_value: Optional[float] = None  # 0.0 to 1.0 (0% to 100%)
+    reactions: List[dict] = Field(default_factory=list)  # [{"user_id": "...", "emoji": "❤️"}]
 
 
 class RelationshipGoal(BaseModel):

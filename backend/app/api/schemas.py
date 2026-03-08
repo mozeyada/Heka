@@ -241,6 +241,11 @@ class GoalProgressUpdate(BaseModel):
     progress_value: Optional[float] = Field(None, ge=0.0, le=1.0)  # 0.0 to 1.0
 
 
+class GoalReactionCreate(BaseModel):
+    """Add a reaction to a progress update."""
+    emoji: str = Field(..., description="The emoji to react with")
+
+
 class GoalResponse(BaseModel):
     """Goal response."""
     id: str
