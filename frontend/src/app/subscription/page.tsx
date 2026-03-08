@@ -285,7 +285,7 @@ export default function SubscriptionPage() {
 
         {subscription && subscription.tier !== 'free' && (
           <div className="section-shell border border-success-200 bg-success-50/80 p-6">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-success-600">Thank you for being a member</h3>
+            <h3 className="text-base font-semibold text-success-800">Thank you for being a member</h3>
             <p className="mt-3 text-sm text-success-600">
               You have full access to Heka {getTierDisplayName(subscription.tier)}. We're honored to support your relationship journey.
             </p>

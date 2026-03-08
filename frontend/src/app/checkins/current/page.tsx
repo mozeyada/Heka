@@ -215,7 +215,7 @@ export default function CheckInPage() {
 
         {/* STATE 3: PENDING (Needs to be filled out) */}
         {(checkin?.status === 'pending' || !checkin?.status) && (
-          <form onSubmit={handleSubmit} className="space-y-8 mt-6">
+          <form onSubmit={handleSubmit} className="space-y-6 mt-4">
             {error && (
               <div className="section-shell border border-red-200 bg-red-50 p-5">
                 <p className="text-sm font-semibold text-red-600">{error}</p>
@@ -253,11 +253,12 @@ export default function CheckInPage() {
               </div>
             )}
 
-            <div className="section-shell p-6">
-              <div className="space-y-6">
+            <div className="section-shell p-6 md:p-8">
+              <div className="space-y-8">
                 <div>
-                  <label htmlFor="q1" className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-                    1. How are you feeling about communication this week?
+                  <label htmlFor="q1" className="text-base font-semibold text-neutral-900 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs text-indigo-700">1</span>
+                    How are you feeling about communication this week?
                   </label>
                   <textarea
                     id="q1"
@@ -271,8 +272,9 @@ export default function CheckInPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="q2" className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-                    2. Rate your relationship satisfaction (1-10) and explain why?
+                  <label htmlFor="q2" className="text-base font-semibold text-neutral-900 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs text-indigo-700">2</span>
+                    Rate your relationship satisfaction (1-10) and explain why?
                   </label>
                   <textarea
                     id="q2"

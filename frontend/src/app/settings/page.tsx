@@ -142,7 +142,7 @@ export default function SettingsPage() {
 
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="mt-6 inline-flex rounded-xl border border-danger-200 px-4 py-2 text-sm font-semibold text-danger-600 transition-colors ease-soft-spring hover:border-danger-300 hover:text-danger-700"
+            className="mt-6 inline-flex rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white shadow-md transition-all ease-soft-spring hover:-translate-y-0.5 hover:bg-red-700"
           >
             Delete Account
           </button>

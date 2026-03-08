@@ -173,16 +173,18 @@ export default function GoalsPage() {
               {aiSuggestions.slice(0, 2).map((suggestion, index) => (
                 <div
                   key={index}
-                  className="rounded-lg border border-indigo-100 bg-white p-4 hover:border-indigo-200 transition-colors"
+                  className="rounded-xl border border-indigo-100 bg-white p-5 hover:border-indigo-300 hover:shadow-md transition-all flex flex-col h-full"
                 >
-                  <h4 className="font-semibold text-neutral-900 text-sm">{suggestion.title}</h4>
-                  <p className="mt-1 text-xs text-neutral-600 line-clamp-2">{suggestion.description}</p>
+                  <div className="flex-1 space-y-2">
+                    <h4 className="font-bold text-neutral-900 text-sm">{suggestion.title}</h4>
+                    <p className="text-xs text-neutral-600 line-clamp-3 leading-relaxed">{suggestion.description}</p>
+                  </div>
                   <button
                     onClick={() => handleCreateFromSuggestion(suggestion)}
                     disabled={creating}
-                    className="mt-3 w-full rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-indigo-500 disabled:opacity-50"
+                    className="mt-4 w-full rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold tracking-wide text-white shadow-sm transition-all hover:bg-indigo-500 disabled:opacity-50 uppercase"
                   >
-                    {creating ? 'Creating…' : 'Use This'}
+                    {creating ? 'Creating…' : 'Use This Template'}
                   </button>
                 </div>
               ))}
@@ -301,12 +303,15 @@ export default function GoalsPage() {
                 </div>
               </div>
             )}
-            <div className="section-shell p-10 text-center">
-              <h3 className="text-lg font-semibold text-neutral-900">No goals yet</h3>
-              <p className="mt-2 text-sm text-neutral-500">
+            <div className="section-shell p-12 text-center bg-white border border-slate-200 shadow-sm rounded-2xl">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 mb-6">
+                <Sparkles className="h-8 w-8" />
+              </div>
+              <h3 className="text-xl font-bold text-neutral-900">No active goals</h3>
+              <p className="mt-2 text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
                 {aiSuggestions.length === 0 && !loadingSuggestions
-                  ? 'Create your first relationship goal to track progress together.'
-                  : 'Or create a custom goal below.'}
+                  ? 'Setting shared relationship goals helps you align on your future and track meaningful progress together.'
+                  : 'Or create a custom goal that matters to both of you.'}
               </p>
               <button
                 onClick={() => setShowCreateForm(true)}
@@ -351,8 +356,8 @@ export default function GoalsPage() {
                                 </span>
                                 {p.notes && <span className="ml-2">— {p.notes}</span>}
                                 {p.progress_value !== undefined && (
-                                  <span className="ml-2 font-semibold text-indigo-600">
-                                    ({Math.round(p.progress_value * 100)}%)
+                                  <span className="ml-2 font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded text-[10px] tracking-wider uppercase">
+                                    {Math.round(p.progress_value * 100)}% Complete
                                   </span>
                                 )}
                               </div>
@@ -361,18 +366,18 @@ export default function GoalsPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex gap-2 sm:flex-col sm:shrink-0">
-                      <button
-                        onClick={() => router.push(`/goals/${goal.id}`)}
-                        className="btn-secondary flex-1 sm:flex-none"
-                      >
-                        View
-                      </button>
+                    <div className="flex flex-col gap-2 sm:shrink-0 sm:w-32">
                       <button
                         onClick={() => handleCompleteGoal(goal.id)}
-                        className="flex-1 rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-green-500 hover:-translate-y-0.5 sm:flex-none"
+                        className="w-full rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-green-500 hover:-translate-y-0.5"
                       >
-                        Complete
+                        Complete Target
+                      </button>
+                      <button
+                        onClick={() => router.push(`/goals/${goal.id}`)}
+                        className="btn-secondary w-full"
+                      >
+                        View Details
                       </button>
                     </div>
                   </div>
