@@ -230,7 +230,7 @@ Heka/
 2. Set up API endpoints (Sprint 2)
 3. Implement AI integration (Sprint 3)
 
-See `TECHNICAL_IMPLEMENTATION_PLAN.md` for detailed sprint breakdown.
+See `PROJECT_PLAN.md` (local only) for detailed sprint breakdown.
 
 ---
 

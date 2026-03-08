@@ -27,7 +27,8 @@ export default function TabsLayout() {
           elevation: 0,
           backgroundColor: Platform.select({
             ios: "transparent",
-            android: "rgba(255, 255, 255, 0.95)", // Fallback for Android if BlurView is buggy on some versions
+            web: "transparent",
+            default: "rgba(255, 255, 255, 0.95)",
           }),
           borderTopWidth: 1,
           borderTopColor: "rgba(255, 255, 255, 0.3)", // Glass edge
@@ -35,7 +36,7 @@ export default function TabsLayout() {
           paddingVertical: 10,
         },
         tabBarBackground: () =>
-          Platform.OS === "ios" ? (
+          Platform.OS === "ios" || Platform.OS === "web" ? (
             <BlurView
               intensity={glass.intensity}
               tint={glass.tint as "light" | "dark" | "default"}

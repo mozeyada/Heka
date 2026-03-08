@@ -1,4 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
+import { Link } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import {
@@ -66,7 +67,14 @@ export default function LoginScreen() {
           onChangeText={setEmail}
         />
 
-        <Text style={[styles.label, { marginTop: spacing.md }]}>Password</Text>
+        <View style={styles.passwordHeader}>
+          <Text style={[styles.label, { marginTop: 0, marginBottom: 0 }]}>Password</Text>
+          <Link href="/forgot-password" asChild>
+            <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.forgotPasswordLink}>Forgot Password?</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
         <TextInput
           style={styles.input}
           secureTextEntry
@@ -140,6 +148,18 @@ const styles = StyleSheet.create({
     fontSize: typography.label.fontSize,
     lineHeight: typography.label.lineHeight,
     marginBottom: spacing.xs,
+  },
+  passwordHeader: {
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  forgotPasswordLink: {
+    color: colors.brand[600],
+    fontSize: 14,
+    fontWeight: "600",
   },
   input: {
     borderRadius: radii.md,

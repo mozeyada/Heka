@@ -73,6 +73,45 @@ class UserLogin(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    """Request to send a password reset email."""
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request to reset a password using a token."""
+    token: str
+    new_password: str = Field(..., min_length=8)
+
+    @validator('new_password')
+    def validate_password(cls, v):
+        """Validate password complexity."""
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        
+        # Check for uppercase letter
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        
+        # Check for lowercase letter
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        
+        # Check for digit
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one number')
+        
+        # Check for common passwords
+        common_passwords = [
+            'Password123', 'Passw0rd', '12345678', 'Qwerty123',
+            'Password1', 'Welcome123', 'Admin123', 'Letmein123'
+        ]
+        if v in common_passwords:
+            raise ValueError('Password is too common. Please choose a more unique password')
+        
+        return v
+
+
 class Token(BaseModel):
     """JWT token response."""
     access_token: str

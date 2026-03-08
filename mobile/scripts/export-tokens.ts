@@ -17,21 +17,24 @@ const tokens = {
       500: "#6366f1",
       600: "#4f46e5",
       700: "#4338ca",
-      800: "#312e81",
-      900: "#1e1b4b",
+      800: "#3730a3",
+      900: "#312e81",
     },
     neutral: {
-      25: "#0f172a",
-      50: "#111827",
-      100: "#1f2937",
-      200: "#374151",
-      300: "#4b5563",
-      400: "#9ca3af",
-      500: "#d1d5db",
-      600: "#e5e7eb",
-      700: "#f3f4f6",
-      800: "#f9fafb",
+      25: "#f9fafb",
+      50: "#f8fafc",
+      100: "#f1f5f9",
+      200: "#e2e8f0",
+      300: "#cbd5e1",
+      400: "#94a3b8",
+      500: "#64748b",
+      600: "#475569",
+      700: "#334155",
+      800: "#1e293b",
+      900: "#0f172a",
     },
+    surface: "#ffffff",
+    surfaceMuted: "#f8fafc",
     success: "#22c55e",
     warning: "#f97316",
     danger: "#ef4444",
@@ -81,13 +84,40 @@ const tokens = {
 const target = resolve(__dirname, "../src/theme/tokens.ts");
 const fileContents = `export const colors = ${JSON.stringify(tokens.colors, null, 2)} as const;
 
+export const gradients = {
+  brand: [\"#eef2ff\", \"#ffffff\"],
+  hero: [\"#e0e7ff\", \"#f8fafc\"],
+  glass: [\"rgba(255, 255, 255, 0.7)\", \"rgba(255, 255, 255, 0.3)\"],
+} as const;
+
+export const glass = {
+  intensity: 80,
+  tint: \"light\",
+  opacity: 0.85,
+} as const;
+
 export const spacing = ${JSON.stringify(tokens.spacing, null, 2)} as const;
 
 export const typography = ${JSON.stringify(tokens.typography, null, 2)} as const;
 
 export const radii = ${JSON.stringify(tokens.radii, null, 2)} as const;
 
-export const shadows = ${JSON.stringify(tokens.shadows, null, 2)} as const;
+export const shadows = {
+  ...${JSON.stringify(tokens.shadows, null, 2)},
+  soft: {
+    shadowColor: \"#4f46e5\",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 16,
+    elevation: 4,
+  }
+} as const;
+
+export type ColorScale = typeof colors;
+export type SpacingScale = typeof spacing;
+export type TypographyScale = typeof typography;
+export type RadiiScale = typeof radii;
+export type ShadowScale = typeof shadows;
 `;
 
 writeFileSync(target, fileContents);

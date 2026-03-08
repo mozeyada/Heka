@@ -127,7 +127,7 @@ export default function DashboardPage() {
   const rawUserName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'there';
   const userName = rawUserName.charAt(0).toUpperCase() + rawUserName.slice(1).toLowerCase();
   const elevatedCardClasses =
-    'border-0 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.06)] hover:shadow-[0_24px_45px_rgba(15,23,42,0.12)] transition-all';
+    'border border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_12px_30px_rgba(15,23,42,0.06)] hover:shadow-[0_24px_45px_rgba(15,23,42,0.12)] transition-all duration-300 hover:-translate-y-1';
   const categoryIconMap = {
     communication: {
       icon: MessageCircle,
@@ -173,7 +173,7 @@ export default function DashboardPage() {
         )}
 
         {/* Hero Section - Warm Greeting */}
-        <div className="space-y-2">
+        <div className="space-y-2 animate-fade-in" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
             {getGreeting()}, {userName}.
           </h1>
@@ -182,7 +182,8 @@ export default function DashboardPage() {
 
         {/* Primary Action Card - Start New Session */}
         <Card
-          className={`${elevatedCardClasses} relative overflow-hidden bg-gradient-to-br from-primary/20 via-primary/5 to-white`}
+          className={`${elevatedCardClasses} relative overflow-hidden bg-gradient-to-br from-primary/20 via-primary/5 to-white/50 animate-slide-up`}
+          style={{ animationDelay: '200ms', animationFillMode: 'both' }}
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(147,51,234,0.2),transparent_50%)]" />
           <CardContent className="relative p-6">
@@ -218,7 +219,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Status Grid - 2 Columns (Fixed Layout) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch animate-slide-up" style={{ animationDelay: '300ms', animationFillMode: 'both' }}>
           {/* Weekly Check-in Card */}
           <Card className={`${elevatedCardClasses} h-full flex flex-col`}>
             <CardHeader className="pb-3">
@@ -292,7 +293,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Active Issues / Recent Arguments */}
-        <Card className={elevatedCardClasses}>
+        <Card className={`${elevatedCardClasses} animate-slide-up`} style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Active Issues</CardTitle>
@@ -356,7 +357,7 @@ export default function DashboardPage() {
 
         {/* Couple Status */}
         {!couple && (
-          <Card className={`${elevatedCardClasses} bg-primary/5`}>
+          <Card className={`${elevatedCardClasses} bg-primary/5 animate-slide-up`} style={{ animationDelay: '500ms', animationFillMode: 'both' }}>
             <CardContent className="p-6">
               <h3 className="text-sm font-semibold text-foreground mb-1">Connect with Your Partner</h3>
               <p className="text-xs text-muted-foreground mb-4">
@@ -374,7 +375,7 @@ export default function DashboardPage() {
 
         {/* Subscription/Usage - Subtle Bottom Section */}
         {subscription && !usage?.is_unlimited && usageLimit > 0 && (
-          <Card className={elevatedCardClasses}>
+          <Card className={`${elevatedCardClasses} animate-slide-up`} style={{ animationDelay: '600ms', animationFillMode: 'both' }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Plan Status</p>

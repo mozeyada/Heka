@@ -115,6 +115,99 @@ The Heka Team
             logger.error(f"Failed to send invitation email: {e}")
             return False
 
+    async def send_password_reset_email(
+        self,
+        to_email: str,
+        user_name: str,
+        reset_token: str
+    ) -> bool:
+        """Send password reset email."""
+        
+        if not self.smtp_host:
+            # In development, log instead of sending
+            logger.info("PASSWORD RESET EMAIL (DEV MODE):")
+            logger.info(f"  To: {to_email}")
+            logger.info(f"  Reset Link: http://localhost:3000/reset-password?token={reset_token}")
+            logger.info("  (In production, this would send an actual email)")
+            return True
+        
+        try:
+            # Create message
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = "Reset your Heka password"
+            
+            display_name = "Heka"
+            if self.from_email != self.smtp_user:
+                msg['From'] = f'{display_name} <{self.smtp_user}>'
+            else:
+                msg['From'] = f'{display_name} <{self.from_email}>'
+            msg['To'] = to_email
+            
+            base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+            reset_url = f"{base_url}/reset-password?token={reset_token}"
+            
+            text = f"""
+Hi {user_name},
+
+We received a request to reset the password for your Heka account.
+
+Click the link below to set a new password:
+{reset_url}
+
+If you didn't request this, you can safely ignore this email.
+
+Best regards,
+The Heka Team
+"""
+            
+            html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="margin:0;padding:0;background-color:#f9fafb;font-family:Arial,sans-serif;line-height:1.6;color:#333;">
+    <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:32px 40px;text-align:center;">
+            <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">Heka</h1>
+        </div>
+        <div style="padding:40px;">
+            <h2 style="margin:0 0 16px;color:#111827;font-size:20px;font-weight:600;">Reset your password</h2>
+            <p style="margin:0 0 12px;color:#374151;">Hi {user_name},</p>
+            <p style="margin:0 0 28px;color:#374151;">We received a request to reset the password for your Heka account. Click the button below to set a new password.</p>
+            <div style="text-align:center;margin:28px 0;">
+                <a href="{reset_url}" style="display:inline-block;background-color:#4f46e5;color:#ffffff !important;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:16px;font-weight:600;letter-spacing:0.3px;">Reset Password</a>
+            </div>
+            <p style="margin:28px 0 0;color:#6b7280;font-size:14px;">If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+            <p style="margin:8px 0 0;color:#6b7280;font-size:14px;">This link expires in <strong>1 hour</strong>.</p>
+        </div>
+        <div style="padding:20px 40px;border-top:1px solid #e5e7eb;text-align:center;">
+            <p style="margin:0;color:#9ca3af;font-size:12px;">Best regards,<br>The Heka Team</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+            
+            # Add parts
+            part1 = MIMEText(text, 'plain')
+            part2 = MIMEText(html, 'html')
+            msg.attach(part1)
+            msg.attach(part2)
+            
+            # Send email
+            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.smtp_user, self.smtp_password)
+                server.send_message(msg)
+            
+            logger.info(f"Password reset email sent to {to_email}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to send password reset email: {e}")
+            return False
+
 
 # Singleton instance
 email_service = EmailService()

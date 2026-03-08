@@ -35,6 +35,10 @@ class User(BaseModel):
     terms_version: Optional[str] = None  # Track which version of terms was accepted
     privacy_version: Optional[str] = None  # Track which version of privacy policy was accepted
     
+    # Password Reset
+    reset_password_token: Optional[str] = None
+    reset_password_expires: Optional[datetime] = None
+    
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

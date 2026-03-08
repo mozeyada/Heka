@@ -99,9 +99,14 @@ function LoginForm() {
             </div>
 
             <div>
-              <label htmlFor="password" className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+                  Password
+                </label>
+                <Link href="/forgot-password" className="text-sm font-semibold text-indigo-600 hover:text-indigo-500">
+                  Forgot Password?
+                </Link>
+              </div>
               <input
                 id="password"
                 {...register('password')}

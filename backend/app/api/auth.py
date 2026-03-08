@@ -24,6 +24,8 @@ from app.services.refresh_token_service import (
     create_refresh_token,
     verify_and_rotate_refresh_token,
 )
+import secrets
+from datetime import timedelta
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -247,3 +249,80 @@ async def refresh_token(
         email=user.email,
         refresh_token=new_refresh_token,
     )
+
+
+from app.api.schemas import ForgotPasswordRequest, ResetPasswordRequest
+from app.services.email_service import email_service
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+@limiter.limit("3/hour")
+async def forgot_password(
+    request: Request,
+    payload: ForgotPasswordRequest,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Request a password reset email."""
+    try:
+        sanitized_email = sanitize_email(payload.email)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    user_doc = await db.users.find_one({"email": sanitized_email})
+    if not user_doc:
+        # Prevent email enumeration by always returning success
+        return {"message": "If an account exists, a reset email has been sent."}
+
+    user = UserInDB.from_mongo(user_doc)
+    
+    # Generate token
+    reset_token = secrets.token_urlsafe(32)
+    expires = datetime.utcnow() + timedelta(hours=1)
+    
+    # Save token
+    await db.users.update_one(
+        {"email": sanitized_email},
+        {"$set": {
+            "reset_password_token": reset_token,
+            "reset_password_expires": expires
+        }}
+    )
+    
+    # Send email
+    await email_service.send_password_reset_email(
+        to_email=user.email,
+        user_name=user.name,
+        reset_token=reset_token
+    )
+    
+    return {"message": "If an account exists, a reset email has been sent."}
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+@limiter.limit("5/hour")
+async def reset_password(
+    request: Request,
+    payload: ResetPasswordRequest,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Reset password using a token."""
+    user_doc = await db.users.find_one({
+        "reset_password_token": payload.token,
+        "reset_password_expires": {"$gt": datetime.utcnow()}
+    })
+    
+    if not user_doc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token."
+        )
+        
+    # Update password and clear token
+    hashed_password = get_password_hash(payload.new_password)
+    await db.users.update_one(
+        {"_id": user_doc["_id"]},
+        {"$set": {"password_hash": hashed_password},
+         "$unset": {"reset_password_token": "", "reset_password_expires": ""}}
+    )
+    
+    return {"message": "Password successfully reset. You can now log in."}
+
