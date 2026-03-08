@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Sparkles,
   PlusCircle,
+  RefreshCw,
+  Zap,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
@@ -165,6 +167,7 @@ export default function ArgumentsPage() {
                 </Badge>
                 <div className="flex items-center gap-3">
                   <Button variant="outline" onClick={handleRefresh} className="gap-2">
+                    <RefreshCw className="h-4 w-4" />
                     Refresh
                   </Button>
                   <Button asChild className="gap-2">
@@ -203,27 +206,52 @@ export default function ArgumentsPage() {
 
         {currentList.length === 0 ? (
           <Card className={`${elevatedCardClasses} text-center`}>
-            <CardContent className="space-y-4 p-10">
+            <CardContent className="space-y-6 p-10">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
                 <FileText className="h-6 w-6" />
               </div>
               <div className="space-y-2">
-                <CardTitle>
+                <CardTitle className="text-xl">
                   {activeTab === 'active' ? 'No active issues' : 'No history yet'}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-base text-slate-500 max-w-md mx-auto">
                   {activeTab === 'active'
-                    ? "You're all caught up! No open conflicts."
-                    : "Resolved arguments will appear here."}
+                    ? "You're in a great place! No open conflicts. Use this time proactively to align on key topics."
+                    : "Resolved arguments and mediation history will appear here."}
                 </CardDescription>
               </div>
+              
               {activeTab === 'active' && (
-                <Button asChild size="lg" className="gap-2">
-                  <Link href="/arguments/create">
-                    <PlusCircle className="h-5 w-5" />
-                    Start a new session
-                  </Link>
-                </Button>
+                <div className="pt-4 border-t border-slate-100 max-w-xl mx-auto">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">
+                    Proactive Conversation Starters
+                  </p>
+                  <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3">
+                    <Button variant="outline" className="gap-2 text-slate-600 rounded-xl" onClick={() => router.push('/arguments/create?topic=communication')}>
+                      <MessageCircle className="h-4 w-4 text-blue-500" />
+                      Communication Habits
+                    </Button>
+                    <Button variant="outline" className="gap-2 text-slate-600 rounded-xl" onClick={() => router.push('/arguments/create?topic=finances')}>
+                      <Zap className="h-4 w-4 text-amber-500" />
+                      Financial Goals
+                    </Button>
+                    <Button variant="outline" className="gap-2 text-slate-600 rounded-xl" onClick={() => router.push('/arguments/create?topic=chores')}>
+                      <Shield className="h-4 w-4 text-indigo-500" />
+                      Chore Division
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'active' && (
+                <div className="pt-4 mt-6">
+                  <Button asChild size="lg" className="gap-2 shadow-md">
+                    <Link href="/arguments/create">
+                      <PlusCircle className="h-5 w-5" />
+                      Start a custom session
+                    </Link>
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -271,14 +299,16 @@ export default function ArgumentsPage() {
                         <p className="text-sm text-muted-foreground line-clamp-2">{arg.summary}</p>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      className="self-end gap-1 text-primary hover:text-primary md:self-center"
-                      onClick={() => router.push(`/arguments/${arg.id}`)}
-                    >
-                      View details
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    <div className="mt-4 md:mt-0 flex w-full md:w-auto items-center justify-end">
+                      <Button
+                        variant="ghost"
+                        className="gap-1 text-primary hover:text-primary/80 hover:bg-primary/5 rounded-xl transition-colors"
+                        onClick={() => router.push(`/arguments/${arg.id}`)}
+                      >
+                        View details
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
