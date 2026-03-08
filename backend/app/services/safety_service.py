@@ -12,43 +12,30 @@ class SafetyService:
     # Crisis keywords organized by concern type
     CRISIS_KEYWORDS = {
         'violence': [
-            'hit', 'hitting', 'punch', 'punching', 'hurt', 'hurting', 'hurt me',
-            'violent', 'violence', 'attack', 'attacking', 'beat', 'beating',
-            'assault', 'assaulting', 'physical', 'physically', 'harm', 'harming',
-            'abuse', 'abusive', 'abused', 'threaten', 'threatening', 'threat',
-            'threats', 'fear', 'afraid', 'scared', 'intimidate', 'intimidating'
+            'punch', 'punching', 'physically attack',
+            'violent', 'violence', 'beat you', 'beating you',
+            'assault', 'assaulting', 'physically harm',
+            'domestic violence', 'threaten to kill'
         ],
         'abuse': [
-            'abuse', 'abusive', 'abused', 'control', 'controlling', 'manipulate',
-            'manipulating', 'manipulation', 'threaten', 'threatening', 'threat',
-            'threats', 'force', 'forcing', 'coerce', 'coercing', 'isolate',
-            'isolating', 'isolated', 'financial control', 'emotional abuse',
+            'manipulate', 'manipulating', 'manipulation', 'coerce', 'coercing',
+            'financial control', 'emotional abuse',
             'verbal abuse', 'psychological abuse', 'gaslight', 'gaslighting'
         ],
         'self_harm': [
             'suicide', 'suicidal', 'kill myself', 'end my life', 'want to die',
-            'self-harm', 'self harm', 'cutting', 'cut myself', 'hurt myself',
-            'end it all', 'no point', 'hopeless', 'worthless', 'better off dead'
+            'self-harm', 'self harm', 'cutting', 'cut myself', 'better off dead'
         ],
         'substance': [
-            'drunk', 'drinking', 'alcohol', 'alcoholic', 'high', 'drugs',
-            'drug', 'addiction', 'addicted', 'substance abuse', 'overdose',
-            'using', 'binge', 'binge drinking'
+            'alcoholic', 'addiction', 'substance abuse', 'overdose'
         ],
         'mental_health_crisis': [
-            'depression', 'depressed', 'anxiety', 'panic', 'panic attack',
-            'mental breakdown', 'breakdown', 'can\'t cope', 'overwhelmed',
-            'crisis', 'emergency', 'help me', 'need help', 'desperate'
+            'panic attack', 'mental breakdown', 'suicide hotline'
         ]
     }
     
     # Abuse pattern indicators (more subtle)
     ABUSE_PATTERNS = [
-        r"you can't",
-        r"you're not allowed",
-        r"i won't let you",
-        r"you have to",
-        r"you must",
         r"don't tell anyone",
         r"no one will believe you",
         r"you're crazy",
@@ -90,16 +77,16 @@ class SafetyService:
         # Check both perspectives
         all_text = f"{perspective_1} {perspective_2}".lower()
         
-        # Check for keyword matches
+        import re
+        # Check for keyword matches with word boundaries
         for concern_type, keywords in self.CRISIS_KEYWORDS.items():
             for keyword in keywords:
-                if keyword.lower() in all_text:
+                if re.search(r'\b' + re.escape(keyword.lower()) + r'\b', all_text):
                     if concern_type not in concern_types:
                         concern_types.append(concern_type)
                     break  # Found one keyword for this type, move on
         
         # Check for abuse patterns (regex)
-        import re
         for pattern in self.ABUSE_PATTERNS:
             if re.search(pattern, all_text, re.IGNORECASE):
                 if 'abuse' not in concern_types:
