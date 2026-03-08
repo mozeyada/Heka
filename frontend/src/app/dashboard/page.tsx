@@ -188,8 +188,8 @@ export default function DashboardPage() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(147,51,234,0.2),transparent_50%)]" />
           <CardContent className="relative p-6">
             <div className="flex items-start justify-between">
-              <div className="space-y-1 flex-1">
-                <h2 className="text-xl font-semibold tracking-tight text-foreground">
+              <div className="space-y-1.5 flex-1">
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">
                   Resolve a Conflict
                 </h2>
                 <p className="text-sm text-muted-foreground max-w-[280px]">
@@ -197,12 +197,12 @@ export default function DashboardPage() {
                 </p>
               </div>
               {/* Decorative Icon */}
-              <div className="p-2 bg-primary/10 rounded-full ml-4">
-                <Sparkles className="h-5 w-5 text-primary" />
+              <div className="p-3 bg-primary/10 rounded-2xl ml-4">
+                <Sparkles className="h-6 w-6 text-primary" />
               </div>
             </div>
             <Button
-              className="w-full mt-6 gap-2 shadow-md"
+              className="w-full mt-8 gap-2 shadow-md hover:shadow-lg transition-all h-12 text-base"
               size="lg"
               onClick={() => router.push('/arguments/create')}
               disabled={!couple}
@@ -237,12 +237,39 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
-              <div>
+              <div className="flex-1">
                 {currentCheckin?.status === 'completed' ? (
-                  <>
-                    <p className="text-4xl font-bold text-slate-900">✓</p>
-                    <p className="mt-1 text-sm text-emerald-600 font-medium">Completed</p>
-                  </>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100">
+                        <p className="text-xs font-bold text-emerald-600">✓</p>
+                      </div>
+                      <p className="text-sm text-emerald-600 font-semibold">Completed</p>
+                    </div>
+                    {currentCheckin.ai_harmony_report ? (
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
+                          <Sparkles className="h-12 w-12 text-primary" />
+                        </div>
+                        <h4 className="text-xs font-bold text-primary mb-2 flex items-center gap-1.5 uppercase tracking-wider">
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Heka Insights
+                        </h4>
+                        <div className="text-sm text-slate-700 leading-relaxed max-h-[140px] overflow-y-auto pr-2 custom-scrollbar space-y-2">
+                          {/* Render markdown-style paragraphs simply by splitting on newlines for now */}
+                          {currentCheckin.ai_harmony_report.split('\n\n').map((paragraph: string, idx: number) => (
+                            <p key={idx}>{paragraph}</p>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl bg-slate-50 p-4 border border-slate-100 flex flex-col items-center justify-center text-center space-y-2 py-6">
+                        <Sparkles className="h-6 w-6 text-slate-400 animate-pulse" />
+                        <p className="text-sm font-medium text-slate-600">Analyzing responses...</p>
+                        <p className="text-xs text-slate-500">Your Harmony Report will appear here shortly.</p>
+                      </div>
+                    )}
+                  </div>
                 ) : currentCheckin?.status === 'awaiting_partner' ? (
                   <>
                     <p className="text-4xl font-bold text-slate-900">⧖</p>
@@ -259,12 +286,11 @@ export default function DashboardPage() {
                 )}
               </div>
               <Button
-                className="w-full bg-secondary/60 hover:bg-secondary text-secondary-foreground border-0 shadow-sm"
-                size="sm"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white border-0 shadow-md transition-all h-10 font-semibold mt-4"
                 asChild
               >
                 <Link href="/checkins/current">
-                  {currentCheckin?.status === 'completed' ? 'View' : 'Complete Now'}
+                  {currentCheckin?.status === 'completed' ? 'View Full Reflection' : 'Complete Now'}
                 </Link>
               </Button>
             </CardContent>
@@ -290,8 +316,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <Button
-                className="w-full bg-secondary/60 hover:bg-secondary text-secondary-foreground border-0 shadow-sm"
-                size="sm"
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 shadow-sm transition-all h-10 font-medium mt-4"
                 asChild
               >
                 <Link href="/goals">View Goals</Link>
@@ -415,7 +440,7 @@ export default function DashboardPage() {
           </Card>
         )}
       </div>
-      <nav className="fixed bottom-0 left-0 right-0 border-t bg-white/80 backdrop-blur-lg shadow-[0_-4px_12px_rgba(15,23,42,0.12)]">
+      <nav className="fixed md:hidden bottom-0 left-0 right-0 border-t bg-white/80 backdrop-blur-lg shadow-[0_-4px_12px_rgba(15,23,42,0.12)]">
         <div className="app-container">
           <div className="flex items-center justify-between py-4">
             {navItems.map((item) => {

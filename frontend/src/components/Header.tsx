@@ -20,10 +20,11 @@ const publicLinks: NavLink[] = [
 
 const authenticatedLinks: NavLink[] = [
   { label: 'Dashboard', href: '/dashboard', requiresAuth: true },
-  { label: 'Arguments', href: '/arguments', requiresAuth: true },
+  { label: 'Issues', href: '/arguments', requiresAuth: true },
   { label: 'Goals', href: '/goals', requiresAuth: true },
   { label: 'Check-ins', href: '/checkins/current', requiresAuth: true },
   { label: 'Subscription', href: '/subscription', requiresAuth: true },
+  { label: 'Settings', href: '/settings', requiresAuth: true },
 ];
 
 function classNames(...classes: (string | false | null | undefined)[]) {
@@ -79,19 +80,17 @@ export function Header() {
         <div className="hidden items-center gap-4 lg:flex">
           {isAuthenticated && user ? (
             <div className="flex items-center gap-3">
-              <Link
-                href="/settings"
-                className="text-sm font-medium text-neutral-600 transition-colors ease-soft-spring hover:text-neutral-900"
-              >
-                Settings
-              </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors ease-soft-spring hover:bg-neutral-200 hover:text-neutral-900 whitespace-nowrap"
-              >
-                Logout
-              </button>
+              <div className="flex select-none items-center gap-2 rounded-full border border-neutral-200 bg-white py-1.5 pl-2 pr-3 shadow-sm">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
+                  {(() => {
+                    const rawName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? '?';
+                    return rawName.charAt(0).toUpperCase();
+                  })()}
+                </div>
+                <span className="text-xs font-semibold text-neutral-700">
+                  {user.name?.split(' ')[0] ?? user.email?.split('@')[0]}
+                </span>
+              </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
