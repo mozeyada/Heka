@@ -62,6 +62,7 @@ class ArgumentInDB(Argument):
     @classmethod
     def from_mongo(cls, data: dict) -> "ArgumentInDB":
         """Convert MongoDB document to ArgumentInDB."""
+        data = dict(data)  # copy — never mutate the caller's dict
         if "_id" in data:
             data["id"] = str(data["_id"])
             del data["_id"]

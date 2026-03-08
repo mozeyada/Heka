@@ -386,7 +386,11 @@ Generate questions in the specified JSON format."""
         argument_oids = []
         arg_id_map = {}  # Map ObjectId -> original _id string
         for arg in arguments:
-            arg_oid = arg["_id"] if isinstance(arg["_id"], ObjectId) else ObjectId(arg["_id"])
+            raw_id = arg.get("_id") or arg.get("id")
+            if not raw_id:
+                logger.warning(f"Argument missing _id/id field, keys: {list(arg.keys())}")
+                continue
+            arg_oid = raw_id if isinstance(raw_id, ObjectId) else ObjectId(str(raw_id))
             argument_oids.append(arg_oid)
             arg_id_map[str(arg_oid)] = arg
         
