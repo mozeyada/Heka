@@ -432,6 +432,12 @@ Generate questions in the specified JSON format."""
     async def _call_openai(self, system_prompt: str, user_prompt: str) -> Dict:
         """Helper to make a structured call to the OpenAI API."""
         try:
+            models_supporting_json = [
+                "gpt-4-turbo", "gpt-4-turbo-preview", "gpt-4-0125-preview",
+                "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"
+            ]
+            use_json_mode = any(m in self.model.lower() for m in models_supporting_json)
+
             api_params = {
                 "model": self.model,
                 "messages": [
@@ -440,12 +446,23 @@ Generate questions in the specified JSON format."""
                 ],
                 "temperature": 0.7,
                 "max_tokens": 1500,
-                "response_format": {"type": "json_object"}
             }
-            
+            if use_json_mode:
+                api_params["response_format"] = {"type": "json_object"}
+
             response = await self.client.chat.completions.create(**api_params)
             response_content = response.choices[0].message.content
-            return json.loads(response_content)
+
+            # Try to parse JSON regardless — models without json_object mode still
+            # return JSON when the prompt asks for it, just without guaranteed format
+            try:
+                return json.loads(response_content)
+            except json.JSONDecodeError:
+                import re
+                match = re.search(r'\{.*\}', response_content, re.DOTALL)
+                if match:
+                    return json.loads(match.group())
+                return {}
         except Exception as e:
             logger.error(f"Error calling OpenAI: {e}", exc_info=True)
             return {}
