@@ -6,7 +6,7 @@ from typing import Dict, List
 
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from openai import OpenAI
+from openai import AsyncOpenAI
 
 from app.config import settings
 from app.models.ai_insight import AIInsightInDB
@@ -19,7 +19,7 @@ class AIMediationService:
     """Service for AI-powered argument mediation."""
     
     def __init__(self):
-        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         self.model = settings.OPENAI_MODEL
     
     async def mediate_argument(
@@ -170,7 +170,7 @@ Respond in JSON format only."""
             if use_json_mode:
                 api_params["response_format"] = {"type": "json_object"}
             
-            response = self.client.chat.completions.create(**api_params)
+            response = await self.client.chat.completions.create(**api_params)
             
             # Parse response
             response_content = response.choices[0].message.content
@@ -443,7 +443,7 @@ Generate questions in the specified JSON format."""
                 "response_format": {"type": "json_object"}
             }
             
-            response = self.client.chat.completions.create(**api_params)
+            response = await self.client.chat.completions.create(**api_params)
             response_content = response.choices[0].message.content
             return json.loads(response_content)
         except Exception as e:

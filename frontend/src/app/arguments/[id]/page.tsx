@@ -128,6 +128,17 @@ export default function ArgumentDetailPage() {
       const data = await aiSuggestionsAPI.analyzeArgument(argumentId);
       setAIInsights(data);
       setSafetyConcern(data?.safety_check?.blocked ? data?.safety_check : null);
+
+      // Auto-generate goals and check-ins in the background after insights succeed
+      // This ensures the Cement the Win modal has content ready immediately
+      if (!data?.safety_check?.blocked) {
+        Promise.all([
+          aiSuggestionsAPI.generateArgumentGoals(argumentId),
+          aiSuggestionsAPI.generateArgumentCheckins(argumentId),
+        ]).catch(() => {
+          // Fail silently — suggestions are non-critical, user can retry in the modal
+        });
+      }
     } catch (err: any) {
       const detail = err.response?.data?.detail || 'Failed to analyze argument';
       if (err.response?.status === 403 && typeof detail === 'string' && detail.toLowerCase().includes('safety')) {
