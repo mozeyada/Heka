@@ -1,6 +1,14 @@
-
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { aiSuggestionsAPI, goalsAPI } from '@/lib/api';
+
+interface GoalSuggestion {
+    title: string;
+    description: string;
+}
+
+interface CheckinSuggestion {
+    question: string;
+}
 
 interface CementWinModalProps {
     isOpen: boolean;
@@ -8,33 +16,26 @@ interface CementWinModalProps {
     argumentId: string;
 }
 
-interface GoalSuggestion {
-    title: string;
-    description: string;
-    category: string;
-}
-
-interface CheckInSuggestion {
-    question: string;
-    category: string;
-}
-
-export default function CementWinModal({ isOpen, onClose, argumentId }: CementWinModalProps) {
+export function CementWinModal({ isOpen, onClose, argumentId }: CementWinModalProps) {
     const [loading, setLoading] = useState(true);
     const [goals, setGoals] = useState<GoalSuggestion[]>([]);
-    const [checkins, setCheckins] = useState<CheckInSuggestion[]>([]);
-    const [savingIndex, setSavingIndex] = useState<number | null>(null);
+    const [checkins, setCheckins] = useState<CheckinSuggestion[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [savingIndex, setSavingIndex] = useState<number | null>(null);
+    const [savedIndexes, setSavedIndexes] = useState<Set<number>>(new Set());
 
     useEffect(() => {
         if (isOpen && argumentId) {
             loadSuggestions();
+            // Reset saved state when modal opens for a new argument
+            setSavedIndexes(new Set());
         }
     }, [isOpen, argumentId]);
 
     const loadSuggestions = async () => {
-        setLoading(true);
         try {
+            setLoading(true);
+            setError(null);
             const [goalsRes, checkinsRes] = await Promise.all([
                 aiSuggestionsAPI.generateArgumentGoals(argumentId),
                 aiSuggestionsAPI.generateArgumentCheckins(argumentId),
@@ -61,7 +62,8 @@ export default function CementWinModal({ isOpen, onClose, argumentId }: CementWi
                 description: goal.description,
                 target_date: targetDate.toISOString(),
             });
-            alert('Goal saved successfully!');
+            // Mark this specific goal as successfully saved
+            setSavedIndexes(prev => new Set(prev).add(index));
         } catch (error: any) {
             console.error('Failed to save goal:', error);
             alert(error.response?.data?.detail || 'Failed to save goal.');
@@ -114,19 +116,28 @@ export default function CementWinModal({ isOpen, onClose, argumentId }: CementWi
                                 <section>
                                     <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Suggested Shared Goals</h3>
                                     <div className="space-y-4">
-                                        {goals.map((goal, index) => (
-                                            <div key={index} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                                                <h4 className="font-semibold text-gray-900 mb-1">{goal.title}</h4>
-                                                <p className="text-sm text-gray-600 mb-4">{goal.description}</p>
-                                                <button
-                                                    onClick={() => handleSaveGoal(goal, index)}
-                                                    disabled={savingIndex === index}
-                                                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-                                                >
-                                                    {savingIndex === index ? 'Saving...' : 'Save Goal'}
-                                                </button>
-                                            </div>
-                                        ))}
+                                        {goals.map((goal, index) => {
+                                            const isSaving = savingIndex === index;
+                                            const isSaved = savedIndexes.has(index);
+
+                                            return (
+                                                <div key={index} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                                                    <h4 className="font-semibold text-gray-900 mb-1">{goal.title}</h4>
+                                                    <p className="text-sm text-gray-600 mb-4">{goal.description}</p>
+                                                    <button
+                                                        onClick={() => handleSaveGoal(goal, index)}
+                                                        disabled={isSaving || isSaved}
+                                                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center min-w-[120px] ${
+                                                            isSaved 
+                                                                ? 'bg-green-100 text-green-700 border border-green-200 cursor-not-allowed' 
+                                                                : 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50'
+                                                        }`}
+                                                    >
+                                                        {isSaving ? 'Saving...' : isSaved ? '✓ Saved' : 'Save Goal'}
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </section>
                             ) : (
