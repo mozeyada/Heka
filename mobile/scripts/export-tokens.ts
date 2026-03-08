@@ -85,14 +85,14 @@ const target = resolve(__dirname, "../src/theme/tokens.ts");
 const fileContents = `export const colors = ${JSON.stringify(tokens.colors, null, 2)} as const;
 
 export const gradients = {
-  brand: [\"#eef2ff\", \"#ffffff\"],
-  hero: [\"#e0e7ff\", \"#f8fafc\"],
-  glass: [\"rgba(255, 255, 255, 0.7)\", \"rgba(255, 255, 255, 0.3)\"],
+  brand: ["#eef2ff", "#ffffff"],
+  hero: ["#e0e7ff", "#f8fafc"],
+  glass: ["rgba(255, 255, 255, 0.7)", "rgba(255, 255, 255, 0.3)"],
 } as const;
 
 export const glass = {
   intensity: 80,
-  tint: \"light\",
+  tint: "light",
   opacity: 0.85,
 } as const;
 
@@ -105,7 +105,7 @@ export const radii = ${JSON.stringify(tokens.radii, null, 2)} as const;
 export const shadows = {
   ...${JSON.stringify(tokens.shadows, null, 2)},
   soft: {
-    shadowColor: \"#4f46e5\",
+    shadowColor: "#4f46e5",
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,

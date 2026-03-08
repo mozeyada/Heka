@@ -1,6 +1,7 @@
 """Authentication endpoints."""
 
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -9,7 +10,9 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.api.dependencies import get_current_user
 from app.api.schemas import (
+    ForgotPasswordRequest,
     RefreshTokenRequest,
+    ResetPasswordRequest,
     Token,
     UserRegister,
     UserResponse,
@@ -19,13 +22,12 @@ from app.core.sanitization import sanitize_email, sanitize_text
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.db.database import get_database
 from app.models.user import UserInDB
+from app.services.email_service import email_service
 from app.services.refresh_token_service import (
     RefreshTokenError,
     create_refresh_token,
     verify_and_rotate_refresh_token,
 )
-import secrets
-from datetime import timedelta
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -251,8 +253,6 @@ async def refresh_token(
     )
 
 
-from app.api.schemas import ForgotPasswordRequest, ResetPasswordRequest
-from app.services.email_service import email_service
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
 @limiter.limit("3/hour")

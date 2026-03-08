@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { Platform, StyleSheet } from "react-native";
 import { Tabs } from "expo-router";
+import { Platform, StyleSheet } from "react-native";
 
 import { colors, glass } from "../../src/theme/tokens";
 

@@ -24,7 +24,6 @@ import {
   spacing,
   typography,
   radii,
-  shadows,
 } from "../src/theme/tokens";
 
 export default function SettingsScreen() {

@@ -14,7 +14,6 @@ import { registerForPushNotifications } from "../src/services/notifications";
 import { registerSentry } from "../src/services/sentry";
 import { useAuthStore } from "../src/store/auth";
 
-const AUTHENTICATED_ROUTES = new Set(["(tabs)"]);
 
 function RootLayout() {
   const router = useRouter();
