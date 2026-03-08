@@ -247,12 +247,6 @@ api.interceptors.response.use(
   },
 );
 
-const logDebug = (message: string, data?: any) => {
-  if (__DEV__) {
-    console.log(`[API] ${message}`, data || "");
-  }
-};
-
 export const setAuthToken = (token: string | null) => {
   if (token) {
     api.defaults.headers.common.Authorization = `Bearer ${token}`;

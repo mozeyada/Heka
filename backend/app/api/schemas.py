@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 # Authentication Schemas
@@ -17,49 +17,44 @@ class UserRegister(BaseModel):
     accept_terms: bool = Field(False, description="Must accept Terms of Service")
     accept_privacy: bool = Field(False, description="Must accept Privacy Policy")
     
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         """Validate password complexity."""
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
-        
-        # Check for uppercase letter
         if not re.search(r'[A-Z]', v):
             raise ValueError('Password must contain at least one uppercase letter')
-        
-        # Check for lowercase letter
         if not re.search(r'[a-z]', v):
             raise ValueError('Password must contain at least one lowercase letter')
-        
-        # Check for digit
         if not re.search(r'\d', v):
             raise ValueError('Password must contain at least one number')
-        
-        # Check for common passwords
         common_passwords = [
             'Password123', 'Passw0rd', '12345678', 'Qwerty123',
             'Password1', 'Welcome123', 'Admin123', 'Letmein123'
         ]
         if v in common_passwords:
             raise ValueError('Password is too common. Please choose a more unique password')
-        
         return v
-    
-    @validator('age')
+
+    @field_validator('age')
+    @classmethod
     def validate_age(cls, v):
         """Validate age is 16 or older."""
         if v < 16:
             raise ValueError('Must be 16 years or older')
         return v
-    
-    @validator('accept_terms')
+
+    @field_validator('accept_terms')
+    @classmethod
     def validate_terms(cls, v):
         """Validate Terms of Service acceptance."""
         if not v:
             raise ValueError('You must accept the Terms of Service to register')
         return v
-    
-    @validator('accept_privacy')
+
+    @field_validator('accept_privacy')
+    @classmethod
     def validate_privacy(cls, v):
         """Validate Privacy Policy acceptance."""
         if not v:
@@ -83,32 +78,24 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str = Field(..., min_length=8)
 
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_password(cls, v):
         """Validate password complexity."""
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
-        
-        # Check for uppercase letter
         if not re.search(r'[A-Z]', v):
             raise ValueError('Password must contain at least one uppercase letter')
-        
-        # Check for lowercase letter
         if not re.search(r'[a-z]', v):
             raise ValueError('Password must contain at least one lowercase letter')
-        
-        # Check for digit
         if not re.search(r'\d', v):
             raise ValueError('Password must contain at least one number')
-        
-        # Check for common passwords
         common_passwords = [
             'Password123', 'Passw0rd', '12345678', 'Qwerty123',
             'Password1', 'Welcome123', 'Admin123', 'Letmein123'
         ]
         if v in common_passwords:
             raise ValueError('Password is too common. Please choose a more unique password')
-        
         return v
 
 
@@ -134,7 +121,8 @@ class DeviceTokenCreate(BaseModel):
     token: str = Field(..., min_length=10)
     device_id: str = Field(..., min_length=4)
 
-    @validator("platform")
+    @field_validator("platform")
+    @classmethod
     def validate_platform(cls, v):
         v = v.lower()
         if v not in {"ios", "android"}:

@@ -29,6 +29,11 @@ interface AIInsight {
   };
 }
 
+interface SafetyCheck {
+  blocked: boolean;
+  reason?: string;
+}
+
 interface Perspective {
   id: string;
   argument_id: string;
@@ -58,7 +63,7 @@ export default function ArgumentDetailPage() {
   const [showCementModal, setShowCementModal] = useState(false);
   const [showPerspectiveForm, setShowPerspectiveForm] = useState(false);
   const [perspectiveContent, setPerspectiveContent] = useState('');
-  const [safetyConcern, setSafetyConcern] = useState<any>(null);
+  const [safetyConcern, setSafetyConcern] = useState<SafetyCheck | null>(null);
 
   useEffect(() => {
     if (argumentId) {
