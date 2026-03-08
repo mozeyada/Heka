@@ -7,7 +7,6 @@ import { useCouplesStore } from '@/store/couplesStore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import axios from 'axios';
 import { couplesAPI } from '@/lib/api';
 import { PageHeading } from '@/components/PageHeading';
 
@@ -63,12 +62,7 @@ export default function CreateCouplePage() {
       setError(null);
       setSuccess(false);
 
-      const token = localStorage.getItem('access_token');
-      await axios.post(
-        `${API_URL}/api/couples/invite`,
-        { partner_email: data.partner_email },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await couplesAPI.create(data.partner_email);
 
       setSuccess(true);
       reset();

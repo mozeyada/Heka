@@ -5,9 +5,7 @@ import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useCouplesStore } from '@/store/couplesStore';
-import axios from 'axios';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
+import apiClient from '@/lib/api';
 
 export default function AcceptInvitationPage() {
   const router = useRouter();
@@ -64,11 +62,7 @@ export default function AcceptInvitationPage() {
         return;
       }
 
-      await axios.post(
-        `${API_URL}/api/couples/accept-invitation/${token}`,
-        {},
-        { headers: { Authorization: `Bearer ${authToken}` } }
-      );
+      await apiClient.post(`/api/couples/accept-invitation/${token}`, {});
 
       setStatus('success');
       setMessage('Invitation accepted! Couple profile created.');

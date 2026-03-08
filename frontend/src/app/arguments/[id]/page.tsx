@@ -2,15 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
-import { perspectivesAPI, argumentsAPI } from '@/lib/api';
+import { aiSuggestionsAPI, perspectivesAPI, argumentsAPI } from '@/lib/api';
 import { CrisisResources } from '@/components/CrisisResources';
 import CementWinModal from '@/components/arguments/CementWinModal';
 import confetti from 'canvas-confetti';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface AIInsight {
   id: string;
@@ -85,15 +82,9 @@ export default function ArgumentDetailPage() {
 
   const loadAIInsights = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await axios.get(
-        `${API_URL}/api/ai/arguments/${argumentId}/insights`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setAIInsights(response.data);
-      setSafetyConcern(response.data?.safety_check?.blocked ? response.data?.safety_check : null);
+      const data = await aiSuggestionsAPI.getInsightsForArgument(argumentId);
+      setAIInsights(data);
+      setSafetyConcern(data?.safety_check?.blocked ? data?.safety_check : null);
     } catch (err: any) {
       if (err.response?.status === 404) {
         setAIInsights(null);
@@ -129,16 +120,9 @@ export default function ArgumentDetailPage() {
     try {
       setIsAnalyzing(true);
       setError(null);
-      const token = localStorage.getItem('access_token');
-      const response = await axios.post(
-        `${API_URL}/api/ai/arguments/${argumentId}/analyze`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setAIInsights(response.data);
-      setSafetyConcern(response.data?.safety_check?.blocked ? response.data?.safety_check : null);
+      const data = await aiSuggestionsAPI.analyzeArgument(argumentId);
+      setAIInsights(data);
+      setSafetyConcern(data?.safety_check?.blocked ? data?.safety_check : null);
     } catch (err: any) {
       const detail = err.response?.data?.detail || 'Failed to analyze argument';
       if (err.response?.status === 403 && typeof detail === 'string' && detail.toLowerCase().includes('safety')) {
