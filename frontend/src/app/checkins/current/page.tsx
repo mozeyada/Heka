@@ -97,6 +97,31 @@ export default function CheckInPage() {
     );
   }
 
+  // --- RENDERING HELPERS ---
+  const renderAnswersBox = (title: string, answers: any, isPartner: boolean = false) => (
+    <div className={`rounded-2xl border p-5 ${isPartner ? 'border-indigo-100 bg-indigo-50/30' : 'border-neutral-200 bg-white'}`}>
+      <h4 className="mb-4 text-sm font-bold text-neutral-900">{title}</h4>
+      <div className="space-y-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Communication this week
+          </p>
+          <p className="mt-1.5 text-sm text-neutral-700">
+            {answers?.question1 || 'No response'}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Relationship satisfaction
+          </p>
+          <p className="mt-1.5 text-sm text-neutral-700">
+            {answers?.question2 || 'No response'}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="bg-neutral-25 pb-20">
       <PageHeading
@@ -104,49 +129,93 @@ export default function CheckInPage() {
         description="A quick pulse on your relationship health—stay aligned and address small issues before they grow."
       />
 
-      <div className="app-container max-w-3xl">
-        {checkin?.status === 'completed' ? (
-          <div className="space-y-6">
-            <div className="section-shell border border-green-200 bg-green-50/60 p-6">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-green-600">Check-in completed</h3>
-              <p className="mt-2 text-sm text-green-600">
-                Submitted on {checkin.completed_at ? new Date(checkin.completed_at).toLocaleDateString() : 'recently'}
-              </p>
+      <div className="app-container max-w-4xl">
+        {/* STATE 1: AWAITING PARTNER (I Finished, Partner hasn't) */}
+        {checkin?.status === 'awaiting_partner' && (
+          <div className="space-y-6 text-center mt-8">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 mb-6">
+              <Sparkles className="h-8 w-8 text-indigo-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-neutral-900">You're all set!</h2>
+            <p className="mx-auto max-w-md text-neutral-600">
+              Your check-in is saved. Your answers are currently locked and will be revealed once your partner completes their check-in for the week.
+            </p>
+            <div className="mt-8 rounded-2xl border border-indigo-100 bg-gradient-to-b from-indigo-50/50 to-white p-8">
+              <p className="text-sm font-medium text-indigo-900">Waiting for partner...</p>
+              <div className="mt-4 flex justify-center gap-2">
+                <span className="flex h-3 w-3 animate-bounce rounded-full bg-indigo-400"></span>
+                <span className="flex h-3 w-3 animate-bounce rounded-full bg-indigo-400" style={{ animationDelay: '0.1s' }}></span>
+                <span className="flex h-3 w-3 animate-bounce rounded-full bg-indigo-400" style={{ animationDelay: '0.2s' }}></span>
+              </div>
+            </div>
+            <div className="mt-8">
+              <Link href="/dashboard" className="btn-secondary inline-flex">
+                Back to Dashboard
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* STATE 2: COMPLETED (Both finished) */}
+        {checkin?.status === 'completed' && (
+          <div className="space-y-8">
+            <div className="flex items-center justify-between border-b pb-4">
+              <div>
+                <h3 className="text-xl font-bold text-neutral-900">Check-in Results</h3>
+                <p className="text-sm text-neutral-500 mt-1">
+                  Completed on {checkin.completed_at ? new Date(checkin.completed_at).toLocaleDateString() : 'recently'}
+                </p>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-700 uppercase tracking-wide">
+                Unlocked
+              </span>
             </div>
 
-            {checkin.responses && (
-              <div className="section-shell p-6">
-                <h3 className="text-lg font-semibold text-neutral-900">Your Responses</h3>
-                <div className="mt-6 space-y-6">
-                  <div className="rounded-2xl border border-neutral-200 bg-neutral-50/50 p-5">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                      How are you feeling about communication this week?
-                    </p>
-                    <p className="mt-3 text-sm text-neutral-700">
-                      {checkin.responses.question1 || 'No response'}
-                    </p>
+            {/* AI Harmony Report */}
+            {checkin.ai_harmony_report ? (
+              <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-600 to-indigo-800 p-8 text-white shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="rounded-lg bg-white/20 p-2 backdrop-blur-sm">
+                    <Sparkles className="h-6 w-6 text-white" />
                   </div>
-                  <div className="rounded-2xl border border-neutral-200 bg-neutral-50/50 p-5">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                      Rate your relationship satisfaction (1-10) and why?
+                  <h3 className="text-xl font-bold">Heka Harmony Report</h3>
+                </div>
+                {/* Render markdown style text safely */}
+                <div className="prose prose-invert prose-indigo max-w-none">
+                  {checkin.ai_harmony_report.split('\n\n').map((paragraph: string, i: number) => (
+                    <p key={i} className="text-indigo-50 leading-relaxed font-medium">
+                      {paragraph.replace(/\*\*/g, '')}
                     </p>
-                    <p className="mt-3 text-sm text-neutral-700">
-                      {checkin.responses.question2 || 'No response'}
-                    </p>
-                  </div>
+                  ))}
                 </div>
               </div>
+            ) : (
+             <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-6 text-center">
+                <div className="mx-auto flex justify-center mb-3">
+                  <Sparkles className="h-6 w-6 text-indigo-400 animate-pulse" />
+                </div>
+                <p className="text-sm font-semibold text-indigo-900">Heka is generating your Harmony Report...</p>
+                <p className="text-xs text-indigo-600 mt-1">Check back in a few seconds.</p>
+             </div>
             )}
 
-            <Link
-              href="/dashboard"
-              className="btn-primary inline-flex"
-            >
-              Back to Dashboard
-            </Link>
+            {/* Answers Comparison */}
+            <div className="grid gap-6 md:grid-cols-2 mt-8">
+              {renderAnswersBox("Your Answers", checkin.responses, false)}
+              {renderAnswersBox("Partner's Answers", checkin.partner_responses, true)}
+            </div>
+
+            <div className="pt-4 text-center">
+              <Link href="/dashboard" className="btn-secondary inline-flex">
+                Back to Dashboard
+              </Link>
+            </div>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-8">
+        )}
+
+        {/* STATE 3: PENDING (Needs to be filled out) */}
+        {(checkin?.status === 'pending' || !checkin?.status) && (
+          <form onSubmit={handleSubmit} className="space-y-8 mt-6">
             {error && (
               <div className="section-shell border border-red-200 bg-red-50 p-5">
                 <p className="text-sm font-semibold text-red-600">{error}</p>

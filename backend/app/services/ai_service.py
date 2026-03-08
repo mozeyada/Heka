@@ -474,6 +474,67 @@ Generate questions in the specified JSON format."""
             logger.error(f"Error calling OpenAI: {e}", exc_info=True)
             return {}
 
+    async def generate_harmony_report(self, checkin_id: str, db, user1_responses: dict, user2_responses: dict) -> Optional[str]:
+        """
+        Generate a weekly harmony report based on both partners' check-in responses.
+        This runs in the background.
+        """
+        try:
+            # We don't enforce JSON mode here because we want a formatted markdown string
+            system_prompt = """You are Heka, an expert relationship coach.
+            You are analyzing a couple's weekly check-in responses.
+            Your job is to read both sets of answers and provide a 'Harmony Report'.
+            
+            Format your response in beautiful, encouraging Markdown. Include:
+            1. A brief overview of where they align or differ this week.
+            2. Highlighting one specific positive thing you noticed from their answers.
+            3. One concrete, easy 'micro-exercise' for them to try this week based on their answers.
+            
+            Keep the tone warm, insightful, and entirely objective (do not take sides).
+            Maximum length: 2 short paragraphs."""
+
+            user_prompt = f"""
+            Partner A answered:
+            {json.dumps(user1_responses, indent=2)}
+            
+            Partner B answered:
+            {json.dumps(user2_responses, indent=2)}
+            """
+
+            payload = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 800
+            }
+
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(
+                    self.api_url,
+                    json=payload,
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    }
+                )
+                resp.raise_for_status()
+                report_text = resp.json()["choices"][0]["message"]["content"]
+                
+                # Update the database
+                from bson import ObjectId
+                await db.relationship_checkins.update_one(
+                    {"_id": ObjectId(checkin_id)},
+                    {"$set": {"ai_harmony_report": report_text.strip()}}
+                )
+                return report_text.strip()
+                
+        except Exception as e:
+            logger.error(f"Failed to generate harmony report: {e}", exc_info=True)
+            return None
+
 
 # Singleton instance
 ai_service = AIMediationService()

@@ -4,7 +4,7 @@ import logging
 from datetime import date, datetime, timedelta
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.api.dependencies import get_current_user
@@ -68,19 +68,25 @@ async def get_current_checkin(
         checkin = RelationshipCheckInInDB(
             couple_id=couple.id,
             week_start_date=week_start,
-            status=CheckInStatus.PENDING
+            status=CheckInStatus.PENDING,
+            user_responses={},
+            completed_by=[]
         )
         result = await db.relationship_checkins.insert_one(checkin.to_mongo())
         checkin.id = str(result.inserted_id)
+        
+    partner_id = couple.user1_id if current_user.id == couple.user2_id else couple.user2_id
     
     return CheckInResponse(
         id=checkin.id,
         couple_id=checkin.couple_id,
         week_start_date=checkin.week_start_date.isoformat(),
         status=checkin.status.value,
-        responses=checkin.responses,
-        completed_by_user_id=checkin.completed_by_user_id,
+        responses=checkin.user_responses.get(current_user.id),
+        partner_responses=checkin.user_responses.get(partner_id) if checkin.status == CheckInStatus.COMPLETED else None,
+        completed_by=checkin.completed_by,
         completed_at=checkin.completed_at,
+        ai_harmony_report=checkin.ai_harmony_report,
         created_at=checkin.created_at
     )
 
@@ -88,6 +94,7 @@ async def get_current_checkin(
 @router.post("/current/complete")
 async def complete_checkin(
     checkin_data: CheckInCreate,
+    background_tasks: BackgroundTasks,
     current_user: UserInDB = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
@@ -109,6 +116,7 @@ async def complete_checkin(
         )
     
     couple = CoupleInDB.from_mongo(couple_doc)
+    partner_id = couple.user1_id if current_user.id == couple.user2_id else couple.user2_id
     
     # Get Monday of current week
     week_start = get_monday_of_week()
@@ -124,27 +132,45 @@ async def complete_checkin(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Check-in not found for this week"
         )
+        
+    checkin = RelationshipCheckInInDB.from_mongo(checkin_doc)
     
-    # Update check-in
+    # Update local object first to calculate new status
+    checkin.user_responses[current_user.id] = checkin_data.responses
+    if current_user.id not in checkin.completed_by:
+        checkin.completed_by.append(current_user.id)
+        
+    is_fully_completed = partner_id in checkin.completed_by
+    new_status = CheckInStatus.COMPLETED if is_fully_completed else CheckInStatus.AWAITING_PARTNER
+    
     update_data = {
         "$set": {
-            "status": CheckInStatus.COMPLETED.value,
-            "responses": checkin_data.responses,
-            "completed_by_user_id": ObjectId(current_user.id),
-            "completed_at": datetime.utcnow(),
+            "status": new_status.value,
+            f"user_responses.{current_user.id}": checkin_data.responses,
+            "completed_by": checkin.completed_by,
             "updated_at": datetime.utcnow()
         }
     }
     
+    if is_fully_completed and not checkin.completed_at:
+        update_data["$set"]["completed_at"] = datetime.utcnow()
+        # Trigger AI Harmony Report background task
+        from app.services.ai_service import ai_service
+        background_tasks.add_task(
+            ai_service.generate_harmony_report,
+            checkin_id=checkin.id,
+            db=db,
+            user1_responses=checkin.user_responses.get(couple.user1_id, {}),
+            user2_responses=checkin.user_responses.get(couple.user2_id, {})
+        )
+    
     await db.relationship_checkins.update_one(
-        {"_id": ObjectId(checkin_doc["_id"])},
+        {"_id": ObjectId(checkin.id)},
         update_data
     )
     
-    # Fetch updated check-in
-    updated_doc = await db.relationship_checkins.find_one({
-        "_id": ObjectId(checkin_doc["_id"])
-    })
+    # Refresh object
+    updated_doc = await db.relationship_checkins.find_one({"_id": ObjectId(checkin.id)})
     checkin = RelationshipCheckInInDB.from_mongo(updated_doc)
     
     return CheckInResponse(
@@ -152,9 +178,11 @@ async def complete_checkin(
         couple_id=checkin.couple_id,
         week_start_date=checkin.week_start_date.isoformat(),
         status=checkin.status.value,
-        responses=checkin.responses,
-        completed_by_user_id=checkin.completed_by_user_id,
+        responses=checkin.user_responses.get(current_user.id),
+        partner_responses=checkin.user_responses.get(partner_id) if checkin.status == CheckInStatus.COMPLETED else None,
+        completed_by=checkin.completed_by,
         completed_at=checkin.completed_at,
+        ai_harmony_report=checkin.ai_harmony_report,
         created_at=checkin.created_at
     )
 

@@ -243,10 +243,18 @@ export default function DashboardPage() {
                     <p className="text-4xl font-bold text-slate-900">✓</p>
                     <p className="mt-1 text-sm text-emerald-600 font-medium">Completed</p>
                   </>
+                ) : currentCheckin?.status === 'awaiting_partner' ? (
+                  <>
+                    <p className="text-4xl font-bold text-slate-900">⧖</p>
+                    <p className="mt-1 text-sm text-amber-600 font-medium flex items-center gap-1">
+                      <span className="flex h-2 w-2 animate-pulse rounded-full bg-amber-500"></span>
+                      Waiting on Partner
+                    </p>
+                  </>
                 ) : (
                   <>
                     <p className="text-4xl font-bold text-slate-900">—</p>
-                    <p className="mt-1 text-sm text-amber-600 font-medium">Pending</p>
+                    <p className="mt-1 text-sm text-slate-600 font-medium">Pending</p>
                   </>
                 )}
               </div>

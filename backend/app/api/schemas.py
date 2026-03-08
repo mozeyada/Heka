@@ -216,9 +216,14 @@ class CheckInResponse(BaseModel):
     couple_id: str
     week_start_date: str  # ISO date string
     status: str
-    responses: Optional[dict] = None
-    completed_by_user_id: Optional[str] = None
+    
+    # Dual tracking
+    responses: Optional[dict] = None          # Current user's responses
+    partner_responses: Optional[dict] = None  # Partner's responses (only shown if both completed)
+    completed_by: list[str] = Field(default_factory=list)  # User IDs who completed it
     completed_at: Optional[datetime] = None
+    
+    ai_harmony_report: Optional[str] = None
     created_at: datetime
 
 

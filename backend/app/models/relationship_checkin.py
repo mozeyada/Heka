@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 class CheckInStatus(str, Enum):
     """Check-in completion status."""
     PENDING = "pending"
+    AWAITING_PARTNER = "awaiting_partner"  # One partner completed, waiting for the other
     COMPLETED = "completed"
     SKIPPED = "skipped"
 
@@ -25,12 +26,15 @@ class RelationshipCheckIn(BaseModel):
     week_start_date: date  # Monday of the week
     status: CheckInStatus = CheckInStatus.PENDING
     
-    # Survey responses
-    responses: Optional[Dict[str, Any]] = None  # {"question1": answer, "question2": answer}
+    # Survey responses mapped by user_id
+    user_responses: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     
-    # User who completed it (if completed)
-    completed_by_user_id: Optional[str] = None
+    # Tracking
+    completed_by: List[str] = Field(default_factory=list)  # List of user_ids who completed it
     completed_at: Optional[datetime] = None
+    
+    # Partner Harmony Report
+    ai_harmony_report: Optional[str] = None
     
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -46,13 +50,20 @@ class RelationshipCheckInInDB(RelationshipCheckIn):
     @classmethod
     def from_mongo(cls, data: dict) -> "RelationshipCheckInInDB":
         """Convert MongoDB document to RelationshipCheckInInDB."""
+        data = dict(data)
         if "_id" in data:
             data["id"] = str(data["_id"])
             del data["_id"]
         if "couple_id" in data and isinstance(data["couple_id"], ObjectId):
             data["couple_id"] = str(data["couple_id"])
-        if "completed_by_user_id" in data and isinstance(data["completed_by_user_id"], ObjectId):
-            data["completed_by_user_id"] = str(data["completed_by_user_id"])
+        if "completed_by" in data and isinstance(data["completed_by"], list):
+            data["completed_by"] = [str(uid) for uid in data["completed_by"]]
+        # Handle legacy completed_by_user_id
+        if "completed_by_user_id" in data:
+            if data["completed_by_user_id"] and str(data["completed_by_user_id"]) not in data.get("completed_by", []):
+                data.setdefault("completed_by", []).append(str(data["completed_by_user_id"]))
+            del data["completed_by_user_id"]
+            
         if "week_start_date" in data and isinstance(data["week_start_date"], datetime):
             data["week_start_date"] = data["week_start_date"].date()
         return cls(**data)
@@ -64,8 +75,8 @@ class RelationshipCheckInInDB(RelationshipCheckIn):
             data["_id"] = ObjectId(self.id)
         if "couple_id" in data and isinstance(data["couple_id"], str):
             data["couple_id"] = ObjectId(data["couple_id"])
-        if "completed_by_user_id" in data and isinstance(data["completed_by_user_id"], str) and data["completed_by_user_id"]:
-            data["completed_by_user_id"] = ObjectId(data["completed_by_user_id"])
+        if "completed_by" in data and isinstance(data["completed_by"], list):
+            data["completed_by"] = [ObjectId(uid) for uid in data["completed_by"] if uid]
         if "week_start_date" in data and isinstance(data["week_start_date"], date):
             data["week_start_date"] = datetime.combine(data["week_start_date"], datetime.min.time())
         return data
