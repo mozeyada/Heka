@@ -3,7 +3,7 @@
 import json
 import logging
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import httpx
 from bson import ObjectId
