@@ -161,7 +161,7 @@ export default function ArgumentsPage() {
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2">
-                <Badge variant="secondary" className="flex items-center gap-1 border-0 bg-primary/10 text-primary">
+                <Badge variant="secondary" className="flex items-center gap-1 border border-primary/20 bg-primary/10 text-primary px-3 py-1 rounded-full shadow-sm">
                   <Sparkles className="h-3.5 w-3.5" />
                   {args.length} logged
                 </Badge>
@@ -262,8 +262,9 @@ export default function ArgumentsPage() {
                 categoryIconMap[arg.category?.toLowerCase() ?? ''] ?? defaultCategoryIcon;
 
               return (
-                <Card key={arg.id} className={`${elevatedCardClasses} relative overflow-hidden`}>
-                  <div className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary/80 via-primary/40 to-transparent" />
+                <Card key={arg.id} className={`${elevatedCardClasses} relative overflow-hidden group cursor-pointer`} onClick={() => router.push(`/arguments/${arg.id}`)}>
+                  <div className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary/80 via-primary/40 to-transparent transition-all duration-300 group-hover:w-2" />
+                  <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/[0.02] transition-colors pointer-events-none" />
                   <CardContent className="relative flex flex-col gap-4 p-6 md:flex-row md:items-center md:gap-6">
                     <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${bg} ${color}`}>
                       <CategoryIcon className="h-5 w-5" />
@@ -302,8 +303,11 @@ export default function ArgumentsPage() {
                     <div className="mt-4 md:mt-0 flex w-full md:w-auto items-center justify-end">
                       <Button
                         variant="ghost"
-                        className="gap-1 text-primary hover:text-primary/80 hover:bg-primary/5 rounded-xl transition-colors"
-                        onClick={() => router.push(`/arguments/${arg.id}`)}
+                        className="gap-1 text-primary hover:text-primary hover:bg-primary/10 rounded-xl transition-all group-hover:translate-x-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/arguments/${arg.id}`);
+                        }}
                       >
                         View details
                         <ChevronRight className="h-4 w-4" />

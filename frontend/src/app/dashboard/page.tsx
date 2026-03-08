@@ -202,7 +202,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <Button
-              className="w-full mt-8 gap-2 shadow-md hover:shadow-lg transition-all h-12 text-base"
+              className="w-full mt-8 gap-2 shadow-[0_8px_20px_rgba(147,51,234,0.25)] hover:shadow-[0_12px_25px_rgba(147,51,234,0.35)] transition-all h-12 text-base bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white border-0"
               size="lg"
               onClick={() => router.push('/arguments/create')}
               disabled={!couple}
@@ -286,7 +286,7 @@ export default function DashboardPage() {
                 )}
               </div>
               <Button
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white border-0 shadow-md transition-all h-10 font-semibold mt-4"
+                className="w-full bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white border-0 shadow-[0_4px_12px_rgba(15,23,42,0.15)] hover:shadow-[0_6px_16px_rgba(15,23,42,0.2)] transition-all h-10 font-medium mt-4"
                 asChild
               >
                 <Link href="/checkins/current">
@@ -312,11 +312,17 @@ export default function DashboardPage() {
               <div>
                 <p className="text-5xl font-bold text-primary leading-none">{goals.length}</p>
                 <p className="mt-2 text-sm text-slate-500">
-                  {goals.length === 1 ? 'Goal' : 'Goals'}
+                  {goals.length === 1 ? 'Active Goal' : 'Active Goals'}
                 </p>
+                {goals.length === 0 && (
+                  <Link href="/goals" className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Explore AI Suggestions
+                  </Link>
+                )}
               </div>
               <Button
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 shadow-sm transition-all h-10 font-medium mt-4"
+                className="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-[0_2px_8px_rgba(15,23,42,0.06)] hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)] transition-all h-10 font-medium mt-4"
                 asChild
               >
                 <Link href="/goals">View Goals</Link>

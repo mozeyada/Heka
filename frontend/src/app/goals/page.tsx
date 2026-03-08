@@ -182,9 +182,9 @@ export default function GoalsPage() {
                   <button
                     onClick={() => handleCreateFromSuggestion(suggestion)}
                     disabled={creating}
-                    className="mt-4 w-full rounded-xl bg-indigo-600 px-3 py-2 text-xs font-bold tracking-wide text-white shadow-sm transition-all hover:bg-indigo-500 disabled:opacity-50 uppercase"
+                    className="mt-4 w-full rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-indigo-500 disabled:opacity-50"
                   >
-                    {creating ? 'Creating…' : 'Use This Template'}
+                    {creating ? 'Creating…' : 'Use this template'}
                   </button>
                 </div>
               ))}
