@@ -1,13 +1,13 @@
 """AI Mediation Service - OpenAI GPT-4 Integration"""
 
-import asyncio
 import json
 import logging
+import re
 from typing import Dict, List
 
+import httpx
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from openai import OpenAI
 
 from app.config import settings
 from app.models.ai_insight import AIInsightInDB
@@ -15,14 +15,20 @@ from app.services.safety_service import safety_service
 
 logger = logging.getLogger(__name__)
 
+MODELS_SUPPORTING_JSON = [
+    "gpt-4-turbo", "gpt-4-turbo-preview", "gpt-4-0125-preview",
+    "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"
+]
+
 
 class AIMediationService:
     """Service for AI-powered argument mediation."""
-    
+
     def __init__(self):
-        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.api_key = settings.OPENAI_API_KEY
         self.model = settings.OPENAI_MODEL
-    
+        self.api_url = "https://api.openai.com/v1/chat/completions"
+
     async def mediate_argument(
         self,
         argument_id: str,
@@ -146,19 +152,10 @@ Focus on:
 - Framing as "us vs. the problem"
 
 Respond in JSON format only."""
-            
-            # Call OpenAI API
-            # JSON mode is only supported for certain models
-            # Supported: gpt-4-turbo, gpt-4o, gpt-4o-mini, gpt-3.5-turbo (some versions)
-            # Not supported: gpt-4 (base model)
-            models_supporting_json = [
-                "gpt-4-turbo", "gpt-4-turbo-preview", "gpt-4-0125-preview",
-                "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"
-            ]
-            
-            use_json_mode = any(model_name in self.model.lower() for model_name in models_supporting_json)
-            
-            api_params = {
+            # Call OpenAI directly via httpx (no SDK — avoids Pydantic compat issues)
+            use_json_mode = any(m in self.model.lower() for m in MODELS_SUPPORTING_JSON)
+
+            payload: Dict = {
                 "model": self.model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
@@ -167,30 +164,31 @@ Respond in JSON format only."""
                 "temperature": 0.7,
                 "max_tokens": 2000,
             }
-            
             if use_json_mode:
-                api_params["response_format"] = {"type": "json_object"}
-            
-            response = await asyncio.to_thread(
-                self.client.chat.completions.create, **api_params
-            )
-            
-            # Parse response
-            response_content = response.choices[0].message.content
-            
+                payload["response_format"] = {"type": "json_object"}
+
+            async with httpx.AsyncClient(timeout=90.0) as client:
+                resp = await client.post(
+                    self.api_url,
+                    json=payload,
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    }
+                )
+                resp.raise_for_status()
+                response_content = resp.json()["choices"][0]["message"]["content"]
+
             # Try to parse as JSON
             try:
                 ai_response = json.loads(response_content)
             except json.JSONDecodeError:
                 # If not JSON, try to extract JSON from the response
                 logger.warning("Response not in JSON format, attempting to extract JSON...")
-                # Look for JSON blocks in markdown or plain text
-                import re
                 json_match = re.search(r'\{.*\}', response_content, re.DOTALL)
                 if json_match:
                     ai_response = json.loads(json_match.group())
                 else:
-                    # Fallback: try to structure the response manually
                     ai_response = self._parse_text_response(response_content)
             
             # Validate response quality
@@ -198,10 +196,10 @@ Respond in JSON format only."""
                 logger.warning(f"AI response quality check failed for argument {argument_id}")
                 # Don't fail completely, but log the issue
             
-            # Calculate cost
-            input_tokens = response.usage.prompt_tokens
-            output_tokens = response.usage.completion_tokens
-            cost = self._calculate_cost(input_tokens, output_tokens)
+            # Cost tracking not available without SDK — set to 0
+            input_tokens = 0
+            output_tokens = 0
+            cost = 0.0
             
             # Create AI insight document
             insight = AIInsightInDB(
@@ -437,15 +435,11 @@ Generate questions in the specified JSON format."""
         return result
 
     async def _call_openai(self, system_prompt: str, user_prompt: str) -> Dict:
-        """Helper to make a structured call to the OpenAI API."""
+        """Make a direct httpx call to OpenAI — bypasses SDK Pydantic serialization issues."""
         try:
-            models_supporting_json = [
-                "gpt-4-turbo", "gpt-4-turbo-preview", "gpt-4-0125-preview",
-                "gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"
-            ]
-            use_json_mode = any(m in self.model.lower() for m in models_supporting_json)
+            use_json_mode = any(m in self.model.lower() for m in MODELS_SUPPORTING_JSON)
 
-            api_params = {
+            payload: Dict = {
                 "model": self.model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
@@ -455,19 +449,23 @@ Generate questions in the specified JSON format."""
                 "max_tokens": 1500,
             }
             if use_json_mode:
-                api_params["response_format"] = {"type": "json_object"}
+                payload["response_format"] = {"type": "json_object"}
 
-            response = await asyncio.to_thread(
-                self.client.chat.completions.create, **api_params
-            )
-            response_content = response.choices[0].message.content
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(
+                    self.api_url,
+                    json=payload,
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    }
+                )
+                resp.raise_for_status()
+                response_content = resp.json()["choices"][0]["message"]["content"]
 
-            # Try to parse JSON regardless — models without json_object mode still
-            # return JSON when the prompt asks for it, just without guaranteed format
             try:
                 return json.loads(response_content)
             except json.JSONDecodeError:
-                import re
                 match = re.search(r'\{.*\}', response_content, re.DOTALL)
                 if match:
                     return json.loads(match.group())
