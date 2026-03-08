@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { ChevronDown, Settings as SettingsIcon, CreditCard, LogOut, User as UserIcon } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 
 interface NavLink {
@@ -23,8 +24,6 @@ const authenticatedLinks: NavLink[] = [
   { label: 'Issues', href: '/arguments', requiresAuth: true },
   { label: 'Goals', href: '/goals', requiresAuth: true },
   { label: 'Check-ins', href: '/checkins/current', requiresAuth: true },
-  { label: 'Subscription', href: '/subscription', requiresAuth: true },
-  { label: 'Settings', href: '/settings', requiresAuth: true },
 ];
 
 function classNames(...classes: (string | false | null | undefined)[]) {
@@ -36,6 +35,8 @@ export function Header() {
   const router = useRouter();
   const { user, isAuthenticated, logout, fetchCurrentUser } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Ensure we have latest user info when layout mounts
@@ -43,6 +44,19 @@ export function Header() {
       fetchCurrentUser();
     }
   }, [isAuthenticated, user, fetchCurrentUser]);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -79,8 +93,11 @@ export function Header() {
 
         <div className="hidden items-center gap-4 lg:flex">
           {isAuthenticated && user ? (
-            <div className="flex items-center gap-3">
-              <div className="flex select-none items-center gap-2 rounded-full border border-neutral-200 bg-white py-1.5 pl-2 pr-3 shadow-sm">
+            <div className="flex items-center gap-3 relative" ref={dropdownRef}>
+              <button
+                onClick={() => setAccountMenuOpen(!accountMenuOpen)}
+                className="flex select-none items-center gap-2 rounded-full border border-neutral-200 bg-white py-1.5 pl-2 pr-3 shadow-sm hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-200"
+              >
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
                   {(() => {
                     const rawName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? '?';
@@ -90,7 +107,53 @@ export function Header() {
                 <span className="text-xs font-semibold text-neutral-700">
                   {user.name?.split(' ')[0] ?? user.email?.split('@')[0]}
                 </span>
-              </div>
+                <ChevronDown className={`h-3.5 w-3.5 text-neutral-400 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Desktop Dropdown Menu */}
+              {accountMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 transform opacity-100 scale-100 transition-all origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="p-2 space-y-1">
+                    <div className="px-3 py-2 border-b border-neutral-100 mb-2">
+                      <p className="text-sm font-semibold text-neutral-900 truncate">
+                        {user.name || 'User Account'}
+                      </p>
+                      <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+                    </div>
+                    
+                    <Link
+                      href="/settings"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <SettingsIcon className="h-4 w-4 text-neutral-400" />
+                      Account Settings
+                    </Link>
+                    
+                    <Link
+                      href="/subscription"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <CreditCard className="h-4 w-4 text-neutral-400" />
+                      Plan & Billing
+                    </Link>
+                    
+                    <div className="h-px bg-neutral-100 my-1 mx-2" />
+                    
+                    <button
+                      onClick={() => {
+                        setAccountMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-danger-600 hover:bg-danger-50 transition-colors text-left"
+                    >
+                      <LogOut className="h-4 w-4 text-danger-500" />
+                      Log out
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -180,11 +243,20 @@ export function Header() {
                     </div>
                   </div>
                   <Link
-                    href="/settings"
-                    className="rounded-xl border border-neutral-200 px-4 py-2 text-center text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:bg-neutral-100 hover:text-neutral-900"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Settings
+                      href="/settings"
+                      className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:bg-neutral-100 hover:text-neutral-900"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      <SettingsIcon className="h-4 w-4" />
+                      Account Settings
+                  </Link>
+                  <Link
+                      href="/subscription"
+                      className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:bg-neutral-100 hover:text-neutral-900"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      Plan & Billing
                   </Link>
                   <button
                     type="button"
