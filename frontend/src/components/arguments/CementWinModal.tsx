@@ -62,9 +62,9 @@ export default function CementWinModal({ isOpen, onClose, argumentId }: CementWi
                 target_date: targetDate.toISOString(),
             });
             alert('Goal saved successfully!');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to save goal:', error);
-            alert('Failed to save goal.');
+            alert(error.response?.data?.detail || 'Failed to save goal.');
         } finally {
             setSavingIndex(null);
         }
