@@ -138,7 +138,7 @@ export default function GoalsPage() {
         title="Relationship Goals"
         description="Set shared goals to strengthen your partnership and celebrate growth together."
         actions={
-          activeGoals.length < 3 ? (
+          activeGoals.length < 10 ? (
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-500 hover:-translate-y-0.5"

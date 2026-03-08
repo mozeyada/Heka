@@ -50,16 +50,16 @@ async def create_goal(
     
     couple = CoupleInDB.from_mongo(couple_doc)
     
-    # Check goal limit (max 3 active goals per couple)
+    # Check goal limit (max 10 active goals per couple)
     active_goals_count = await db.relationship_goals.count_documents({
         "couple_id": ObjectId(couple.id),
         "status": GoalStatus.ACTIVE.value
     })
     
-    if active_goals_count >= 3:
+    if active_goals_count >= 10:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Maximum of 3 active goals allowed per couple"
+            detail="Maximum of 10 active goals allowed per couple"
         )
     
     # Parse target date if provided
