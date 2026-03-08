@@ -1,12 +1,13 @@
 """AI Mediation Service - OpenAI GPT-4 Integration"""
 
+import asyncio
 import json
 import logging
 from typing import Dict, List
 
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from openai import AsyncOpenAI
+from openai import OpenAI
 
 from app.config import settings
 from app.models.ai_insight import AIInsightInDB
@@ -19,7 +20,7 @@ class AIMediationService:
     """Service for AI-powered argument mediation."""
     
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
         self.model = settings.OPENAI_MODEL
     
     async def mediate_argument(
@@ -170,7 +171,9 @@ Respond in JSON format only."""
             if use_json_mode:
                 api_params["response_format"] = {"type": "json_object"}
             
-            response = await self.client.chat.completions.create(**api_params)
+            response = await asyncio.to_thread(
+                self.client.chat.completions.create, **api_params
+            )
             
             # Parse response
             response_content = response.choices[0].message.content
@@ -454,7 +457,9 @@ Generate questions in the specified JSON format."""
             if use_json_mode:
                 api_params["response_format"] = {"type": "json_object"}
 
-            response = await self.client.chat.completions.create(**api_params)
+            response = await asyncio.to_thread(
+                self.client.chat.completions.create, **api_params
+            )
             response_content = response.choices[0].message.content
 
             # Try to parse JSON regardless — models without json_object mode still
