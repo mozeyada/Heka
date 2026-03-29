@@ -12,6 +12,23 @@ const apiClient = axios.create({
   },
 });
 
+function getApiErrorMessage(error: any, fallback: string): string {
+  const detail = error.response?.data?.detail;
+
+  if (typeof detail === 'string' && detail.trim()) {
+    return detail;
+  }
+
+  if (Array.isArray(detail) && detail.length > 0) {
+    const firstMessage = detail.find((item) => typeof item?.msg === 'string')?.msg;
+    if (firstMessage) {
+      return firstMessage;
+    }
+  }
+
+  return error.message || fallback;
+}
+
 // Add auth token to requests
 apiClient.interceptors.request.use(
   (config) => {
@@ -56,10 +73,8 @@ export const authAPI = {
       const response = await apiClient.post('/api/auth/register', data);
       return response.data;
     } catch (error: any) {
-      // Provide better error messages
-      if (error.response?.status === 400) {
-        const detail = error.response.data?.detail || 'Registration failed';
-        throw new Error(detail);
+      if (error.response?.status === 400 || error.response?.status === 422) {
+        throw new Error(getApiErrorMessage(error, 'Registration failed'));
       }
       throw error;
     }
@@ -90,18 +105,16 @@ export const authAPI = {
     } catch (error: any) {
       // Provide better error messages for login failures
       if (error.response?.status === 401) {
-        const detail = error.response.data?.detail || 'Incorrect email or password';
-        throw new Error(detail);
+        throw new Error(getApiErrorMessage(error, 'Incorrect email or password'));
       }
       if (error.response?.status === 403) {
-        const detail = error.response.data?.detail || 'Account is inactive';
-        throw new Error(detail);
+        throw new Error(getApiErrorMessage(error, 'Account is inactive'));
       }
       if (error.response?.status === 429) {
         throw new Error('Too many login attempts. Please try again later.');
       }
       // Network or other errors
-      throw new Error(error.message || 'Login failed. Please check your connection and try again.');
+      throw new Error(getApiErrorMessage(error, 'Login failed. Please check your connection and try again.'));
     }
   },
 
@@ -311,4 +324,3 @@ export const usersAPI = {
 };
 
 export default apiClient;
-

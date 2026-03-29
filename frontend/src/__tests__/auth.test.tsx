@@ -61,3 +61,23 @@ describe('Login page', () => {
     expect(forgotLink).not.toBeNull();
   });
 });
+
+describe('Register schema', () => {
+  it('rejects passwords without an uppercase letter', async () => {
+    const { registerSchema } = await import('../app/register/page');
+
+    const result = registerSchema.safeParse({
+      name: 'Test User',
+      email: 'test@example.com',
+      age: 25,
+      password: 'lowercase123',
+      accept_terms: true,
+      accept_privacy: true,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Password must contain at least one uppercase letter');
+    }
+  });
+});
