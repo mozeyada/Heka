@@ -259,9 +259,9 @@ export default function DashboardPage() {
             
             <button 
               onClick={() => router.push('/checkins/current')}
-              className="mt-8 w-full rounded-xl border border-white/10 bg-black/50 py-3 text-xs font-semibold text-white transition hover:bg-white/10"
+              className="mt-8 w-full rounded-xl border border-white/20 bg-white/8 py-3 text-xs font-bold text-white shadow-[0_0_1px_rgba(255,255,255,0.1)] transition hover:bg-white/15 hover:border-white/30"
             >
-              {currentCheckin?.status === 'completed' ? 'View Full Telemetry' : 'Complete Sync'}
+              {currentCheckin?.status === 'completed' ? 'View Full Telemetry' : 'Complete Sync →'}
             </button>
           </div>
 
@@ -299,9 +299,9 @@ export default function DashboardPage() {
             
             <button 
               onClick={() => router.push('/goals')}
-              className="mt-8 w-full rounded-xl border border-white/10 bg-black/50 py-3 text-xs font-semibold text-white transition hover:bg-white/10"
+              className="mt-8 w-full rounded-xl border border-white/20 bg-white/8 py-3 text-xs font-bold text-white shadow-[0_0_1px_rgba(255,255,255,0.1)] transition hover:bg-white/15 hover:border-white/30"
             >
-               Manage Objectives
+               Manage Objectives →
             </button>
           </div>
         </div>

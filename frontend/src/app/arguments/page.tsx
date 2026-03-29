@@ -11,62 +11,41 @@ import {
   Shield,
   ChevronRight,
   Sparkles,
-  PlusCircle,
+  Plus,
   RefreshCw,
   Zap,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
 import { LoadingPage } from '@/components/LoadingSpinner';
 import { ErrorAlert } from '@/components/ErrorAlert';
-import { Card, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
-const elevatedCardClasses =
-  'border-0 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.06)] hover:shadow-[0_24px_45px_rgba(15,23,42,0.12)] transition-all';
-
-const categoryIconMap: Record<
-  string,
-  { icon: LucideIcon; bg: string; color: string; label: string }
-> = {
-  communication: {
-    icon: MessageCircle,
-    bg: 'bg-blue-100',
-    color: 'text-blue-600',
-    label: 'communication',
-  },
-  values: {
-    icon: Heart,
-    bg: 'bg-rose-100',
-    color: 'text-rose-600',
-    label: 'values alignment',
-  },
-  trust: {
-    icon: Shield,
-    bg: 'bg-indigo-100',
-    color: 'text-indigo-600',
-    label: 'trust & safety',
-  },
+const categoryIconMap: Record<string, { icon: LucideIcon; bg: string; color: string; label: string }> = {
+  communication: { icon: MessageCircle, bg: 'bg-teal-500/10', color: 'text-teal-400', label: 'Communication' },
+  values: { icon: Heart, bg: 'bg-rose-500/10', color: 'text-rose-400', label: 'Values' },
+  trust: { icon: Shield, bg: 'bg-indigo-500/10', color: 'text-indigo-400', label: 'Trust' },
 };
-
-const defaultCategoryIcon = {
-  icon: MessageCircle,
-  bg: 'bg-slate-200',
-  color: 'text-slate-500',
-  label: 'relationship',
-};
+const defaultCategory = { icon: MessageCircle, bg: 'bg-white/5', color: 'text-zinc-400', label: 'Relationship' };
 
 const formatDate = (isoDate?: string) => {
-  if (!isoDate) return 'Unknown date';
+  if (!isoDate) return 'Unknown';
   const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) {
-    return 'Unknown date';
-  }
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
+  if (Number.isNaN(date.getTime())) return 'Unknown';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
+
+const priorityGlow: Record<string, string> = {
+  urgent: 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.1)]',
+  high: 'border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.08)]',
+  medium: 'border-white/10',
+  low: 'border-white/5',
+};
+const priorityBadge: Record<string, string> = {
+  urgent: 'bg-red-500/10 text-red-400 border border-red-500/20',
+  high: 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+  medium: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+  low: 'bg-white/5 text-zinc-500 border border-white/10',
 };
 
 export default function ArgumentsPage() {
@@ -84,11 +63,7 @@ export default function ArgumentsPage() {
       setError(null);
       await fetchArguments();
     } catch (err: any) {
-      const message =
-        err?.response?.data?.detail ||
-        err?.message ||
-        'Failed to load arguments. Please try again.';
-      setError(message);
+      setError(err?.response?.data?.detail || err?.message || 'Failed to load arguments. Please try again.');
     } finally {
       setHasInitialized(true);
     }
@@ -96,231 +71,153 @@ export default function ArgumentsPage() {
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
+    if (!token) { router.push('/login'); return; }
     if (isAuthenticated && user && !hasLoadedArguments.current) {
       hasLoadedArguments.current = true;
       loadArguments();
       return;
     }
-
     if ((!isAuthenticated || !user) && !hasRequestedAuth.current) {
       hasRequestedAuth.current = true;
-      fetchCurrentUser()
-        .catch(() => {
-          setError('We could not load your profile. Please refresh and try again.');
-          setHasInitialized(true);
-        })
-        .finally(() => {
-          hasRequestedAuth.current = false;
-        });
+      fetchCurrentUser().catch(() => { setError('Could not load your profile. Please refresh.'); setHasInitialized(true); }).finally(() => { hasRequestedAuth.current = false; });
     }
   }, [isAuthenticated, user, fetchCurrentUser, router]);
 
-  const handleRefresh = () => {
-    setHasInitialized(false);
-    loadArguments();
-  };
+  if (!hasInitialized || isLoading || (!user && isAuthenticated)) return <LoadingPage />;
 
-  if (!hasInitialized || isLoading || (!user && isAuthenticated)) {
-    return <LoadingPage />;
-  }
-
-  const activeArguments = args.filter((arg) => arg.status !== 'resolved');
-  const resolvedArguments = args.filter((arg) => arg.status === 'resolved');
+  const activeArguments = args.filter((a) => a.status !== 'resolved');
+  const resolvedArguments = args.filter((a) => a.status === 'resolved');
   const currentList = activeTab === 'active' ? activeArguments : resolvedArguments;
 
   return (
-    <div className="bg-slate-100/80 min-h-screen pb-32">
-      <div className="app-container py-8 space-y-8 pb-28">
-        {error && (
-          <ErrorAlert
-            message={error}
-            onRetry={handleRefresh}
-            onDismiss={() => setError(null)}
-          />
-        )}
+    <div className="min-h-screen text-zinc-300 pb-32 font-sans">
+      {/* Immersive Background */}
+      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-[20%] h-[40vh] w-[40vh] rounded-full bg-teal-900/20 blur-[130px]" />
+        <div className="absolute bottom-[20%] right-[5%] h-[50vh] w-[50vh] rounded-full bg-indigo-900/15 blur-[150px]" />
+      </div>
 
-        <Card className={`${elevatedCardClasses} relative overflow-hidden`}>
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(79,70,229,0.12),transparent_60%)]" />
-          <CardContent className="relative p-8 space-y-4">
-            <div className="flex items-start justify-between flex-wrap gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-primary/70">
-                  Active mediation
-                </p>
-                <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
-                  Your relationship issues
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                  Track every conflict in one place, capture perspectives, and guide the conversation
-                  toward healthy resolution with AI insights.
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <Badge variant="secondary" className="flex items-center gap-1 border border-primary/20 bg-primary/10 text-primary px-3 py-1 rounded-full shadow-sm">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  {args.length} logged
-                </Badge>
-                <div className="flex items-center gap-3">
-                  <Button variant="outline" onClick={handleRefresh} className="gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    Refresh
-                  </Button>
-                  <Button asChild className="gap-2">
-                    <Link href="/arguments/create">
-                      <PlusCircle className="h-4 w-4" />
-                      Log new conflict
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
+      <div className="app-container py-10 space-y-8 pb-28">
+        {error && <ErrorAlert message={error} onRetry={() => { setHasInitialized(false); loadArguments(); }} onDismiss={() => setError(null)} />}
 
-            {/* Tabs */}
-            <div className="flex items-center gap-1 mt-6 border-b border-slate-200">
-              <button
-                onClick={() => setActiveTab('active')}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'active'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                  }`}
-              >
-                Active Issues ({activeArguments.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('history')}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'history'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                  }`}
-              >
-                History ({resolvedArguments.length})
-              </button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {currentList.length === 0 ? (
-          <Card className={`${elevatedCardClasses} text-center`}>
-            <CardContent className="space-y-6 p-10">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-                <FileText className="h-6 w-6" />
-              </div>
-              <div className="space-y-2">
-                <CardTitle className="text-xl">
-                  {activeTab === 'active' ? 'No active issues' : 'No history yet'}
-                </CardTitle>
-                <CardDescription className="text-base text-slate-500 max-w-md mx-auto">
-                  {activeTab === 'active'
-                    ? "You're in a great place! No open conflicts. Use this time proactively to align on key topics."
-                    : "Resolved arguments and mediation history will appear here."}
-                </CardDescription>
-              </div>
-              
-              {activeTab === 'active' && (
-                <div className="pt-4 border-t border-slate-100 max-w-xl mx-auto">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">
-                    Proactive Conversation Starters
-                  </p>
-                  <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3">
-                    <Button variant="outline" className="gap-2 text-slate-600 rounded-xl" onClick={() => router.push('/arguments/create?topic=communication')}>
-                      <MessageCircle className="h-4 w-4 text-blue-500" />
-                      Communication Habits
-                    </Button>
-                    <Button variant="outline" className="gap-2 text-slate-600 rounded-xl" onClick={() => router.push('/arguments/create?topic=finances')}>
-                      <Zap className="h-4 w-4 text-amber-500" />
-                      Financial Goals
-                    </Button>
-                    <Button variant="outline" className="gap-2 text-slate-600 rounded-xl" onClick={() => router.push('/arguments/create?topic=chores')}>
-                      <Shield className="h-4 w-4 text-indigo-500" />
-                      Chore Division
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'active' && (
-                <div className="pt-4 mt-6">
-                  <Button asChild size="lg" className="gap-2 shadow-md">
-                    <Link href="/arguments/create">
-                      <PlusCircle className="h-5 w-5" />
-                      Start a custom session
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {currentList.map((arg) => {
-              const { icon: CategoryIcon, bg, color, label } =
-                categoryIconMap[arg.category?.toLowerCase() ?? ''] ?? defaultCategoryIcon;
-
-              return (
-                <Card key={arg.id} className={`${elevatedCardClasses} relative overflow-hidden group cursor-pointer`} onClick={() => router.push(`/arguments/${arg.id}`)}>
-                  <div className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-primary/80 via-primary/40 to-transparent transition-all duration-300 group-hover:w-2" />
-                  <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/[0.02] transition-colors pointer-events-none" />
-                  <CardContent className="relative flex flex-col gap-4 p-6 md:flex-row md:items-center md:gap-6">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${bg} ${color}`}>
-                      <CategoryIcon className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <h2 className="text-lg font-semibold text-slate-900">{arg.title}</h2>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <FileText className="h-4 w-4 text-slate-300" />
-                          Logged {formatDate(arg.created_at)}
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <Badge
-                          variant="secondary"
-                          className="border-0 bg-slate-100 text-slate-600 capitalize"
-                        >
-                          {arg.status}
-                        </Badge>
-                        {arg.priority && (
-                          <Badge
-                            variant="secondary"
-                            className="border-0 bg-amber-100 text-amber-600 capitalize"
-                          >
-                            {arg.priority} priority
-                          </Badge>
-                        )}
-                        <Badge variant="outline" className="border-slate-200 text-slate-500">
-                          {label}
-                        </Badge>
-                      </div>
-                      {arg.summary && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">{arg.summary}</p>
-                      )}
-                    </div>
-                    <div className="mt-4 md:mt-0 flex w-full md:w-auto items-center justify-end">
-                      <Button
-                        variant="ghost"
-                        className="gap-1 text-primary hover:text-primary hover:bg-primary/10 rounded-xl transition-all group-hover:translate-x-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/arguments/${arg.id}`);
-                        }}
-                      >
-                        View details
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-teal-400 mb-2">Active Mediation</p>
+            <h1 className="text-3xl font-medium tracking-tight text-white">Mediation Logs</h1>
+            <p className="mt-2 text-sm text-zinc-400 max-w-lg">
+              Every conflict captured here. Share perspectives, receive AI insights, and guide your relationship toward resolution.
+            </p>
           </div>
-        )}
+          <div className="flex items-center gap-3 shrink-0">
+            <button onClick={() => { setHasInitialized(false); loadArguments(); }} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/10">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Refresh
+            </button>
+            <Link href="/arguments/create" className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:scale-[1.02]">
+              <Plus className="h-4 w-4" />
+              Log Conflict
+            </Link>
+          </div>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="grid grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+          {[
+            { label: 'Total Logged', value: args.length, color: 'text-white' },
+            { label: 'Active', value: activeArguments.length, color: 'text-orange-400' },
+            { label: 'Resolved', value: resolvedArguments.length, color: 'text-emerald-400' },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl text-center">
+              <p className={`text-2xl font-medium ${stat.color}`}>{stat.value}</p>
+              <p className="mt-1 text-[10px] uppercase tracking-widest text-zinc-500">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.02] p-1.5 backdrop-blur-xl w-fit animate-in fade-in duration-700 delay-150">
+          {(['active', 'history'] as const).map((tab) => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${activeTab === tab ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-white'}`}>
+              {tab === 'active' ? `Active (${activeArguments.length})` : `Resolved (${resolvedArguments.length})`}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+          {currentList.length === 0 ? (
+            <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-12 backdrop-blur-xl text-center">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10">
+                {activeTab === 'active' ? <Sparkles className="h-7 w-7 text-teal-400 animate-pulse" /> : <CheckCircle2 className="h-7 w-7 text-emerald-400" />}
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">
+                {activeTab === 'active' ? 'No active conflicts' : 'No resolved history yet'}
+              </h3>
+              <p className="text-sm text-zinc-500 max-w-md mx-auto mb-8">
+                {activeTab === 'active'
+                  ? "You're in a great place. Use this time proactively to build alignment on key topics."
+                  : 'Your resolved arguments and mediation history will appear here.'}
+              </p>
+              {activeTab === 'active' && (
+                <div className="space-y-4">
+                  <p className="text-[10px] uppercase tracking-widest text-zinc-600">Proactive Conversation Starters</p>
+                  <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3">
+                    {[
+                      { label: 'Communication Habits', icon: MessageCircle, color: 'text-teal-400', topic: 'communication' },
+                      { label: 'Financial Goals', icon: Zap, color: 'text-amber-400', topic: 'finances' },
+                      { label: 'Shared Boundaries', icon: Shield, color: 'text-indigo-400', topic: 'values' },
+                  ].map(({ label, icon: Icon, color, topic }) => (
+                    <button key={topic} onClick={() => router.push(`/arguments/create?topic=${topic}`)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-white/10">
+                      <Icon className={`h-4 w-4 ${color}`} />
+                      {label}
+                    </button>
+                  ))}
+                  </div>
+                  <Link href="/arguments/create" className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:scale-[1.02] mt-4">
+                    <Plus className="h-4 w-4" />
+                    Start Custom Session
+                  </Link>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {currentList.map((arg) => {
+                const { icon: CategoryIcon, bg, color, label } = categoryIconMap[arg.category?.toLowerCase() ?? ''] ?? defaultCategory;
+                return (
+                  <button key={arg.id} onClick={() => router.push(`/arguments/${arg.id}`)}
+                    className={`w-full text-left rounded-3xl border bg-white/[0.02] p-5 sm:p-6 backdrop-blur-xl transition-all hover:bg-white/[0.04] group ${priorityGlow[arg.priority] ?? 'border-white/10'}`}>
+                    <div className="flex items-center gap-4">
+                      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/5 ${bg} ${color}`}>
+                        <CategoryIcon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                          <h2 className="text-sm font-semibold text-white truncate max-w-[280px] sm:max-w-none">{arg.title}</h2>
+                          {arg.priority && <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${priorityBadge[arg.priority] ?? ''}`}>{arg.priority}</span>}
+                        </div>
+                        <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-zinc-600">
+                          <span>{label}</span>
+                          <span>·</span>
+                          <span>{arg.status}</span>
+                          <span>·</span>
+                          <FileText className="h-3 w-3" />
+                          <span>{formatDate(arg.created_at)}</span>
+                        </div>
+                        {arg.summary && <p className="mt-2 text-xs text-zinc-500 line-clamp-1">{arg.summary}</p>}
+                      </div>
+                      <ChevronRight className="h-5 w-5 shrink-0 text-zinc-700 transition group-hover:text-white group-hover:translate-x-0.5" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
-

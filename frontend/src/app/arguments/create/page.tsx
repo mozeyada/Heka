@@ -9,6 +9,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { CrisisResources } from '@/components/CrisisResources';
+import { ChevronLeft, AlertTriangle, Shield } from 'lucide-react';
 
 const argumentSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(255),
@@ -16,26 +17,17 @@ const argumentSchema = z.object({
   priority: z.string().default('medium'),
 });
 
-const categories = [
-  'finances',
-  'communication',
-  'values',
-  'intimacy',
-  'family',
-  'lifestyle',
-  'future_plans',
-  'other',
-];
-
+const categories = ['finances', 'communication', 'values', 'intimacy', 'family', 'lifestyle', 'future_plans', 'other'];
 const priorities = ['low', 'medium', 'high', 'urgent'];
-
 type ArgumentFormData = z.infer<typeof argumentSchema>;
+const formatCategory = (v: string) => v.split('_').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
 
-const formatCategory = (value: string) =>
-  value
-    .split('_')
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ');
+const priorityDescriptions: Record<string, string> = {
+  low: 'Minor friction that can wait',
+  medium: 'Needs attention this week',
+  high: 'Actively affecting your relationship',
+  urgent: 'Needs immediate mediation',
+};
 
 export default function CreateArgumentPage() {
   const router = useRouter();
@@ -44,93 +36,76 @@ export default function CreateArgumentPage() {
   const [error, setError] = useState<string | null>(null);
   const [crisisAccepted, setCrisisAccepted] = useState(false);
   const [hasShownCrisisDisclaimer, setHasShownCrisisDisclaimer] = useState(false);
+  const [selectedPriority, setSelectedPriority] = useState('medium');
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ArgumentFormData>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<ArgumentFormData>({
     resolver: zodResolver(argumentSchema),
-    defaultValues: {
-      priority: 'medium',
-    },
+    defaultValues: { priority: 'medium' },
   });
 
   useEffect(() => {
-    if (!couple) {
-      router.push('/couples/create');
-    }
+    if (!couple) router.push('/couples/create');
   }, [couple, router]);
 
   const onSubmit = async (data: ArgumentFormData) => {
-    if (!hasShownCrisisDisclaimer) {
-      setHasShownCrisisDisclaimer(true);
-      return;
-    }
-
-    if (!crisisAccepted) {
-      setError('Please acknowledge the safety notice before creating an argument.');
-      return;
-    }
-
+    if (!hasShownCrisisDisclaimer) { setHasShownCrisisDisclaimer(true); return; }
+    if (!crisisAccepted) { setError('Please acknowledge the safety notice before continuing.'); return; }
     try {
       setError(null);
       await createArgument(data);
       router.push('/dashboard');
     } catch (err: any) {
-      const errorMessage = err.response?.data?.detail || 'Failed to create argument';
-      setError(errorMessage);
+      setError(err.response?.data?.detail || 'Failed to create argument');
     }
   };
 
-  if (!couple) {
-    return null;
-  }
-
+  if (!couple) return null;
   const firstArgument = existingArguments.length === 0;
 
   return (
-    <div className="bg-neutral-25 pb-20">
-      <div className="app-container py-8 max-w-3xl space-y-8">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-neutral-900">Create a New Argument</h1>
-            <p className="mt-1 text-sm text-neutral-600">
-              Capture both sides of the disagreement so Heka can deliver insights tailored to your relationship.
-            </p>
-          </div>
-          <Link
-            href="/dashboard"
-            className="text-sm font-medium text-brand-600 hover:text-brand-700"
-          >
-            Back to Dashboard
-          </Link>
+    <div className="min-h-screen text-zinc-300 pb-32 font-sans">
+      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div className="absolute top-[10%] right-[10%] h-[40vh] w-[40vh] rounded-full bg-teal-900/15 blur-[130px]" />
+        <div className="absolute bottom-[20%] left-[5%] h-[45vh] w-[45vh] rounded-full bg-indigo-900/15 blur-[140px]" />
+      </div>
+
+      <div className="app-container max-w-2xl py-10 space-y-8 pb-28">
+
+        {/* Back nav */}
+        <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-500 hover:text-white transition animate-in fade-in duration-500">
+          <ChevronLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Link>
+
+        {/* Page Header */}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-teal-400 mb-2">AI Mediation</p>
+          <h1 className="text-3xl font-medium tracking-tight text-white">Log New Conflict</h1>
+          <p className="mt-2 text-sm text-zinc-400 max-w-lg">
+            Capture both sides of the disagreement so Heka's AI can deliver neutral, empathetic insights.
+          </p>
         </div>
 
-        {/* First Argument Safety Notice */}
+        {/* First-time Safety Gate */}
         {firstArgument && !hasShownCrisisDisclaimer && (
-          <div className="section-shell bg-yellow-50 border-yellow-200 p-6">
-            <h2 className="text-base font-semibold text-neutral-900">Safety first</h2>
-            <p className="mt-2 text-sm text-neutral-700">
-              Before your first argument, we'll share guidance on crisis resources and situations that need professional help.
+          <div className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-8 backdrop-blur-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+            <div className="flex items-center gap-3 mb-4">
+              <Shield className="h-5 w-5 text-amber-400" />
+              <h2 className="text-sm font-semibold text-white">Safe Space First</h2>
+            </div>
+            <p className="text-sm text-zinc-400 leading-relaxed mb-3">
+              Before your first session, we'll share guidance on crisis situations and when to seek professional help.
             </p>
-            <p className="mt-4 text-sm text-neutral-600">
-              Click "Continue" to review the safety notice, or "Cancel" if you'd like to return later.
+            <p className="text-xs text-zinc-500 mb-6">
+              Click "Continue to Safety Notice" to review, or go back to the dashboard.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setHasShownCrisisDisclaimer(true)}
-                className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
-              >
-                Continue
+            <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={() => setHasShownCrisisDisclaimer(true)}
+                className="rounded-xl bg-white px-5 py-2.5 text-xs font-bold text-black transition hover:scale-[1.02]">
+                Continue to Safety Notice
               </button>
-              <Link
-                href="/dashboard"
-                className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
-              >
-                Cancel
+              <Link href="/dashboard" className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/10">
+                Return to Dashboard
               </Link>
             </div>
           </div>
@@ -138,28 +113,19 @@ export default function CreateArgumentPage() {
 
         {/* Crisis Resources */}
         {hasShownCrisisDisclaimer && !crisisAccepted && (
-          <div className="section-shell bg-yellow-50 border-yellow-200 p-6">
-            <CrisisResources
-              onAccept={() => setCrisisAccepted(true)}
-              showAcceptButton
-            />
+          <div className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-8 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-300">
+            <CrisisResources onAccept={() => setCrisisAccepted(true)} showAcceptButton />
           </div>
         )}
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
-          <div className={`section-shell p-5 ${
-            error.toLowerCase().includes('limit')
-              ? 'bg-yellow-50 border-yellow-200'
-              : 'bg-red-50 border-red-200'
-          }`}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-neutral-900">{error}</p>
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-red-300">{error}</p>
               {error.toLowerCase().includes('limit') && (
-                <Link
-                  href="/subscription"
-                  className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
-                >
+                <Link href="/subscription" className="mt-2 inline-block rounded-xl bg-white px-4 py-1.5 text-xs font-bold text-black transition hover:scale-[1.02]">
                   Upgrade Plan
                 </Link>
               )}
@@ -167,84 +133,73 @@ export default function CreateArgumentPage() {
           </div>
         )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="section-shell p-6">
-            <div className="space-y-6">
+        {/* Main Form */}
+        {(crisisAccepted || !firstArgument) && (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-8 backdrop-blur-2xl space-y-6">
+
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-neutral-700">
-                  Argument Title
-                </label>
-                <input
-                  id="title"
-                  {...register('title')}
-                  type="text"
+                <label htmlFor="title" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">What's the conflict about?</label>
+                <input id="title" {...register('title')} type="text"
                   placeholder="e.g., How we spend Saturday mornings"
-                  className="input-field mt-2"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition"
                 />
-                {errors.title && (
-                  <p className="mt-2 text-sm text-red-600">{errors.title.message}</p>
-                )}
+                {errors.title && <p className="mt-2 text-xs font-semibold text-red-400">{errors.title.message}</p>}
               </div>
 
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="category" className="block text-sm font-medium text-neutral-700">
-                    Category
-                  </label>
-                  <select
-                    id="category"
-                    {...register('category')}
-                    className="input-field mt-2"
-                  >
-                    <option value="">Select a category</option>
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {formatCategory(cat)}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.category && (
-                    <p className="mt-2 text-sm text-red-600">{errors.category.message}</p>
-                  )}
-                </div>
+              <div>
+                <label htmlFor="category" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Category</label>
+                <select id="category" {...register('category')}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 text-sm text-white focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition [color-scheme:dark]">
+                  <option value="">Select a category</option>
+                  {categories.map(cat => <option key={cat} value={cat}>{formatCategory(cat)}</option>)}
+                </select>
+                {errors.category && <p className="mt-2 text-xs font-semibold text-red-400">{errors.category.message}</p>}
+              </div>
 
-                <div>
-                  <label htmlFor="priority" className="block text-sm font-medium text-neutral-700">
-                    Priority
-                  </label>
-                  <select
-                    id="priority"
-                    {...register('priority')}
-                    className="input-field mt-2"
-                  >
-                    {priorities.map((p) => (
-                      <option key={p} value={p}>
-                        {p.charAt(0).toUpperCase() + p.slice(1)}
-                      </option>
-                    ))}
-                  </select>
+              {/* Priority Visual Picker */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3 block">How urgent is this?</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {priorities.map(p => {
+                    const isSelected = selectedPriority === p;
+                    const colors: Record<string, string> = {
+                      low: 'border-zinc-700 bg-zinc-800/50 text-zinc-400',
+                      medium: 'border-blue-500/30 bg-blue-500/10 text-blue-400',
+                      high: 'border-orange-500/30 bg-orange-500/10 text-orange-400',
+                      urgent: 'border-red-500/30 bg-red-500/10 text-red-400',
+                    };
+                    const selectedColors: Record<string, string> = {
+                      low: 'border-zinc-400 bg-zinc-700 text-white',
+                      medium: 'border-blue-500 bg-blue-500/20 text-white',
+                      high: 'border-orange-500 bg-orange-500/20 text-white',
+                      urgent: 'border-red-500 bg-red-500/20 text-white',
+                    };
+                    return (
+                      <button key={p} type="button"
+                        onClick={() => { setSelectedPriority(p); setValue('priority', p); }}
+                        className={`rounded-xl border p-3 text-left transition-all ${isSelected ? selectedColors[p] : colors[p] + ' hover:opacity-80'}`}>
+                        <p className="text-xs font-bold capitalize mb-1">{p}</p>
+                        <p className="text-[10px] leading-relaxed opacity-70">{priorityDescriptions[p]}</p>
+                      </button>
+                    );
+                  })}
                 </div>
+                <input type="hidden" {...register('priority')} value={selectedPriority} />
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="submit"
-              disabled={isLoading || (hasShownCrisisDisclaimer && !crisisAccepted)}
-              className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Creating…' : 'Create Argument'}
-            </button>
-            <Link
-              href="/dashboard"
-              className="rounded-lg border border-neutral-300 bg-white px-6 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
-            >
-              Cancel
-            </Link>
-          </div>
-        </form>
+            <div className="flex flex-wrap gap-3">
+              <button type="submit" disabled={isLoading || (hasShownCrisisDisclaimer && !crisisAccepted)}
+                className="rounded-xl bg-white px-7 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
+                {isLoading ? 'Creating…' : 'Begin Mediation'}
+              </button>
+              <Link href="/dashboard" className="rounded-xl border border-white/10 bg-white/5 px-7 py-3 text-sm font-semibold text-zinc-300 transition hover:bg-white/10">
+                Cancel
+              </Link>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

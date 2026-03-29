@@ -1,22 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Target, CheckCircle2, Plus, X, Calendar } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { goalsAPI, aiSuggestionsAPI } from '@/lib/api';
-import { PageHeading } from '@/components/PageHeading';
 
 interface Goal {
-  id: string;
-  title: string;
-  description?: string;
-  status: string;
-  target_date?: string;
+  id: string; title: string; description?: string; status: string; target_date?: string;
   progress: Array<{ date: string; notes?: string; progress_value?: number }>;
-  progress_updates: number;
-  created_at: string;
+  progress_updates: number; created_at: string;
 }
 
 export default function GoalsPage() {
@@ -25,11 +18,7 @@ export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newGoal, setNewGoal] = useState({
-    title: '',
-    description: '',
-    target_date: '',
-  });
+  const [newGoal, setNewGoal] = useState({ title: '', description: '', target_date: '' });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
@@ -37,11 +26,7 @@ export default function GoalsPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    if (!token || !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
+    if (!token || !isAuthenticated) { router.push('/login'); return; }
     loadGoals();
     loadAISuggestions();
   }, [isAuthenticated, router]);
@@ -49,209 +34,123 @@ export default function GoalsPage() {
   const loadGoals = async () => {
     try {
       setLoading(true);
-      const data = await goalsAPI.getAll();
-      setGoals(data);
-    } catch (error: any) {
-      console.error('Failed to load goals:', error);
-      setError(error.response?.data?.detail || error.message || 'Failed to load goals. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+      setGoals(await goalsAPI.getAll());
+    } catch (e: any) {
+      setError(e.response?.data?.detail || e.message || 'Failed to load goals.');
+    } finally { setLoading(false); }
   };
 
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newGoal.title.trim()) {
-      setError('Goal title is required');
-      return;
-    }
-
+    if (!newGoal.title.trim()) { setError('Goal title is required'); return; }
     try {
-      setCreating(true);
-      setError(null);
+      setCreating(true); setError(null);
       await goalsAPI.create(newGoal);
       setNewGoal({ title: '', description: '', target_date: '' });
       setShowCreateForm(false);
       loadGoals();
-    } catch (error: any) {
-      setError(error.response?.data?.detail || 'Failed to create goal');
-    } finally {
-      setCreating(false);
-    }
+    } catch (e: any) { setError(e.response?.data?.detail || 'Failed to create goal'); }
+    finally { setCreating(false); }
   };
 
   const handleCompleteGoal = async (goalId: string) => {
-    try {
-      await goalsAPI.complete(goalId);
-      loadGoals();
-    } catch (error: any) {
-      setError(error.response?.data?.detail || 'Failed to complete goal');
-    }
+    try { await goalsAPI.complete(goalId); loadGoals(); }
+    catch (e: any) { setError(e.response?.data?.detail || 'Failed to complete goal'); }
   };
 
   const loadAISuggestions = async () => {
     try {
       setLoadingSuggestions(true);
-      const response = await aiSuggestionsAPI.getGoalSuggestions();
-      setAiSuggestions(response.suggestions || []);
-    } catch (error: any) {
-      console.error('Failed to load AI suggestions:', error);
-      // Don't show error to user - suggestions are optional
-    } finally {
-      setLoadingSuggestions(false);
-    }
+      const res = await aiSuggestionsAPI.getGoalSuggestions();
+      setAiSuggestions(res.suggestions || []);
+    } catch { /* silent */ }
+    finally { setLoadingSuggestions(false); }
   };
 
   const handleCreateFromSuggestion = async (suggestion: any) => {
     try {
-      setCreating(true);
-      setError(null);
-      await goalsAPI.create({
-        title: suggestion.title,
-        description: suggestion.description,
-      });
-      setShowCreateForm(false);
+      setCreating(true); setError(null);
+      await goalsAPI.create({ title: suggestion.title, description: suggestion.description });
+      setAiSuggestions(aiSuggestions.filter(s => s.title !== suggestion.title));
       loadGoals();
-      // Remove the used suggestion from the list
-      setAiSuggestions(aiSuggestions.filter((s) => s.title !== suggestion.title));
-    } catch (error: any) {
-      setError(error.response?.data?.detail || 'Failed to create goal');
-    } finally {
-      setCreating(false);
-    }
+    } catch (e: any) { setError(e.response?.data?.detail || 'Failed to create goal'); }
+    finally { setCreating(false); }
   };
 
-  const activeGoals = goals.filter((g) => g.status === 'active');
-  const completedGoals = goals.filter((g) => g.status === 'completed');
+  const activeGoals = goals.filter(g => g.status === 'active');
+  const completedGoals = goals.filter(g => g.status === 'completed');
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-25">
-        <p className="text-sm text-neutral-500">Loading goals…</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="h-6 w-6 rounded-full border-2 border-zinc-700 border-t-white animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="bg-neutral-25 pb-20">
-      <PageHeading
-        title="Relationship Goals"
-        description="Set shared goals to strengthen your partnership and celebrate growth together."
-        actions={
-          activeGoals.length < 10 ? (
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-500 hover:-translate-y-0.5"
-            >
-              {showCreateForm ? 'Cancel' : 'New Goal'}
+    <div className="min-h-screen text-zinc-300 pb-32 font-sans">
+      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div className="absolute top-[5%] right-[10%] h-[45vh] w-[45vh] rounded-full bg-indigo-900/15 blur-[140px]" />
+        <div className="absolute bottom-[15%] left-[5%] h-[40vh] w-[40vh] rounded-full bg-teal-900/10 blur-[130px]" />
+      </div>
+
+      <div className="app-container py-10 space-y-8 pb-28">
+
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-2">Growth Engine</p>
+            <h1 className="text-3xl font-medium tracking-tight text-white">Relationship Goals</h1>
+            <p className="mt-2 text-sm text-zinc-400 max-w-lg">Set shared milestones, track meaningful progress, and celebrate growth together.</p>
+          </div>
+          {activeGoals.length < 10 && (
+            <button onClick={() => setShowCreateForm(!showCreateForm)}
+              className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold transition shrink-0 ${showCreateForm ? 'border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10' : 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:scale-[1.02]'}`}>
+              {showCreateForm ? <><X className="h-4 w-4" />Cancel</> : <><Plus className="h-4 w-4" />New Goal</>}
             </button>
-          ) : null
-        }
-      />
+          )}
+        </div>
 
-      <div className="app-container max-w-4xl space-y-8">
         {error && (
-          <div className="section-shell border border-red-200 bg-red-50 p-5">
-            <p className="text-sm font-semibold text-red-600">{error}</p>
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4">
+            <p className="text-sm font-semibold text-red-300">{error}</p>
           </div>
         )}
 
-        {aiSuggestions.length > 0 && activeGoals.length > 0 && !showCreateForm && (
-          <div className="section-shell border border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-white p-6">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="rounded-lg bg-indigo-100 p-2">
-                <Sparkles className="h-5 w-5 text-indigo-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-neutral-900">AI-Powered Goal Suggestions</h3>
-                <p className="mt-1 text-sm text-neutral-600">
-                  Based on your recent arguments, here are additional goals to consider.
-                </p>
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {aiSuggestions.slice(0, 2).map((suggestion, index) => (
-                <div
-                  key={index}
-                  className="rounded-xl border border-indigo-100 bg-white p-5 hover:border-indigo-300 hover:shadow-md transition-all flex flex-col h-full"
-                >
-                  <div className="flex-1 space-y-2">
-                    <h4 className="font-bold text-neutral-900 text-sm">{suggestion.title}</h4>
-                    <p className="text-xs text-neutral-600 line-clamp-3 leading-relaxed">{suggestion.description}</p>
-                  </div>
-                  <button
-                    onClick={() => handleCreateFromSuggestion(suggestion)}
-                    disabled={creating}
-                    className="mt-4 w-full rounded-xl bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-indigo-500 disabled:opacity-50"
-                  >
-                    {creating ? 'Creating…' : 'Use this template'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
+        {/* Create Goal Form */}
         {showCreateForm && (
-          <div className="section-shell p-6">
-            <h2 className="text-lg font-semibold text-neutral-900">Create New Goal</h2>
-            <form onSubmit={handleCreateGoal} className="mt-6 space-y-6">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-8 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-300">
+            <h2 className="text-sm font-semibold text-white mb-6">Define New Objective</h2>
+            <form onSubmit={handleCreateGoal} className="space-y-5">
               <div>
-                <label htmlFor="goal-title" className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-                  Goal title *
-                </label>
-                <input
-                  id="goal-title"
-                  type="text"
-                  value={newGoal.title}
-                  onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
-                  className="input-field mt-2"
+                <label htmlFor="goal-title" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Goal Title *</label>
+                <input id="goal-title" type="text" value={newGoal.title}
+                  onChange={e => setNewGoal({ ...newGoal, title: e.target.value })}
                   placeholder="e.g., Have weekly date nights"
-                  required
-                  maxLength={255}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition"
+                  required maxLength={255} />
+              </div>
+              <div>
+                <label htmlFor="goal-description" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Description (optional)</label>
+                <textarea id="goal-description" value={newGoal.description}
+                  onChange={e => setNewGoal({ ...newGoal, description: e.target.value })}
+                  rows={3} placeholder="Add more context or success criteria..."
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition resize-none"
                 />
               </div>
               <div>
-                <label htmlFor="goal-description" className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-                  Description (optional)
-                </label>
-                <textarea
-                  id="goal-description"
-                  value={newGoal.description}
-                  onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
-                  className="input-field mt-2"
-                  rows={3}
-                  placeholder="Add more details about this goal..."
+                <label htmlFor="goal-date" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Target Date (optional)</label>
+                <input id="goal-date" type="date" value={newGoal.target_date}
+                  onChange={e => setNewGoal({ ...newGoal, target_date: e.target.value })}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition [color-scheme:dark]"
                 />
               </div>
-              <div>
-                <label htmlFor="goal-date" className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-                  Target date (optional)
-                </label>
-                <input
-                  id="goal-date"
-                  type="date"
-                  value={newGoal.target_date}
-                  onChange={(e) => setNewGoal({ ...newGoal, target_date: e.target.value })}
-                  className="input-field mt-2"
-                />
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="btn-primary"
-                >
-                  {creating ? 'Creating…' : 'Create Goal'}
+              <div className="flex gap-3 pt-2">
+                <button type="submit" disabled={creating}
+                  className="rounded-xl bg-white px-6 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:scale-[1.02] disabled:opacity-50">
+                  {creating ? 'Creating…' : 'Set Objective'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    setNewGoal({ title: '', description: '', target_date: '' });
-                  }}
-                  className="btn-secondary"
-                >
+                <button type="button" onClick={() => { setShowCreateForm(false); setNewGoal({ title: '', description: '', target_date: '' }); }}
+                  className="rounded-xl border border-white/10 bg-white/5 px-6 py-2.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/10">
                   Cancel
                 </button>
               </div>
@@ -259,164 +158,130 @@ export default function GoalsPage() {
           </div>
         )}
 
-        {activeGoals.length === 0 && completedGoals.length === 0 && !showCreateForm && (
-          <div className="space-y-6">
-            {aiSuggestions.length > 0 && (
-              <div className="section-shell border border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-white p-6">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="rounded-lg bg-indigo-100 p-2">
-                    <Sparkles className="h-5 w-5 text-indigo-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-neutral-900">AI-Powered Suggestions</h3>
-                    <p className="mt-1 text-sm text-neutral-600">
-                      Based on your recent arguments, here are personalized goals to strengthen your relationship.
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {aiSuggestions.map((suggestion, index) => (
-                    <div
-                      key={index}
-                      className="rounded-lg border border-indigo-100 bg-white p-4 hover:border-indigo-200 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-neutral-900">{suggestion.title}</h4>
-                          <p className="mt-1 text-sm text-neutral-600">{suggestion.description}</p>
-                          {suggestion.category && (
-                            <span className="mt-2 inline-block text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
-                              {suggestion.category}
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => handleCreateFromSuggestion(suggestion)}
-                          disabled={creating}
-                          className="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-500 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {creating ? 'Creating…' : 'Use This'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        {/* AI Suggestions */}
+        {aiSuggestions.length > 0 && !showCreateForm && (
+          <div className="rounded-3xl border border-indigo-500/30 bg-indigo-500/5 p-8 backdrop-blur-2xl animate-in fade-in duration-700 delay-100">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 border border-indigo-500/20">
+                <Sparkles className="h-4 w-4 text-indigo-400" />
               </div>
-            )}
-            <div className="section-shell p-12 text-center bg-white border border-slate-200 shadow-sm rounded-2xl">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-500 mb-6">
-                <Sparkles className="h-8 w-8" />
+              <div>
+                <h3 className="text-sm font-semibold text-white">AI Goal Suggestions</h3>
+                <p className="text-xs text-zinc-500">Based on your recent conflict patterns.</p>
               </div>
-              <h3 className="text-xl font-bold text-neutral-900">No active goals</h3>
-              <p className="mt-2 text-sm text-neutral-500 max-w-sm mx-auto leading-relaxed">
-                {aiSuggestions.length === 0 && !loadingSuggestions
-                  ? 'Setting shared relationship goals helps you align on your future and track meaningful progress together.'
-                  : 'Or create a custom goal that matters to both of you.'}
-              </p>
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className="btn-primary mt-6"
-              >
-                Create Custom Goal
-              </button>
             </div>
-          </div>
-        )}
-
-        {activeGoals.length > 0 && (
-          <div>
-            <h2 className="mb-6 text-xl font-semibold text-neutral-900">Active Goals</h2>
-            <div className="space-y-4">
-              {activeGoals.map((goal) => (
-                <div key={goal.id} className="section-shell p-6">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-neutral-900">{goal.title}</h3>
-                      {goal.description && (
-                        <p className="mt-2 text-sm text-neutral-600">{goal.description}</p>
-                      )}
-                      {goal.target_date && (
-                        <p className="mt-2 text-xs text-neutral-400">
-                          Target: {new Date(goal.target_date).toLocaleDateString()}
-                        </p>
-                      )}
-                      {goal.progress && goal.progress.length > 0 && (
-                        <div className="mt-4">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                            Recent Progress ({goal.progress_updates} update{goal.progress_updates !== 1 ? 's' : ''})
-                          </p>
-                          <div className="mt-3 space-y-2">
-                            {goal.progress.slice(-3).map((p, idx) => (
-                              <div
-                                key={idx}
-                                className="rounded-lg border border-indigo-100 bg-indigo-50/50 py-2 pl-3 pr-2 text-xs text-neutral-600"
-                              >
-                                <span className="font-semibold text-neutral-700">
-                                  {p.date && new Date(p.date).toLocaleDateString()}
-                                </span>
-                                {p.notes && <span className="ml-2">— {p.notes}</span>}
-                                {p.progress_value !== undefined && (
-                                  <span className="ml-2 font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded text-[10px] tracking-wider uppercase">
-                                    {Math.round(p.progress_value * 100)}% Complete
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-2 sm:shrink-0 sm:w-32">
-                      <button
-                        onClick={() => handleCompleteGoal(goal.id)}
-                        className="w-full rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-green-500 hover:-translate-y-0.5"
-                      >
-                        Complete Target
-                      </button>
-                      <button
-                        onClick={() => router.push(`/goals/${goal.id}`)}
-                        className="btn-secondary w-full"
-                      >
-                        View Details
-                      </button>
-                    </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {aiSuggestions.slice(0, 4).map((s, i) => (
+                <div key={i} className="rounded-2xl border border-white/10 bg-black/20 p-5 flex flex-col">
+                  <div className="flex-1 space-y-1 mb-4">
+                    <h4 className="text-xs font-semibold text-white">{s.title}</h4>
+                    <p className="text-[11px] text-zinc-500 leading-relaxed line-clamp-2">{s.description}</p>
+                    {s.category && (
+                      <span className="inline-block mt-1 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-400">{s.category}</span>
+                    )}
                   </div>
+                  <button onClick={() => handleCreateFromSuggestion(s)} disabled={creating}
+                    className="w-full rounded-xl border border-indigo-500/30 bg-indigo-500/10 py-2 text-xs font-bold text-indigo-300 transition hover:bg-indigo-500/20 disabled:opacity-50">
+                    {creating ? 'Adding…' : 'Add This Goal'}
+                  </button>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {completedGoals.length > 0 && (
-          <div>
-            <h2 className="mb-6 text-xl font-semibold text-neutral-900">Completed Goals</h2>
-            <div className="space-y-4">
-              {completedGoals.map((goal) => (
-                <div key={goal.id} className="section-shell border-green-200 bg-green-50/30 p-6 opacity-80">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-lg font-semibold text-neutral-900">{goal.title}</h3>
-                        <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-600">
-                          ✓ Completed
-                        </span>
+        {/* Empty State */}
+        {activeGoals.length === 0 && completedGoals.length === 0 && !showCreateForm && (
+          <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-14 backdrop-blur-2xl text-center animate-in fade-in duration-700 delay-200">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10">
+              <Target className="h-7 w-7 text-indigo-400" />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-2">No objectives set yet</h3>
+            <p className="text-sm text-zinc-500 max-w-sm mx-auto mb-8 leading-relaxed">
+              {!loadingSuggestions && aiSuggestions.length === 0
+                ? 'Setting shared relationship goals helps you align on your future and track meaningful progress together.'
+                : 'Or create a custom goal that matters to both of you.'}
+            </p>
+            <button onClick={() => setShowCreateForm(true)}
+              className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:scale-[1.02]">
+              Create Custom Goal
+            </button>
+          </div>
+        )}
+
+        {/* Active Goals */}
+        {activeGoals.length > 0 && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Active Objectives ({activeGoals.length})</p>
+            {activeGoals.map(goal => (
+              <div key={goal.id} className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 sm:p-8 backdrop-blur-2xl">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-6">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-white mb-1">{goal.title}</h3>
+                    {goal.description && <p className="text-xs text-zinc-500 leading-relaxed mb-3">{goal.description}</p>}
+                    {goal.target_date && (
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] text-zinc-500">
+                        <Calendar className="h-3 w-3" />
+                        Target: {new Date(goal.target_date).toLocaleDateString()}
                       </div>
-                      {goal.description && (
-                        <p className="mt-2 text-sm text-neutral-600">{goal.description}</p>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => router.push(`/goals/${goal.id}`)}
-                      className="btn-secondary sm:shrink-0"
-                    >
-                      View
+                    )}
+                    {goal.progress && goal.progress.length > 0 && (
+                      <div className="mt-5 space-y-2">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">Recent Progress ({goal.progress_updates} update{goal.progress_updates !== 1 ? 's' : ''})</p>
+                        {goal.progress.slice(-3).map((p, i) => (
+                          <div key={i} className="rounded-xl border border-white/5 bg-black/20 px-4 py-2.5 text-xs text-zinc-400">
+                            <span className="font-medium text-zinc-300">{p.date && new Date(p.date).toLocaleDateString()}</span>
+                            {p.notes && <span className="ml-2 text-zinc-500">— {p.notes}</span>}
+                            {p.progress_value !== undefined && (
+                              <span className="ml-3 rounded-full border border-teal-500/20 bg-teal-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-teal-400">
+                                {Math.round(p.progress_value * 100)}%
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex sm:flex-col gap-3 sm:w-36 shrink-0">
+                    <button onClick={() => handleCompleteGoal(goal.id)}
+                      className="flex-1 sm:flex-none rounded-xl bg-emerald-500 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(16,185,129,0.2)] transition hover:scale-[1.02]">
+                      Mark Complete
+                    </button>
+                    <button onClick={() => router.push(`/goals/${goal.id}`)}
+                      className="flex-1 sm:flex-none rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/10">
+                      View Details
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         )}
+
+        {/* Completed Goals */}
+        {completedGoals.length > 0 && (
+          <div className="space-y-4 animate-in fade-in duration-700 delay-300">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">Completed ({completedGoals.length})</p>
+            {completedGoals.map(goal => (
+              <div key={goal.id} className="rounded-3xl border border-emerald-500/15 bg-emerald-500/[0.02] p-6 backdrop-blur-xl opacity-70 hover:opacity-90 transition-opacity">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-white truncate">{goal.title}</h3>
+                      {goal.description && <p className="text-xs text-zinc-600 mt-1 line-clamp-1">{goal.description}</p>}
+                    </div>
+                  </div>
+                  <button onClick={() => router.push(`/goals/${goal.id}`)}
+                    className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-400 transition hover:text-white hover:bg-white/10">
+                    View
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     </div>
   );
