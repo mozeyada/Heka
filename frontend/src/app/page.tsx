@@ -21,9 +21,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-300 selection:bg-teal-500/30 font-sans">
-      {/* Immersive Space Background */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+    <div className="min-h-screen text-zinc-300 selection:bg-teal-500/30 font-sans">
+      {/* Immersive Space Background (Fixed curtain across entire viewport) */}
+      <div className="fixed inset-0 z-[-1] bg-[#050505] overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] h-[50vh] w-[50vh] rounded-full bg-teal-900/30 blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] h-[60vh] w-[60vh] rounded-full bg-indigo-900/30 blur-[150px]" />
         <div className="absolute top-[40%] left-[60%] h-[30vh] w-[30vh] rounded-full bg-purple-900/20 blur-[100px]" />
