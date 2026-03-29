@@ -15,7 +15,8 @@ import {
   Target,
   Settings as SettingsIcon,
   Activity,
-  AlertCircle
+  AlertCircle,
+  Zap,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useCouplesStore } from '@/store/couplesStore';
@@ -121,12 +122,18 @@ export default function DashboardPage() {
   const glassCardClasses = "rounded-3xl border border-white/10 bg-white/[0.02] p-6 shadow-2xl backdrop-blur-2xl transition-colors hover:border-white/15";
   
   const categoryIconMap = {
-    communication: { icon: MessageCircle, bg: 'bg-teal-500/10', color: 'text-teal-400', text: 'communication' },
-    values: { icon: Heart, bg: 'bg-indigo-500/10', color: 'text-indigo-400', text: 'values alignment' },
-    trust: { icon: Shield, bg: 'bg-purple-500/10', color: 'text-purple-400', text: 'trust & safety' },
+    communication: { icon: MessageCircle, bg: 'bg-teal-500/10', color: 'text-teal-400', text: 'Communication' },
+    values: { icon: Heart, bg: 'bg-indigo-500/10', color: 'text-indigo-400', text: 'Values' },
+    trust: { icon: Shield, bg: 'bg-purple-500/10', color: 'text-purple-400', text: 'Trust' },
+    finances: { icon: Zap, bg: 'bg-amber-500/10', color: 'text-amber-400', text: 'Finances' },
+    intimacy: { icon: Heart, bg: 'bg-rose-500/10', color: 'text-rose-400', text: 'Intimacy' },
+    family: { icon: Shield, bg: 'bg-green-500/10', color: 'text-green-400', text: 'Family' },
+    lifestyle: { icon: Activity, bg: 'bg-cyan-500/10', color: 'text-cyan-400', text: 'Lifestyle' },
+    future_plans: { icon: Target, bg: 'bg-violet-500/10', color: 'text-violet-400', text: 'Future Plans' },
+    other: { icon: MessageCircle, bg: 'bg-zinc-500/10', color: 'text-zinc-400', text: 'Other' },
   } as const;
 
-  const defaultCategoryIcon = { icon: MessageCircle, bg: 'bg-white/5', color: 'text-white', text: 'relationship' };
+  const defaultCategoryIcon = { icon: MessageCircle, bg: 'bg-teal-500/10', color: 'text-teal-400', text: 'Relationship' };
   const getCategoryIconConfig = (category?: string) => {
     const key = (category ?? '').toLowerCase() as keyof typeof categoryIconMap;
     return categoryIconMap[key] ?? defaultCategoryIcon;
@@ -259,9 +266,9 @@ export default function DashboardPage() {
             
             <button 
               onClick={() => router.push('/checkins/current')}
-              className="mt-8 w-full rounded-xl border border-white/20 bg-white/8 py-3 text-xs font-bold text-white shadow-[0_0_1px_rgba(255,255,255,0.1)] transition hover:bg-white/15 hover:border-white/30"
+              className="mt-8 w-full rounded-xl border border-white/20 bg-white/[0.08] py-3 text-xs font-bold text-white transition hover:bg-white/[0.14] hover:border-white/30"
             >
-              {currentCheckin?.status === 'completed' ? 'View Full Telemetry' : 'Complete Sync →'}
+              {currentCheckin?.status === 'completed' ? 'View Full Telemetry →' : 'Complete Sync →'}
             </button>
           </div>
 
@@ -299,7 +306,7 @@ export default function DashboardPage() {
             
             <button 
               onClick={() => router.push('/goals')}
-              className="mt-8 w-full rounded-xl border border-white/20 bg-white/8 py-3 text-xs font-bold text-white shadow-[0_0_1px_rgba(255,255,255,0.1)] transition hover:bg-white/15 hover:border-white/30"
+              className="mt-8 w-full rounded-xl border border-white/20 bg-white/[0.08] py-3 text-xs font-bold text-white transition hover:bg-white/[0.14] hover:border-white/30"
             >
                Manage Objectives →
             </button>
