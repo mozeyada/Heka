@@ -21,335 +21,224 @@ export default function Home() {
   }
 
   return (
-    <div className="bg-neutral-25">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-pink-50 pb-24 pt-28">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-white/80 to-transparent" />
-          <div className="absolute left-0 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-200/50 blur-3xl" />
-          <div className="absolute right-0 top-32 h-72 w-72 translate-x-1/2 rounded-full bg-pink-200/50 blur-3xl" />
-        </div>
+    <div className="min-h-screen bg-[#050505] text-zinc-300 selection:bg-teal-500/30 font-sans">
+      {/* Immersive Space Background */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] h-[50vh] w-[50vh] rounded-full bg-teal-900/30 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] h-[60vh] w-[60vh] rounded-full bg-indigo-900/30 blur-[150px]" />
+        <div className="absolute top-[40%] left-[60%] h-[30vh] w-[30vh] rounded-full bg-purple-900/20 blur-[100px]" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+      </div>
 
+      {/* Nav Placeholder (In real app, this might be a Layout component, but placed here for fidelity) */}
+      <header className="fixed top-0 w-full z-50 border-b border-white/5 bg-black/20 backdrop-blur-xl">
+        <div className="app-container flex h-16 items-center justify-between">
+          <div className="text-xl font-bold tracking-tight text-white">Heka<span className="text-teal-500">.</span></div>
+          <nav className="hidden md:flex gap-8 text-sm font-medium text-zinc-400">
+            <Link href="/" className="hover:text-white transition">Home</Link>
+            <Link href="/pricing" className="hover:text-white transition">Pricing</Link>
+            <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
+          </nav>
+          <Link href="/login" className="text-sm font-medium text-white hover:text-teal-400 transition">Log In</Link>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative z-10 pt-40 pb-24 lg:pt-48">
         <div className="app-container">
-          <div className="grid items-center gap-16 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+          <div className="grid items-center gap-16 lg:grid-cols-[1.1fr_0.9fr]">
+            
+            {/* Left Content */}
             <div className="relative z-10">
-              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-600 shadow-sm backdrop-blur">
-                <span className="h-2 w-2 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-teal-400 backdrop-blur-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-pulse" />
                 Relationship AI
               </div>
-              <h1 className="mt-6 max-w-xl text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl lg:text-6xl">
-                Bring calm, clarity, and care to every tough conversation.
+              <h1 className="mt-8 text-5xl font-medium tracking-tight text-white sm:text-6xl lg:text-[4.5rem] leading-[1.1]">
+                Bring <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">calm, clarity,</span><br/>and care to every conversation.
               </h1>
-              <p className="mt-6 max-w-xl text-base leading-7 text-neutral-600 sm:text-lg">
-                Heka listens to both sides, highlights what matters most, and guides you back to understanding—without
-                taking sides or losing empathy.
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-zinc-400">
+                Heka listens to both sides, highlights what matters most, and guides you back to understanding—without taking sides or losing empathy.
               </p>
 
-              <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:items-stretch">
+              <div className="mt-10 flex flex-col sm:flex-row items-center gap-4">
                 <Link
                   href="/register"
-                  className="btn-primary flex w-full items-center justify-center gap-2 px-10 py-3 text-base sm:w-auto"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-white px-8 py-3.5 text-sm font-semibold text-black transition-all hover:scale-[1.02] hover:bg-zinc-200 shadow-[0_0_30px_rgba(255,255,255,0.15)]"
                 >
                   Start Your Free Trial
-                  <span aria-hidden>&rarr;</span>
                 </Link>
                 <Link
                   href="/login"
-                  className="btn-secondary flex w-full items-center justify-center gap-2 border border-neutral-200 px-8 py-3 text-base sm:w-auto"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-8 py-3.5 text-sm font-medium text-white backdrop-blur-md transition-all hover:bg-white/10"
                 >
-                  View Demo
+                  Explore Demo
                 </Link>
               </div>
 
-              <div className="mt-8 flex flex-wrap items-center gap-6 text-left">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md">
-                    <span className="text-lg font-semibold text-indigo-600">7d</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-900">Free trial</p>
-                    <p className="text-xs text-neutral-500">No card required</p>
-                  </div>
+              <div className="mt-12 flex items-center gap-8 border-t border-white/10 pt-8">
+                <div>
+                  <div className="text-2xl font-semibold text-white">7<span className="text-teal-500 text-lg">d</span></div>
+                  <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Free Trial</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md">
-                    <span className="text-lg font-semibold text-indigo-600">92%</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-900">Felt heard</p>
-                    <p className="text-xs text-neutral-500">after one session</p>
-                  </div>
+                <div className="h-10 w-px bg-white/10"></div>
+                <div>
+                  <div className="text-2xl font-semibold text-white">92<span className="text-teal-500 text-lg">%</span></div>
+                  <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Felt Heard</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md">
-                    <span className="text-lg font-semibold text-indigo-600">+4.6</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-900">Relationship score</p>
-                    <p className="text-xs text-neutral-500">average weekly uplift</p>
-                  </div>
+                <div className="h-10 w-px bg-white/10"></div>
+                <div>
+                  <div className="text-2xl font-semibold text-white">+4.6</div>
+                  <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Score Uplift</p>
                 </div>
               </div>
-              <p className="mt-6 text-xs text-neutral-500">
-                Couples in beta report calmer conversations within three arguments.
-              </p>
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-x-6 top-10 h-4/5 rounded-3xl bg-gradient-to-br from-indigo-200/50 to-pink-200/60 blur-2xl" />
-              <div className="relative rounded-[32px] border border-white/60 bg-white/90 p-8 shadow-[0_20px_60px_rgba(79,70,229,0.15)] backdrop-blur">
-                <div className="flex items-center justify-between">
+            {/* Right Content: Premium Glass Card */}
+            <div className="relative lg:ml-auto w-full max-w-lg perspective-1000">
+              <div className="absolute inset-0 bg-gradient-to-br from-teal-500/20 to-indigo-500/20 blur-3xl transform -rotate-6 rounded-[3rem]" />
+              
+              {/* Glassmorphism Shell */}
+              <div className="relative rounded-3xl border border-white/10 bg-white/[0.02] p-8 shadow-2xl backdrop-blur-2xl">
+                <div className="flex items-center justify-between border-b border-white/5 pb-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-500">
-                      in-session insights
-                    </p>
-                    <p className="mt-2 text-xl font-semibold text-neutral-900">Tonight&apos;s conversation</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">In-Session Insights</p>
+                    <p className="mt-1 text-lg font-medium text-white">Tonight&apos;s conversation</p>
                   </div>
-                  <div className="rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 px-3 py-1 text-xs font-semibold text-white">
-                    Calm score 82
+                  <div className="flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-3 py-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-teal-400"></div>
+                    <span className="text-xs font-medium text-teal-300">Calm 82</span>
                   </div>
                 </div>
 
                 <div className="mt-6 space-y-4">
-                  <div className="rounded-2xl bg-indigo-50/80 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">Core Insight</p>
-                    <p className="mt-2 text-sm text-indigo-900">
-                      You both want to feel trusted with your decisions. Try leading with reassurance before sharing the
-                      facts.
+                  {/* Core Insight Blob */}
+                  <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-5 transition-colors hover:bg-indigo-500/10">
+                    <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-400">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      Core Insight
+                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                      You both want to feel trusted with your decisions. Try leading with <span className="text-white font-medium">reassurance</span> before sharing facts.
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
-                      Suggested next step
-                    </p>
-                    <p className="mt-2 text-sm text-neutral-700">
-                      Set aside 15 minutes tomorrow to list what you appreciate about each other and exchange without
-                      interruptions.
+
+                  {/* Suggestion Blob */}
+                  <div className="rounded-2xl border border-white/5 bg-white/5 p-5 transition-colors hover:bg-white/10">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Suggested Next Step</p>
+                    <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                      Set aside 15 minutes tomorrow to list what you appreciate about each other and exchange without interruptions.
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">Tone check</p>
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-600">
-                        Respectful
-                      </span>
+
+                  {/* Tone Check */}
+                  <div className="rounded-2xl border border-white/5 bg-white/5 p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Tone Check</p>
+                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/20">Respectful</span>
                     </div>
-                    <p className="mt-2 text-sm text-neutral-700">
-                      Elise&apos;s message felt calm and curious. Jordan&apos;s tone softened mid-way—keep leaning into those
-                      clarifying questions.
+                    <p className="text-sm leading-relaxed text-zinc-400">
+                      Elise&apos;s message felt calm. Jordan&apos;s tone softened mid-way—keep leaning into clarifying questions.
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between rounded-2xl bg-gradient-to-r from-indigo-100/80 to-pink-100/80 p-4 text-sm text-neutral-700">
-                  <span>Goal: Plan stress-free weekends</span>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-600">
-                    68% complete
-                  </span>
+                <div className="mt-6 flex items-center justify-between rounded-xl border border-white/5 bg-black/40 p-4 backdrop-blur-md">
+                  <span className="text-xs font-medium text-zinc-300">Goal: Stress-free weekends</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div className="w-[68%] h-full bg-gradient-to-r from-teal-400 to-indigo-400 rounded-full"></div>
+                    </div>
+                    <span className="text-[10px] font-bold text-white">68%</span>
+                  </div>
                 </div>
               </div>
             </div>
+            
           </div>
         </div>
       </section>
 
-      {/* Social Proof */}
-      <section className="bg-white py-16">
+      {/* Social Proof (Darkened) */}
+      <section className="relative z-10 border-y border-white/5 bg-white/[0.02] py-12">
         <div className="app-container">
-          <div className="mx-auto flex flex-col items-center gap-8 text-center lg:flex-row lg:justify-between lg:text-left">
+          <div className="flex flex-col items-center gap-6 lg:flex-row lg:justify-between text-center lg:text-left">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-neutral-400">Trusted by beta couples</p>
-              <h2 className="mt-2 text-2xl font-semibold text-neutral-900 sm:text-3xl">
-                Designed with relationship experts
-              </h2>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500">Trusted Architecture</p>
+              <h2 className="mt-1 text-lg font-medium text-white">Designed alongside relationship experts</h2>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-sm text-neutral-500 sm:grid-cols-4">
-              <div className="rounded-full border border-neutral-200 px-4 py-2">Gottman Method</div>
-              <div className="rounded-full border border-neutral-200 px-4 py-2">Nonviolent Comm.</div>
-              <div className="rounded-full border border-neutral-200 px-4 py-2">EFT Principles</div>
-              <div className="rounded-full border border-neutral-200 px-4 py-2">Solution-Focused</div>
+            <div className="flex flex-wrap justify-center gap-3">
+              {['Gottman Method', 'Nonviolent Comm.', 'EFT Principles', 'Solution-Focused'].map(m => (
+                <div key={m} className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-xs font-medium text-zinc-400 backdrop-blur-sm">
+                  {m}
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="bg-white py-24">
+      {/* Features Grid (Bento Box Glass) */}
+      <section className="relative z-10 py-32">
         <div className="app-container">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-3xl font-semibold text-neutral-900 sm:text-4xl">
-              Everything you need to resolve conflict with confidence
+          <div className="mx-auto max-w-2xl text-center mb-16">
+            <h2 className="text-3xl font-medium tracking-tight text-white sm:text-4xl">
+              Conflict resolution, <span className="text-zinc-500">engineered for clarity.</span>
             </h2>
-            <p className="mt-4 text-base text-neutral-600">
-              Thoughtfully crafted workflows turn emotional friction into deeper understanding and practical next steps.
-            </p>
           </div>
 
-          <div className="mx-auto mt-16 grid gap-8 lg:grid-cols-3">
+          <div className="grid gap-6 lg:grid-cols-3">
             {[
               {
-                title: 'AI Mediation that understands both sides',
-                description:
-                  'Structured prompts uncover needs, emotions, and patterns. Insights are grounded in proven relationship frameworks.',
-                gradient: 'from-indigo-500/15 via-indigo-500/5 to-transparent',
-                iconPath: 'M12 6v12m6-6H6'
+                title: 'Unbiased AI Mediation',
+                desc: 'Structured prompts uncover needs and hidden patterns. Insights are grounded in proven frameworks.',
+                icon: 'M12 6v12m6-6H6',
+                color: 'text-teal-400',
+                bg: 'bg-teal-500/10 border-teal-500/20'
               },
               {
-                title: 'Shared action plans you can agree on',
-                description:
-                  'Transform tension into clarity with bite-sized commitments, progress tracking, and gentle reminders.',
-                gradient: 'from-pink-500/15 via-pink-500/5 to-transparent',
-                iconPath: 'M5 13l4 4L19 7'
+                title: 'Actionable Agreements',
+                desc: 'Transform tension into clarity with bite-sized commitments, progress tracking, and gentle reminders.',
+                icon: 'M5 13l4 4L19 7',
+                color: 'text-indigo-400',
+                bg: 'bg-indigo-500/10 border-indigo-500/20'
               },
               {
-                title: 'Weekly check-ins that spot progress',
-                description:
-                  'Visualize tone shifts, needs met, and appreciation shared so you can celebrate growth—not just fix fires.',
-                gradient: 'from-emerald-500/15 via-emerald-500/5 to-transparent',
-                iconPath: 'M4 7h16M4 12h10m-6 5h6'
+                title: 'Weekly Progress Signals',
+                desc: 'Visualize tone shifts, needs met, and appreciation shared so you can celebrate growth—not just fix fires.',
+                icon: 'M4 7h16M4 12h10m-6 5h6',
+                color: 'text-purple-400',
+                bg: 'bg-purple-500/10 border-purple-500/20'
               }
-            ].map((feature) => (
-              <div
-                key={feature.title}
-                className="group relative overflow-hidden rounded-3xl border border-neutral-100 bg-white p-8 shadow-[0_15px_45px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_25px_65px_rgba(79,70,229,0.12)]"
-              >
-                <div className={`absolute inset-0 -z-10 bg-gradient-to-br ${feature.gradient}`} />
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-md">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="h-6 w-6 text-indigo-600"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d={feature.iconPath} />
-                  </svg>
+            ].map((f) => (
+              <div key={f.title} className="group relative rounded-3xl border border-white/10 bg-white/[0.02] p-8 transition-all hover:bg-white/[0.04] hover:border-white/20">
+                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl border ${f.bg}`}>
+                  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-5 h-5 ${f.color}`}><path strokeLinecap="round" strokeLinejoin="round" d={f.icon} /></svg>
                 </div>
-                <h3 className="mt-6 text-xl font-semibold text-neutral-900">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-neutral-600">{feature.description}</p>
+                <h3 className="mt-6 text-xl font-medium text-white">{f.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-zinc-400">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="bg-neutral-50 py-24">
-        <div className="app-container">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-3xl font-semibold text-neutral-900 sm:text-4xl">How Heka guides every session</h2>
-            <p className="mt-4 text-base text-neutral-600">
-              From first prompt to resolution, each step keeps you grounded, compassionate, and moving forward together.
-            </p>
-          </div>
-
-          <div className="mt-16 grid gap-8 lg:grid-cols-3">
-            {[
-              {
-                step: '01',
-                title: 'Share both perspectives',
-                description:
-                  'Each partner answers guided questions that surface tone, needs, and the heart of the conflict—without feeling judged.'
-              },
-              {
-                step: '02',
-                title: 'Receive neutral insights',
-                description:
-                  'Heka highlights points of alignment, gently names patterns, and offers practical language to acknowledge one another.'
-              },
-              {
-                step: '03',
-                title: 'Move forward together',
-                description:
-                  'Agree on a plan with measurable next steps, keep momentum with check-ins, and track how the relationship is healing.'
-              }
-            ].map((step) => (
-              <div key={step.step} className="relative rounded-3xl border border-white bg-white p-8 shadow-lg">
-                <span className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-500">Step {step.step}</span>
-                <h3 className="mt-4 text-xl font-semibold text-neutral-900">{step.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-neutral-600">{step.description}</p>
-                <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br from-indigo-500/90 to-pink-500/80 text-center text-2xl font-semibold text-white shadow-lg">
-                  <span className="inline-flex h-full w-full items-center justify-center">{step.step}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="bg-white py-24">
-        <div className="app-container">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-3xl font-semibold text-neutral-900 sm:text-4xl">Couples are already feeling the shift</h2>
-            <p className="mt-4 text-base text-neutral-600">
-              Early access partners say their toughest conversations now end with more care, not more distance.
-            </p>
-          </div>
-
-          <div className="mt-16 grid gap-8 lg:grid-cols-3">
-            {[
-              {
-                quote:
-                  'We finally heard the why behind each other’s frustration. The insight summaries helped us validate each other immediately.',
-                name: 'Elise & Jordan',
-                meta: 'Together 6 years · Brisbane'
-              },
-              {
-                quote:
-                  'The guided prompts are magic. We stopped looping the same argument and actually built an action plan that stuck.',
-                name: 'Nina & Priya',
-                meta: 'Together 3 years · Melbourne'
-              },
-              {
-                quote:
-                  'Heka keeps us calm even when the topic is loaded. Seeing progress after each check-in keeps us motivated.',
-                name: 'Sam & Lucas',
-                meta: 'Together 8 years · Sydney'
-              }
-            ].map((testimonial) => (
-              <div key={testimonial.name} className="rounded-3xl border border-neutral-100 bg-neutral-25 p-8 shadow-inner">
-                <p className="text-sm leading-7 text-neutral-700">“{testimonial.quote}”</p>
-                <div className="mt-6">
-                  <p className="text-sm font-semibold text-neutral-900">{testimonial.name}</p>
-                  <p className="text-xs text-neutral-500">{testimonial.meta}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-indigo-500 to-pink-500 py-24">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.25),_transparent)]" />
-        </div>
+      {/* Modern Dark CTA */}
+      <section className="relative z-10 overflow-hidden border-t border-white/10 bg-black py-32">
+        <div className="absolute inset-0 bg-gradient-to-t from-teal-900/20 to-transparent" />
         <div className="app-container relative z-10">
-          <div className="mx-auto max-w-2xl text-center text-white">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">Beta launch</p>
-            <h2 className="mt-4 text-3xl font-semibold sm:text-4xl">
-              Ready to bring more grace into your next disagreement?
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-4xl font-medium tracking-tight text-white sm:text-5xl">
+              Ready to bring grace back to your conversations?
             </h2>
-            <p className="mt-4 text-base text-indigo-100">
-              Start your 7-day free trial and get full access to AI mediation, dual perspectives, and weekly relationship
-              check-ins.
+            <p className="mt-6 text-lg text-zinc-400">
+              Start your 7-day free trial. Full access to AI mediation, dual perspectives, and premium check-ins.
             </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link href="/register" className="btn-primary bg-white text-indigo-600 hover:text-indigo-700">
-                Join the beta
-              </Link>
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center rounded-full border border-white/30 px-8 py-3 text-base font-semibold text-white transition hover:border-white"
-              >
-                Explore the live demo
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/register" className="w-full sm:w-auto rounded-xl bg-teal-500 px-8 py-4 text-sm font-bold text-black transition hover:bg-teal-400 hover:scale-[1.02]">
+                Join the Private Beta
               </Link>
             </div>
-            <p className="mt-6 text-xs text-indigo-100">
-              We’ll help you onboard your partner and guide your first session step-by-step.
-            </p>
           </div>
         </div>
       </section>
