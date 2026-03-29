@@ -19,6 +19,54 @@ logger = logging.getLogger(__name__)
 
 class SubscriptionService:
     """Service for managing subscriptions."""
+
+    @staticmethod
+    def _persistable_fields(subscription: SubscriptionInDB) -> dict:
+        """Return subscription fields safe to use in a $set update."""
+        return subscription.model_dump(exclude={"id"})
+
+    @staticmethod
+    def _normalize_subscription(subscription: SubscriptionInDB) -> SubscriptionInDB:
+        """Normalize inconsistent subscription fields into a coherent state."""
+        changed = False
+        now = datetime.utcnow()
+
+        if (
+            subscription.status == SubscriptionStatus.ACTIVE
+            and subscription.tier in {SubscriptionTier.BASIC, SubscriptionTier.PREMIUM}
+        ):
+            if subscription.trial_start is not None:
+                subscription.trial_start = None
+                changed = True
+            if subscription.trial_end is not None:
+                subscription.trial_end = None
+                changed = True
+
+        if subscription.status in {SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL}:
+            if subscription.current_period_start is None:
+                subscription.current_period_start = now
+                changed = True
+            if subscription.current_period_end is None:
+                default_days = (
+                    UsageLimit.FREE_TRIAL_DAYS
+                    if subscription.status == SubscriptionStatus.TRIAL
+                    else 30
+                )
+                subscription.current_period_end = subscription.current_period_start + timedelta(days=default_days)
+                changed = True
+
+        if subscription.status == SubscriptionStatus.ACTIVE and subscription.cancelled_at is not None:
+            subscription.cancelled_at = None
+            changed = True
+
+        if subscription.status == SubscriptionStatus.EXPIRED and subscription.cancel_at_period_end:
+            subscription.cancel_at_period_end = False
+            changed = True
+
+        if changed:
+            subscription.updated_at = now
+
+        return subscription
     
     @staticmethod
     async def get_or_create_subscription(
@@ -30,7 +78,15 @@ class SubscriptionService:
         sub_doc = await db.subscriptions.find_one({"couple_id": ObjectId(couple_id)})
         
         if sub_doc:
-            return SubscriptionInDB.from_mongo(sub_doc)
+            subscription = SubscriptionInDB.from_mongo(sub_doc)
+            original = subscription.model_copy(deep=True)
+            normalized = SubscriptionService._normalize_subscription(subscription)
+            if normalized.model_dump() != original.model_dump():
+                await db.subscriptions.update_one(
+                    {"_id": ObjectId(normalized.id)},
+                    {"$set": SubscriptionService._persistable_fields(normalized)}
+                )
+            return normalized
         
         # Create free trial subscription
         trial_start = datetime.utcnow()
@@ -60,7 +116,15 @@ class SubscriptionService:
         """Get subscription for a couple."""
         sub_doc = await db.subscriptions.find_one({"couple_id": ObjectId(couple_id)})
         if sub_doc:
-            return SubscriptionInDB.from_mongo(sub_doc)
+            subscription = SubscriptionInDB.from_mongo(sub_doc)
+            original = subscription.model_copy(deep=True)
+            normalized = SubscriptionService._normalize_subscription(subscription)
+            if normalized.model_dump() != original.model_dump():
+                await db.subscriptions.update_one(
+                    {"_id": ObjectId(normalized.id)},
+                    {"$set": SubscriptionService._persistable_fields(normalized)}
+                )
+            return normalized
         return None
     
     @staticmethod
@@ -77,7 +141,15 @@ class SubscriptionService:
         )
         
         updated_doc = await db.subscriptions.find_one({"_id": ObjectId(subscription_id)})
-        return SubscriptionInDB.from_mongo(updated_doc)
+        subscription = SubscriptionInDB.from_mongo(updated_doc)
+        original = subscription.model_copy(deep=True)
+        normalized = SubscriptionService._normalize_subscription(subscription)
+        if normalized.model_dump() != original.model_dump():
+            await db.subscriptions.update_one(
+                {"_id": ObjectId(subscription_id)},
+                {"$set": SubscriptionService._persistable_fields(normalized)}
+            )
+        return normalized
     
     @staticmethod
     def is_trial_active(subscription: SubscriptionInDB) -> bool:
@@ -101,13 +173,17 @@ class SubscriptionService:
     def get_argument_limit(subscription: SubscriptionInDB) -> int:
         """Get argument limit for subscription tier."""
         if subscription.status == SubscriptionStatus.TRIAL:
+            if subscription.tier == SubscriptionTier.BASIC:
+                return UsageLimit.BASIC_MONTHLY_ARGS  # Unlimited
+            if subscription.tier == SubscriptionTier.PREMIUM:
+                return UsageLimit.PREMIUM_MONTHLY_ARGS  # Unlimited
             return UsageLimit.FREE_TRIAL_ARGS
-        if subscription.tier == SubscriptionTier.BASIC:
-            return UsageLimit.BASIC_MONTHLY_ARGS  # Unlimited
-        if subscription.tier == SubscriptionTier.PREMIUM:
-            return UsageLimit.PREMIUM_MONTHLY_ARGS  # Unlimited
+        if subscription.status == SubscriptionStatus.ACTIVE:
+            if subscription.tier == SubscriptionTier.BASIC:
+                return UsageLimit.BASIC_MONTHLY_ARGS  # Unlimited
+            if subscription.tier == SubscriptionTier.PREMIUM:
+                return UsageLimit.PREMIUM_MONTHLY_ARGS  # Unlimited
         return 0  # No subscription
 
 
 subscription_service = SubscriptionService()
-

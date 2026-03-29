@@ -71,7 +71,7 @@ async def create_argument(
     )
     
     if not is_allowed:
-        if subscription.status.value == "trial":
+        if subscription.status.value == "trial" and subscription.tier.value == "free":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Trial limit reached. You've used {current_count}/{limit} argument resolutions. Please upgrade to continue."
@@ -79,7 +79,7 @@ async def create_argument(
         else:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Usage limit reached. Please upgrade your subscription."
+                detail="Usage limit reached for the current subscription state. Please review your subscription."
             )
     
     # Validate category
@@ -397,4 +397,3 @@ async def delete_argument(
     await db.arguments.delete_one({"_id": argument_oid})
     
     return None
-

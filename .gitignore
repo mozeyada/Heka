@@ -50,6 +50,9 @@ htmlcov/
 Thumbs.db
 .DS_Store
 *:Zone.Identifier
+.codex
+.codex/
+*.mdm
 
 # Sensitive data
 secrets/

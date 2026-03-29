@@ -118,6 +118,18 @@ export default function SubscriptionPage() {
   };
 
   const getTierDisplayName = (tier: string) => tier.charAt(0).toUpperCase() + tier.slice(1);
+  const isPaidTier = subscription?.tier === 'basic' || subscription?.tier === 'premium';
+  const isFreeTrial = subscription?.status === 'trial' && subscription?.tier === 'free';
+  const isPaidTrial = subscription?.status === 'trial' && isPaidTier;
+  const isActivePaid = subscription?.status === 'active' && isPaidTier;
+  const isInactivePaid = (subscription?.status === 'cancelled' || subscription?.status === 'expired') && isPaidTier;
+  const planTitle = subscription
+    ? isFreeTrial
+      ? 'Free trial'
+      : isPaidTrial
+        ? `${getTierDisplayName(subscription.tier)} trial`
+        : `${getTierDisplayName(subscription.tier)} plan`
+    : '';
 
   const getStatusMeta = (status: string) => {
     switch (status) {
@@ -212,9 +224,13 @@ export default function SubscriptionPage() {
                     Current subscription
                   </div>
                   <h2 className="mt-5 text-3xl font-medium tracking-tight text-white">
-                    {getTierDisplayName(subscription.tier)} plan
+                    {planTitle}
                   </h2>
-                  <p className="mt-3 text-sm leading-relaxed text-zinc-400">{statusMeta?.helper}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                    {isPaidTrial
+                      ? `You are evaluating ${getTierDisplayName(subscription.tier)} during the current trial window.`
+                      : statusMeta?.helper}
+                  </p>
                 </div>
 
                 <span className={`inline-flex items-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] ${statusMeta?.className}`}>
@@ -236,10 +252,16 @@ export default function SubscriptionPage() {
                 <div className="rounded-[1.6rem] border border-white/10 bg-black/25 p-5">
                   <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Access state</p>
                   <p className="mt-3 text-lg font-semibold text-white">
-                    {subscription.status === 'trial' ? 'Trial access enabled' : 'Premium features available'}
+                    {isFreeTrial
+                      ? 'Trial access enabled'
+                      : isPaidTrial
+                        ? 'Paid plan under trial evaluation'
+                        : 'Premium features available'}
                   </p>
                   <p className="mt-2 text-sm text-zinc-500">
-                    {subscription.trial_end ? `Trial ends ${formatDate(subscription.trial_end)}` : 'Billing status managed here'}
+                    {subscription.trial_end
+                      ? `Trial ends ${formatDate(subscription.trial_end)}`
+                      : 'Billing status managed here'}
                   </p>
                 </div>
               </div>
@@ -280,6 +302,13 @@ export default function SubscriptionPage() {
                       </p>
                     </div>
                   </div>
+                ) : usage.limit === 0 ? (
+                  <div className="mt-8 rounded-[1.6rem] border border-red-500/20 bg-red-500/10 p-5">
+                    <p className="text-sm font-semibold text-red-100">No active usage allowance on this subscription state</p>
+                    <p className="mt-2 text-sm text-red-200/80">
+                      This usually means the plan is expired or cancelled. Reactivate below to restore access.
+                    </p>
+                  </div>
                 ) : (
                   <div className="mt-8 space-y-4">
                     <div className="flex items-center justify-between text-sm font-semibold text-zinc-300">
@@ -304,7 +333,7 @@ export default function SubscriptionPage() {
           </div>
         )}
 
-        {subscription && subscription.tier === 'free' && (
+        {subscription && (subscription.tier === 'free' || isInactivePaid) && (
           <div className="section-shell p-7 md:p-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="max-w-2xl">
@@ -393,16 +422,42 @@ export default function SubscriptionPage() {
           </div>
         )}
 
-        {subscription && subscription.tier !== 'free' && (
-          <div className="section-shell border border-emerald-500/20 bg-emerald-500/[0.06] p-7">
+        {subscription && subscription.tier !== 'free' && (isPaidTrial || isActivePaid || isInactivePaid) && (
+          <div
+            className={`section-shell p-7 ${
+              isPaidTrial
+                ? 'border border-teal-500/20 bg-teal-500/[0.06]'
+                : isActivePaid
+                  ? 'border border-emerald-500/20 bg-emerald-500/[0.06]'
+                  : 'border border-amber-500/20 bg-amber-500/[0.06]'
+            }`}
+          >
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                  isPaidTrial
+                    ? 'border border-teal-500/20 bg-teal-500/10 text-teal-300'
+                    : isActivePaid
+                      ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                      : 'border border-amber-500/20 bg-amber-500/10 text-amber-300'
+                }`}
+              >
                 <LockKeyhole className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-white">You are already on {getTierDisplayName(subscription.tier)}</h3>
+                <h3 className="text-xl font-semibold text-white">
+                  {isPaidTrial
+                    ? `${getTierDisplayName(subscription.tier)} is currently being evaluated`
+                    : isActivePaid
+                      ? `You are already on ${getTierDisplayName(subscription.tier)}`
+                      : `${getTierDisplayName(subscription.tier)} is not currently active`}
+                </h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-300/85">
-                  Billing is active and the relationship workflow is fully unlocked. No extra action needed from this page right now.
+                  {isPaidTrial
+                    ? 'Your paid tier has been selected and the relationship workflow should remain open during the trial window. This page should now feel informative, not contradictory.'
+                    : isActivePaid
+                      ? 'Billing is active and the relationship workflow is fully unlocked. No extra action needed from this page right now.'
+                      : 'This plan exists on the record, but access is not active. Use the plan cards above if you need to restore billing.'}
                 </p>
               </div>
             </div>
