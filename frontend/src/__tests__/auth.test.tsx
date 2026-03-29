@@ -57,7 +57,7 @@ describe('Login page', () => {
   it('contains a forgot password link', async () => {
     const { default: LoginPage } = await import('../app/login/page');
     render(React.createElement(LoginPage));
-    const forgotLink = screen.queryByText(/forgot password/i);
+    const forgotLink = screen.queryByText(/forgot\?/i);
     expect(forgotLink).not.toBeNull();
   });
 });

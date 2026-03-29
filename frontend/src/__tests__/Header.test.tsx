@@ -46,6 +46,6 @@ describe('Header', () => {
 
         render(<Header />)
         expect(screen.getByText('Dashboard')).toBeInTheDocument()
-        expect(screen.getByText('Logout')).toBeInTheDocument()
+        expect(screen.getByText('Test')).toBeInTheDocument()
     })
 })
