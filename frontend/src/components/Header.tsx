@@ -13,8 +13,7 @@ interface NavLink {
 }
 
 const publicLinks: NavLink[] = [
-  { label: 'Home', href: '/' },
-  { label: 'Pricing', href: '/subscription' },
+  { label: 'Pricing', href: '/pricing' },
   { label: 'Privacy', href: '/legal/privacy' },
   { label: 'Terms', href: '/legal/terms' },
 ];
@@ -64,24 +63,24 @@ export function Header() {
   };
 
   const links = isAuthenticated ? authenticatedLinks : publicLinks;
-  const isHomePage = pathname === '/';
+  const isMarketingPage = pathname === '/' || pathname === '/pricing';
 
   return (
     <header className={classNames(
       "border-b sticky top-0 z-40 transition-colors duration-300",
-      isHomePage 
+      isMarketingPage 
         ? "bg-black/20 backdrop-blur-xl border-white/5" 
         : "bg-surface/80 backdrop-blur-md border-white/30"
     )}>
       <div className="app-container flex h-16 items-center justify-between">
         <div className="flex items-center gap-10">
           <Link href="/" className="flex items-center gap-2">
-            {!isHomePage && <div className="h-9 w-9 rounded-xl bg-brand-gradient shadow-elevated" />}
+            {!isMarketingPage && <div className="h-9 w-9 rounded-xl bg-brand-gradient shadow-elevated" />}
             <span className={classNames(
               "font-display text-xl font-bold tracking-tight",
-              isHomePage ? "text-white" : "text-neutral-900"
+              isMarketingPage ? "text-white" : "text-neutral-900"
             )}>
-              Heka{isHomePage && <span className="text-teal-500">.</span>}
+              Heka{isMarketingPage && <span className="text-teal-500">.</span>}
             </span>
           </Link>
           <nav className="hidden items-center gap-8 text-sm font-medium lg:flex">
@@ -91,7 +90,7 @@ export function Header() {
                 href={link.href}
                 className={classNames(
                   'transition-colors ease-soft-spring',
-                  isHomePage
+                  isMarketingPage
                     ? pathname === link.href ? 'text-white' : 'text-zinc-400 hover:text-white'
                     : pathname === link.href ? 'text-neutral-900' : 'text-neutral-500 hover:text-neutral-900'
                 )}
@@ -172,7 +171,7 @@ export function Header() {
                 href="/login"
                 className={classNames(
                   "text-sm font-medium transition-colors ease-soft-spring",
-                  isHomePage ? "text-white hover:text-teal-400" : "text-neutral-600 hover:text-neutral-900"
+                  isMarketingPage ? "text-white hover:text-teal-400" : "text-neutral-600 hover:text-neutral-900"
                 )}
               >
                 Log In
@@ -181,7 +180,7 @@ export function Header() {
                 href="/register"
                 className={classNames(
                   "rounded-xl px-6 py-2.5 text-sm font-semibold transition-transform ease-soft-spring hover:-translate-y-0.5",
-                  isHomePage 
+                  isMarketingPage 
                     ? "bg-white text-black hover:scale-[1.02]" 
                     : "bg-brand-gradient text-white shadow-elevated"
                 )}
