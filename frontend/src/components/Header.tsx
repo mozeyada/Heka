@@ -63,7 +63,7 @@ export function Header() {
   };
 
   const links = isAuthenticated ? authenticatedLinks : publicLinks;
-  const isMarketingPage = pathname === '/' || pathname === '/pricing';
+  const isMarketingPage = ['/', '/pricing', '/login', '/register'].includes(pathname);
 
   return (
     <header className={classNames(
