@@ -42,7 +42,7 @@ export default function CreateCouplePage() {
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
 
   const loadPendingInvitations = useCallback(async () => {
@@ -77,11 +77,15 @@ export default function CreateCouplePage() {
     try {
       setIsLoading(true);
       setError(null);
-      setSuccess(false);
+      setSuccessMessage(null);
 
-      await couplesAPI.create(data.partner_email);
+      const response = await couplesAPI.create(data.partner_email);
 
-      setSuccess(true);
+      setSuccessMessage(
+        response.delivery_status === 'pending_retry'
+          ? 'Invitation was created, but email delivery could not be confirmed. Your partner link is saved below in pending invitations, and you can resend once mail delivery is healthy.'
+          : 'Invitation sent successfully. Your partner will receive a join link by email. Once they accept, the shared relationship workspace activates automatically.'
+      );
       reset();
       await loadPendingInvitations();
 
@@ -99,10 +103,14 @@ export default function CreateCouplePage() {
     try {
       setIsLoading(true);
       setError(null);
-      await couplesAPI.resendInvitation(invitationId);
-      setSuccess(true);
+      const response = await couplesAPI.resendInvitation(invitationId);
+      setSuccessMessage(
+        response.delivery_status === 'pending_retry'
+          ? 'The invitation is still active, but email delivery could not be confirmed. You can retry once the mail service is healthy.'
+          : 'Invitation resent successfully.'
+      );
       await loadPendingInvitations();
-      setTimeout(() => setSuccess(false), 3000);
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to resend invitation');
     } finally {
@@ -136,10 +144,10 @@ export default function CreateCouplePage() {
       />
 
       <div className="app-container max-w-5xl space-y-8">
-        {success && (
+        {successMessage && (
           <SuccessAlert
-            message="Invitation sent successfully. Your partner will receive a join link by email. Once they accept, the shared relationship workspace activates automatically."
-            onDismiss={() => setSuccess(false)}
+            message={successMessage}
+            onDismiss={() => setSuccessMessage(null)}
           />
         )}
 
@@ -267,11 +275,11 @@ export default function CreateCouplePage() {
               <div className="flex flex-wrap gap-3">
                 <button
                   type="submit"
-                  disabled={isLoading || success}
+                  disabled={isLoading}
                   className="btn-primary inline-flex items-center gap-2"
                 >
                   <SendHorizontal className="h-4 w-4" />
-                  {isLoading ? 'Sending…' : success ? 'Invitation Sent!' : 'Send Invitation'}
+                  {isLoading ? 'Sending…' : successMessage ? 'Invitation Sent!' : 'Send Invitation'}
                 </button>
                 <Link href="/dashboard" className="btn-secondary inline-flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />

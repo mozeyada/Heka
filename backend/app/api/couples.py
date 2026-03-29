@@ -91,16 +91,31 @@ async def invite_partner(
     invitation.id = str(result.inserted_id)
     
     # Send invitation email
-    await email_service.send_invitation_email(
+    email_sent = await email_service.send_invitation_email(
         to_email=partner_email,
         inviter_name=current_user.name,
         invitation_token=invitation_token
     )
+
+    if not email_sent:
+        logger.warning(
+            "Invitation created but email delivery could not be confirmed",
+            extra={
+                "invitation_id": invitation.id,
+                "invitee_email": partner_email,
+                "inviter_id": current_user.id,
+            },
+        )
     
     return {
-        "message": "Invitation sent successfully",
+        "message": (
+            "Invitation sent successfully"
+            if email_sent
+            else "Invitation created, but email delivery could not be confirmed. You can resend it from pending invitations."
+        ),
         "invitation_id": invitation.id,
-        "invitee_email": partner_email
+        "invitee_email": partner_email,
+        "delivery_status": "sent" if email_sent else "pending_retry",
     }
 
 
@@ -153,17 +168,32 @@ async def resend_invitation(
         invitation_token = invitation.token
     
     # Resend email
-    await email_service.send_invitation_email(
+    email_sent = await email_service.send_invitation_email(
         to_email=invitation.invitee_email,
         inviter_name=current_user.name,
         invitation_token=invitation_token
     )
+
+    if not email_sent:
+        logger.warning(
+            "Invitation resend attempted but email delivery could not be confirmed",
+            extra={
+                "invitation_id": invitation.id,
+                "invitee_email": invitation.invitee_email,
+                "inviter_id": current_user.id,
+            },
+        )
     
     return {
-        "message": "Invitation resent successfully",
+        "message": (
+            "Invitation resent successfully"
+            if email_sent
+            else "Invitation is still active, but email delivery could not be confirmed. Try resending again after checking the mail configuration."
+        ),
         "invitation_id": invitation.id,
         "invitee_email": invitation.invitee_email,
-        "expires_at": invitation.expires_at.isoformat()
+        "expires_at": invitation.expires_at.isoformat(),
+        "delivery_status": "sent" if email_sent else "pending_retry",
     }
 
 

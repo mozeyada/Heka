@@ -1,5 +1,6 @@
 """Email service for sending invitations and notifications."""
 
+import asyncio
 import logging
 import os
 import smtplib
@@ -20,6 +21,18 @@ class EmailService:
         self.smtp_user = settings.SMTP_USER
         self.smtp_password = settings.SMTP_PASSWORD
         self.from_email = settings.EMAIL_FROM
+        self.smtp_timeout_seconds = settings.SMTP_TIMEOUT_SECONDS
+
+    def _send_message_via_smtp(self, msg: MIMEMultipart):
+        """Send a message over SMTP with a bounded socket timeout."""
+        with smtplib.SMTP(
+            self.smtp_host,
+            self.smtp_port,
+            timeout=self.smtp_timeout_seconds,
+        ) as server:
+            server.starttls()
+            server.login(self.smtp_user, self.smtp_password)
+            server.send_message(msg)
     
     async def send_invitation_email(
         self,
@@ -102,11 +115,11 @@ The Heka Team
             msg.attach(part1)
             msg.attach(part2)
             
-            # Send email
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
+            # Keep SMTP off the async event loop and fail fast if the mail server stalls.
+            await asyncio.wait_for(
+                asyncio.to_thread(self._send_message_via_smtp, msg),
+                timeout=self.smtp_timeout_seconds + 2,
+            )
             
             logger.info(f"Invitation email sent to {to_email}")
             return True
@@ -195,11 +208,10 @@ The Heka Team
             msg.attach(part1)
             msg.attach(part2)
             
-            # Send email
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
+            await asyncio.wait_for(
+                asyncio.to_thread(self._send_message_via_smtp, msg),
+                timeout=self.smtp_timeout_seconds + 2,
+            )
             
             logger.info(f"Password reset email sent to {to_email}")
             return True
@@ -211,4 +223,3 @@ The Heka Team
 
 # Singleton instance
 email_service = EmailService()
-

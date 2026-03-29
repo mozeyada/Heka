@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
+    SMTP_TIMEOUT_SECONDS: int = 10
 
     # Sentry
     SENTRY_DSN: str = ""
