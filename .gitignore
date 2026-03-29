@@ -49,6 +49,7 @@ htmlcov/
 # OS files
 Thumbs.db
 .DS_Store
+*:Zone.Identifier
 
 # Sensitive data
 secrets/

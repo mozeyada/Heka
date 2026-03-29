@@ -64,7 +64,7 @@ describe('Login page', () => {
 
 describe('Register schema', () => {
   it('rejects passwords without an uppercase letter', async () => {
-    const { registerSchema } = await import('../app/register/page');
+    const { registerSchema } = await import('../app/register/schema');
 
     const result = registerSchema.safeParse({
       name: 'Test User',

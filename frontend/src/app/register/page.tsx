@@ -6,23 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-
-const registerFormSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  age: z.coerce.number().min(16, 'You must be at least 16 years old').max(120, 'Invalid age'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/\d/, 'Password must contain at least one number'),
-  accept_terms: z.boolean().refine((val) => val === true, 'You must accept the Terms of Service'),
-  accept_privacy: z.boolean().refine((val) => val === true, 'You must accept the Privacy Policy'),
-});
-
-type RegisterFormData = z.infer<typeof registerFormSchema>;
+import { registerSchema, type RegisterFormData } from './schema';
 
 function RegisterForm() {
   const router = useRouter();
@@ -36,7 +20,7 @@ function RegisterForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerFormSchema),
+    resolver: zodResolver(registerSchema),
   });
 
   const onSubmit = async (data: RegisterFormData) => {
