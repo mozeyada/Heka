@@ -30,18 +30,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
       </div>
 
-      {/* Nav Placeholder (In real app, this might be a Layout component, but placed here for fidelity) */}
-      <header className="fixed top-0 w-full z-50 border-b border-white/5 bg-black/20 backdrop-blur-xl">
-        <div className="app-container flex h-16 items-center justify-between">
-          <div className="text-xl font-bold tracking-tight text-white">Heka<span className="text-teal-500">.</span></div>
-          <nav className="hidden md:flex gap-8 text-sm font-medium text-zinc-400">
-            <Link href="/" className="hover:text-white transition">Home</Link>
-            <Link href="/pricing" className="hover:text-white transition">Pricing</Link>
-            <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
-          </nav>
-          <Link href="/login" className="text-sm font-medium text-white hover:text-teal-400 transition">Log In</Link>
-        </div>
-      </header>
+
 
       {/* Hero Section */}
       <section className="relative z-10 pt-40 pb-24 lg:pt-48">
