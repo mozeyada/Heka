@@ -43,10 +43,10 @@ export function LoadingSpinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
  */
 export function LoadingPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-25">
+    <div className="flex min-h-screen items-center justify-center bg-[#050505] text-zinc-400">
       <div className="text-center">
         <LoadingSpinner size="lg" />
-        <p className="mt-4 text-sm text-neutral-500">Loading…</p>
+        <p className="mt-4 text-sm text-zinc-500">Loading…</p>
       </div>
     </div>
   );

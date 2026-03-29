@@ -13,19 +13,19 @@ html {
   }
   
   .section-shell {
-    @apply rounded-2xl border border-neutral-200 bg-white shadow-lg backdrop-blur-md;
+    @apply rounded-[2rem] border border-white/10 bg-white/[0.03] shadow-[0_0_40px_rgba(15,23,42,0.28)] backdrop-blur-2xl;
   }
   
   .btn-primary {
-    @apply rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-500 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:bg-gray-300;
+    @apply rounded-xl bg-gradient-to-r from-teal-400 to-indigo-400 px-5 py-2.5 text-sm font-semibold text-black shadow-[0_0_24px_rgba(45,212,191,0.2)] transition-all hover:-translate-y-0.5 hover:shadow-[0_0_32px_rgba(99,102,241,0.22)] disabled:cursor-not-allowed disabled:opacity-60;
   }
   
   .btn-secondary {
-    @apply rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:border-gray-400 hover:bg-gray-50;
+    @apply rounded-xl border border-white/15 bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-zinc-200 transition-all hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.08];
   }
   
   .input-field {
-    @apply w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 transition-colors focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200;
+    @apply w-full rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder:text-zinc-500 transition-colors focus:border-teal-400/50 focus:outline-none focus:ring-2 focus:ring-teal-500/20;
   }
 }
 
@@ -97,4 +97,3 @@ html {
     @apply bg-background text-foreground;
   }
 }
-
