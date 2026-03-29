@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
-export const registerSchema = z.object({
+const registerFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   age: z.coerce.number().min(16, 'You must be at least 16 years old').max(120, 'Invalid age'),
@@ -22,7 +22,7 @@ export const registerSchema = z.object({
   accept_privacy: z.boolean().refine((val) => val === true, 'You must accept the Privacy Policy'),
 });
 
-type RegisterFormData = z.infer<typeof registerSchema>;
+type RegisterFormData = z.infer<typeof registerFormSchema>;
 
 function RegisterForm() {
   const router = useRouter();
@@ -36,7 +36,7 @@ function RegisterForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(registerFormSchema),
   });
 
   const onSubmit = async (data: RegisterFormData) => {
