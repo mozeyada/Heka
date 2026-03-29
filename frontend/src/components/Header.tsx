@@ -63,7 +63,7 @@ export function Header() {
   };
 
   const links = isAuthenticated ? authenticatedLinks : publicLinks;
-  const isMarketingPage = ['/', '/pricing', '/login', '/register'].includes(pathname);
+  const isMarketingPage = true; // Globally enforced Dark Mode ecosystem
 
   return (
     <header className={classNames(

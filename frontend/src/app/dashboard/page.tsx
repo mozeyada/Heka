@@ -14,6 +14,8 @@ import {
   FileText,
   Target,
   Settings as SettingsIcon,
+  Activity,
+  AlertCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useCouplesStore } from '@/store/couplesStore';
@@ -23,9 +25,6 @@ import { goalsAPI } from '@/lib/api';
 import { subscriptionsAPI } from '@/lib/api';
 import { LoadingPage } from '@/components/LoadingSpinner';
 import { ErrorAlert } from '@/components/ErrorAlert';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -93,7 +92,6 @@ export default function DashboardPage() {
         }
       }
     } catch (error: any) {
-      console.error('Failed to load dashboard data:', error);
       setError(error.response?.data?.detail || error.message || 'Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
@@ -105,17 +103,10 @@ export default function DashboardPage() {
   const usagePercentage = usage?.is_unlimited
     ? 0
     : Math.min(Math.round((usageCount / Math.max(usageLimit, 1)) * 100), 100);
-  const trialEndsOn = subscription?.trial_end ? new Date(subscription.trial_end).toLocaleDateString() : null;
 
-  if (!isAuthenticated || !user) {
-    return <LoadingPage />;
-  }
+  if (!isAuthenticated || !user) return <LoadingPage />;
+  if (loading) return <LoadingPage />;
 
-  if (loading) {
-    return <LoadingPage />;
-  }
-
-  // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -123,347 +114,264 @@ export default function DashboardPage() {
     return 'Good evening';
   };
 
-  // Extract user name: prefer user.name, fallback to email username, capitalize first letter
   const rawUserName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? 'there';
   const userName = rawUserName.charAt(0).toUpperCase() + rawUserName.slice(1).toLowerCase();
-  const elevatedCardClasses =
-    'border border-white/60 bg-white/70 backdrop-blur-xl shadow-[0_12px_30px_rgba(15,23,42,0.06)] hover:shadow-[0_24px_45px_rgba(15,23,42,0.12)] transition-all duration-300 hover:-translate-y-1';
+
+  // Premium Ecosystem Constants
+  const glassCardClasses = "rounded-3xl border border-white/10 bg-white/[0.02] p-6 shadow-2xl backdrop-blur-2xl transition-colors hover:border-white/15";
+  
   const categoryIconMap = {
-    communication: {
-      icon: MessageCircle,
-      bg: 'bg-blue-100',
-      color: 'text-blue-600',
-      text: 'communication',
-    },
-    values: {
-      icon: Heart,
-      bg: 'bg-rose-100',
-      color: 'text-rose-600',
-      text: 'values alignment',
-    },
-    trust: {
-      icon: Shield,
-      bg: 'bg-indigo-100',
-      color: 'text-indigo-600',
-      text: 'trust & safety',
-    },
+    communication: { icon: MessageCircle, bg: 'bg-teal-500/10', color: 'text-teal-400', text: 'communication' },
+    values: { icon: Heart, bg: 'bg-indigo-500/10', color: 'text-indigo-400', text: 'values alignment' },
+    trust: { icon: Shield, bg: 'bg-purple-500/10', color: 'text-purple-400', text: 'trust & safety' },
   } as const;
-  const defaultCategoryIcon = {
-    icon: MessageCircle,
-    bg: 'bg-slate-200',
-    color: 'text-slate-500',
-    text: 'relationship',
-  };
+
+  const defaultCategoryIcon = { icon: MessageCircle, bg: 'bg-white/5', color: 'text-white', text: 'relationship' };
   const getCategoryIconConfig = (category?: string) => {
     const key = (category ?? '').toLowerCase() as keyof typeof categoryIconMap;
     return categoryIconMap[key] ?? defaultCategoryIcon;
   };
-  const navItems: Array<{ label: string; href: string; icon: LucideIcon }> = [
+
+  const navItems = [
     { label: 'Home', href: '/dashboard', icon: Home },
     { label: 'Issues', href: '/arguments', icon: FileText },
     { label: 'Goals', href: '/goals', icon: Target },
     { label: 'Settings', href: '/settings', icon: SettingsIcon },
   ];
 
-  return (
-    <div className="bg-slate-100/80 min-h-screen pb-32">
-      <div className="app-container py-8 space-y-6 pb-28">
-        {error && (
-          <ErrorAlert message={error} onRetry={loadDashboardData} onDismiss={() => setError(null)} />
-        )}
+  // Relationship Pulse Math (Smart UI)
+  const activeIssuesCount = args.filter(a => a.status !== 'resolved').length;
+  const isHealthy = activeIssuesCount === 0;
 
-        {/* Hero Section - Warm Greeting */}
-        <div className="space-y-2 animate-fade-in" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-            {getGreeting()}, {userName}.
-          </h1>
-          <p className="text-base font-medium text-slate-500">Your relationship pulse.</p>
+  return (
+    <div className="min-h-screen text-zinc-300 antialiased font-sans pb-32">
+      {/* Immersive Space Background */}
+      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div className="absolute top-[10%] left-[-10%] h-[50vh] w-[50vh] rounded-full bg-teal-900/20 blur-[150px]" />
+        <div className="absolute top-[40%] right-[-10%] h-[60vh] w-[60vh] rounded-full bg-indigo-900/20 blur-[150px]" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+      </div>
+
+      <div className="app-container py-8 space-y-8 pb-28">
+        {error && <ErrorAlert message={error} onRetry={loadDashboardData} onDismiss={() => setError(null)} />}
+
+        {/* Smart Relationship Pulse Component */}
+        <div className="flex items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="relative flex shrink-0 h-20 w-20 items-center justify-center rounded-full bg-black border border-white/10 shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+            <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="46" fill="transparent" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+              <circle 
+                cx="50" cy="50" r="46" fill="transparent" strokeWidth="6" 
+                strokeDasharray="289" strokeDashoffset={isHealthy ? 0 : 70} 
+                className={`transition-all duration-1000 ${isHealthy ? 'stroke-teal-500' : 'stroke-orange-500'}`} 
+              />
+            </svg>
+            <Activity className={`z-10 h-8 w-8 ${isHealthy ? 'text-teal-400 animate-pulse' : 'text-orange-400'}`} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-medium tracking-tight text-white mb-1">
+              {getGreeting()}, <span className="text-teal-400">{userName}</span>.
+            </h1>
+            <p className="text-sm font-medium text-zinc-400">
+              {isHealthy ? 'Your relationship pulse is stable.' : 'There are active issues awaiting mediation.'}
+            </p>
+          </div>
         </div>
 
-        {/* Primary Action Card - Start New Session */}
-        <Card
-          className={`${elevatedCardClasses} relative overflow-hidden bg-gradient-to-br from-primary/20 via-primary/5 to-white/50 animate-slide-up`}
-          style={{ animationDelay: '200ms', animationFillMode: 'both' }}
-        >
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(147,51,234,0.2),transparent_50%)]" />
-          <CardContent className="relative p-6">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1.5 flex-1">
-                <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                  Resolve a Conflict
-                </h2>
-                <p className="text-sm text-muted-foreground max-w-[280px]">
-                  Feeling heard is the first step. Start a guided AI mediation session now.
-                </p>
+        {/* SOS Protocol Component */}
+        <div className="relative overflow-hidden rounded-[2.5rem] border border-teal-500/30 bg-white/[0.03] p-8 shadow-[0_0_50px_rgba(20,184,166,0.05)] backdrop-blur-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
+          <div className="absolute -inset-1 bg-gradient-to-r from-teal-500/20 to-indigo-500/20 blur-2xl opacity-50 z-[-1]" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 mb-2">
+                <Sparkles className="h-3.5 w-3.5 text-teal-400" />
+                <span className="text-[10px] uppercase tracking-widest text-teal-300 font-bold">AI Mediation console</span>
               </div>
-              {/* Decorative Icon */}
-              <div className="p-3 bg-primary/10 rounded-2xl ml-4">
-                <Sparkles className="h-6 w-6 text-primary" />
+              <h2 className="text-2xl font-bold tracking-tight text-white">Resolve a Conflict</h2>
+              <p className="text-sm text-zinc-400 max-w-sm">
+                Feeling heard is the first step. Start a guided, neutral space mediation session right now.
+              </p>
+            </div>
+            
+            <div className="w-full sm:w-auto shrink-0 flex flex-col items-center">
+              <button 
+                onClick={() => router.push('/arguments/create')} 
+                disabled={!couple}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.15)] transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <MessageCircle className="h-5 w-5" />
+                Start Protocol
+              </button>
+              {!couple && <span className="mt-3 text-[10px] uppercase tracking-widest text-orange-400">Link Partner Required</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Dynamic Bento Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+          
+          {/* Smart Check-in Telemetry */}
+          <div className={`${glassCardClasses} flex flex-col`}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">Weekly Check-in</h3>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white">
+                <FileText className="h-4 w-4" />
               </div>
             </div>
-            <Button
-              className="w-full mt-8 gap-2 shadow-[0_8px_20px_rgba(147,51,234,0.25)] hover:shadow-[0_12px_25px_rgba(147,51,234,0.35)] transition-all h-12 text-base bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white border-0"
-              size="lg"
-              onClick={() => router.push('/arguments/create')}
-              disabled={!couple}
-            >
-              <MessageCircle className="h-4 w-4" />
-              Start New Session
-            </Button>
-            {!couple && (
-              <p className="mt-3 text-xs text-muted-foreground text-center">
-                Connect with your partner to start
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Status Grid - 2 Columns (Fixed Layout) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch animate-slide-up" style={{ animationDelay: '300ms', animationFillMode: 'both' }}>
-          {/* Weekly Check-in Card */}
-          <Card className={`${elevatedCardClasses} h-full flex flex-col`}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                  Weekly Check-in
-                </CardTitle>
-                <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center">
-                  {currentCheckin?.status === 'completed' ? (
-                    <Sparkles className="h-5 w-5 text-primary" />
-                  ) : (
-                    <FileText className="h-5 w-5 text-slate-500" />
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
-              <div className="flex-1">
-                {currentCheckin?.status === 'completed' ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100">
-                        <p className="text-xs font-bold text-emerald-600">✓</p>
-                      </div>
-                      <p className="text-sm text-emerald-600 font-semibold">Completed</p>
-                    </div>
-                    {currentCheckin.ai_harmony_report ? (
-                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-2 opacity-10 pointer-events-none">
-                          <Sparkles className="h-12 w-12 text-primary" />
-                        </div>
-                        <h4 className="text-xs font-bold text-primary mb-2 flex items-center gap-1.5 uppercase tracking-wider">
-                          <Sparkles className="h-3.5 w-3.5" />
-                          Heka Insights
-                        </h4>
-                        <div className="text-sm text-slate-700 leading-relaxed max-h-[140px] overflow-y-auto pr-2 custom-scrollbar space-y-2">
-                          {/* Render markdown-style paragraphs simply by splitting on newlines for now */}
-                          {currentCheckin.ai_harmony_report.split('\n\n').map((paragraph: string, idx: number) => (
-                            <p key={idx}>{paragraph}</p>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="rounded-xl bg-slate-50 p-4 border border-slate-100 flex flex-col items-center justify-center text-center space-y-2 py-6">
-                        <Sparkles className="h-6 w-6 text-slate-400 animate-pulse" />
-                        <p className="text-sm font-medium text-slate-600">Analyzing responses...</p>
-                        <p className="text-xs text-slate-500">Your Harmony Report will appear here shortly.</p>
-                      </div>
-                    )}
+            
+            <div className="flex-1 space-y-4">
+              {currentCheckin?.status === 'completed' ? (
+                <>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 border border-emerald-500/20">
+                    <span className="animate-pulse h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Analysis Complete</span>
                   </div>
-                ) : currentCheckin?.status === 'awaiting_partner' ? (
-                  <>
-                    <p className="text-4xl font-bold text-slate-900">⧖</p>
-                    <p className="mt-1 text-sm text-amber-600 font-medium flex items-center gap-1">
-                      <span className="flex h-2 w-2 animate-pulse rounded-full bg-amber-500"></span>
-                      Waiting on Partner
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-4xl font-bold text-slate-900">—</p>
-                    <p className="mt-1 text-sm text-slate-600 font-medium">Pending</p>
-                  </>
-                )}
-              </div>
-              <Button
-                className="w-full bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white border-0 shadow-[0_4px_12px_rgba(15,23,42,0.15)] hover:shadow-[0_6px_16px_rgba(15,23,42,0.2)] transition-all h-10 font-medium mt-4"
-                asChild
-              >
-                <Link href="/checkins/current">
-                  {currentCheckin?.status === 'completed' ? 'View Full Reflection' : 'Complete Now'}
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Active Goals Card */}
-          <Card className={`${elevatedCardClasses} h-full flex flex-col`}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                  Active Goals
-                </CardTitle>
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                  <Target className="h-5 w-5" />
+                  {currentCheckin.ai_harmony_report ? (
+                    <div className="rounded-2xl bg-black/40 border border-white/5 p-5 mt-4 text-sm leading-relaxed text-zinc-300">
+                      <div className="border-l-2 border-teal-500 pl-4">
+                        {currentCheckin.ai_harmony_report.split('\n\n').map((p: string, i: number) => <p key={i} className="mb-2 last:mb-0">{p}</p>)}
+                      </div>
+                    </div>
+                  ) : (
+                     <div className="rounded-2xl bg-black/40 border border-white/5 p-6 mt-4 flex items-center gap-4">
+                        <Sparkles className="h-5 w-5 text-zinc-500 animate-pulse" />
+                        <p className="text-xs text-zinc-500 font-medium">Synthesizing Harmony Report...</p>
+                     </div>
+                  )}
+                </>
+              ) : currentCheckin?.status === 'awaiting_partner' ? (
+                <div className="flex items-center gap-4 py-4">
+                  <div className="h-10 w-10 shrink-0 rounded-full border-2 border-dashed border-orange-500/50 flex items-center justify-center text-orange-400">
+                     <AlertCircle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Pending Sync</p>
+                    <p className="text-[11px] text-zinc-500">Awaiting your partner's responses to generate insights.</p>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 flex-1 flex flex-col justify-between">
-              <div>
-                <p className="text-5xl font-bold text-primary leading-none">{goals.length}</p>
-                <p className="mt-2 text-sm text-slate-500">
-                  {goals.length === 1 ? 'Active Goal' : 'Active Goals'}
-                </p>
-                {goals.length === 0 && (
-                  <Link href="/goals" className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Explore AI Suggestions
-                  </Link>
-                )}
-              </div>
-              <Button
-                className="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-[0_2px_8px_rgba(15,23,42,0.06)] hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)] transition-all h-10 font-medium mt-4"
-                asChild
-              >
-                <Link href="/goals">View Goals</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Active Issues / Recent Arguments */}
-        <Card className={`${elevatedCardClasses} animate-slide-up`} style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Active Issues</CardTitle>
-              {couple && args.filter(a => a.status !== 'resolved').length > 0 && (
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/arguments">View All</Link>
-                </Button>
+              ) : (
+                <div className="py-4">
+                  <p className="text-3xl font-light text-white mb-2">—</p>
+                  <p className="text-sm font-medium text-zinc-500">Pending Alignment Check</p>
+                </div>
               )}
             </div>
-          </CardHeader>
-          <CardContent>
-            {args.filter(a => a.status !== 'resolved').length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground mb-4">
-                  No active conflicts. You're in a good place.
-                </p>
-                {couple && (
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push('/arguments/create')}
-                  >
-                    Start New Session
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {args.filter(a => a.status !== 'resolved').slice(0, 3).map((arg) => {
-                  const { icon: CategoryIcon, bg, color, text } = getCategoryIconConfig(arg.category);
-                  return (
-                    <button
-                      key={arg.id}
-                      onClick={() => router.push(`/arguments/${arg.id}`)}
-                      className="w-full flex items-center gap-4 p-3 rounded-xl text-left transition-colors hover:bg-slate-50 group"
-                    >
-                      <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${bg} ${color}`}>
-                        <CategoryIcon className="h-5 w-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-slate-900 truncate pr-4">{arg.title}</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge
-                            variant="secondary"
-                            className="text-[10px] px-1.5 h-5 font-medium bg-slate-100 text-slate-500 border-0"
-                          >
-                            {arg.status}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground capitalize truncate">
-                            {text}
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Couple Status */}
-        {!couple && (
-          <Card className={`${elevatedCardClasses} bg-primary/5 animate-slide-up`} style={{ animationDelay: '500ms', animationFillMode: 'both' }}>
-            <CardContent className="p-6">
-              <h3 className="text-sm font-semibold text-foreground mb-1">Connect with Your Partner</h3>
-              <p className="text-xs text-muted-foreground mb-4">
-                Invite your partner to unlock shared insights and collaborative mediation.
-              </p>
-              <Button
-                size="sm"
-                onClick={() => router.push('/couples/create')}
-              >
-                Create Couple Profile
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Subscription/Usage - Subtle Bottom Section */}
-        {subscription && !usage?.is_unlimited && usageLimit > 0 && (
-          <Card className={`${elevatedCardClasses} animate-slide-up`} style={{ animationDelay: '600ms', animationFillMode: 'both' }}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Plan Status</p>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/subscription">View Options</Link>
-                </Button>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">
-                    {usageCount} of {usageLimit} free sessions used
-                  </span>
-                  <span className="text-muted-foreground">{usagePercentage}%</span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${usageCount >= usageLimit ? 'bg-destructive' : 'bg-primary'
-                      }`}
-                    style={{ width: `${usagePercentage}%` }}
-                  />
-                </div>
-                {subscription.tier === 'free' && trialEndsOn && (
-                  <p className="text-xs text-muted-foreground">
-                    Trial ends {trialEndsOn}
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-      <nav className="fixed md:hidden bottom-0 left-0 right-0 border-t bg-white/80 backdrop-blur-lg shadow-[0_-4px_12px_rgba(15,23,42,0.12)]">
-        <div className="app-container">
-          <div className="flex items-center justify-between py-4">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex flex-col items-center gap-1 text-xs font-medium"
-                >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-primary' : 'text-slate-400'}`} />
-                  <span className={isActive ? 'text-primary' : 'text-slate-500'}>{item.label}</span>
-                </Link>
-              );
-            })}
+            
+            <button 
+              onClick={() => router.push('/checkins/current')}
+              className="mt-8 w-full rounded-xl border border-white/10 bg-black/50 py-3 text-xs font-semibold text-white transition hover:bg-white/10"
+            >
+              {currentCheckin?.status === 'completed' ? 'View Full Telemetry' : 'Complete Sync'}
+            </button>
           </div>
+
+          {/* Proactive Goals Module */}
+          <div className={`${glassCardClasses} flex flex-col`}>
+             <div className="flex items-center justify-between mb-6">
+              <h3 className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">Growth Objectives</h3>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white">
+                <Target className="h-4 w-4" />
+              </div>
+            </div>
+
+            <div className="flex-1 space-y-6">
+              <div>
+                <p className="text-4xl font-medium text-white mb-1">{goals.length}</p>
+                <p className="text-xs text-zinc-500">Active relationship goals being tracked.</p>
+              </div>
+
+              {/* The "Smart" Proactive Empty State */}
+              {goals.length === 0 && (
+                <div className="rounded-2xl border border-indigo-500/30 bg-indigo-500/5 p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                     <Sparkles className="h-4 w-4 text-indigo-400" />
+                     <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-300">AI PROACTIVE SUGGESTION</h4>
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed mb-4">
+                    Couples who establish micro-goals resolve conflicts 40% faster. Try setting a goal to dedicate 10 minutes to active listening this week.
+                  </p>
+                  <Link href="/goals" className="inline-flex text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition">
+                    Enable Goal Tracking →
+                  </Link>
+                </div>
+              )}
+            </div>
+            
+            <button 
+              onClick={() => router.push('/goals')}
+              className="mt-8 w-full rounded-xl border border-white/10 bg-black/50 py-3 text-xs font-semibold text-white transition hover:bg-white/10"
+            >
+               Manage Objectives
+            </button>
+          </div>
+        </div>
+
+        {/* Active Issues Engine */}
+        <div className={`${glassCardClasses} animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300`}>
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">Active Mediation Logs</h3>
+            {couple && activeIssuesCount > 0 && (
+              <Link href="/arguments" className="text-xs font-semibold text-teal-400 hover:text-teal-300 transition">View Archive</Link>
+            )}
+          </div>
+
+          {activeIssuesCount === 0 ? (
+             <div className="rounded-2xl bg-black/20 border border-white/5 p-8 text-center flex flex-col items-center">
+                 <Shield className="h-10 w-10 text-emerald-500/50 mb-4" />
+                 <p className="text-sm font-medium text-white">No active conflicts detected.</p>
+                 <p className="text-xs text-zinc-500 mt-2">Your relationship vector is fundamentally aligned.</p>
+             </div>
+          ) : (
+            <div className="space-y-3">
+              {args.filter(a => a.status !== 'resolved').slice(0, 3).map((arg) => {
+                const { icon: CategoryIcon, bg, color, text } = getCategoryIconConfig(arg.category);
+                return (
+                  <button key={arg.id} onClick={() => router.push(`/arguments/${arg.id}`)} className="w-full flex items-center justify-between rounded-2xl border border-white/5 bg-black/20 p-4 transition-colors hover:bg-white/5 group">
+                    <div className="flex items-center gap-4 min-w-0 pr-4">
+                       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${bg} ${color} border border-white/5`}>
+                          <CategoryIcon className="h-4 w-4" />
+                       </div>
+                       <div className="flex flex-col items-start min-w-0">
+                          <span className="truncate text-sm font-semibold text-white max-w-[200px] sm:max-w-xs">{arg.title}</span>
+                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">{text}</span>
+                       </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-zinc-600 transition-colors group-hover:text-white" />
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Coupling CTA */}
+        {!couple && (
+          <div className="relative rounded-3xl border border-orange-500/30 bg-orange-500/10 p-8 backdrop-blur-2xl">
+            <h3 className="text-sm font-semibold text-white mb-2">Initialize Partner Sync</h3>
+            <p className="text-xs text-orange-200/70 mb-5 max-w-sm">
+              The AI Engine requires two perspectives. Connect with your partner to enable collaborative empathy alignment.
+            </p>
+            <button onClick={() => router.push('/couples/create')} className="rounded-xl bg-orange-500 px-5 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(249,115,22,0.3)] transition hover:scale-105">
+               Generate Link Code
+            </button>
+          </div>
+        )}
+
+      </div>
+
+      {/* Floating Dark Glass Mobile Navigation */}
+      <nav className="fixed md:hidden bottom-0 left-0 right-0 z-50 p-4 pb-6 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none">
+        <div className="mx-auto flex max-w-sm items-center justify-between rounded-2xl border border-white/10 bg-[#0a0a0a]/80 px-6 py-4 shadow-2xl backdrop-blur-3xl pointer-events-auto">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link key={item.href} href={item.href} className="flex flex-col items-center gap-1.5 transition-transform hover:scale-110">
+                <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-teal-400' : 'text-zinc-600'}`} />
+                <span className={`text-[9px] font-bold uppercase tracking-wider ${isActive ? 'text-teal-400' : 'text-zinc-600'}`}>{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
       </nav>
     </div>

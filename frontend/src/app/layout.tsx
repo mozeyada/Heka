@@ -20,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
-      <body className="bg-neutral-25 text-neutral-900 flex min-h-screen flex-col">
+      <body className="bg-[#050505] text-zinc-300 flex min-h-screen flex-col antialiased selection:bg-teal-500/30">
         <AuthInitializer />
         <Header />
         <main className="flex-grow">
