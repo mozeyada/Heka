@@ -1,5 +1,28 @@
 import { z } from 'zod';
 
+export const passwordRequirementChecks = [
+  {
+    id: 'min-length',
+    label: 'At least 8 characters',
+    test: (value: string) => value.length >= 8,
+  },
+  {
+    id: 'uppercase',
+    label: 'One uppercase letter',
+    test: (value: string) => /[A-Z]/.test(value),
+  },
+  {
+    id: 'lowercase',
+    label: 'One lowercase letter',
+    test: (value: string) => /[a-z]/.test(value),
+  },
+  {
+    id: 'number',
+    label: 'One number',
+    test: (value: string) => /\d/.test(value),
+  },
+] as const;
+
 export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),

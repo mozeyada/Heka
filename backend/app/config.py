@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_TIMEOUT_SECONDS: int = 10
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # Sentry
     SENTRY_DSN: str = ""
@@ -99,6 +100,8 @@ class Settings(BaseSettings):
                 raise ValueError('Production MongoDB must use SSL (mongodb+srv:// or ssl=true)')
             if '@' not in self.MONGODB_URL:
                 raise ValueError('Production MongoDB must have authentication configured')
+            if not self.FRONTEND_URL.startswith('https://'):
+                raise ValueError(f'Production FRONTEND_URL must use HTTPS: {self.FRONTEND_URL}')
             origins = self.ALLOWED_ORIGINS if isinstance(self.ALLOWED_ORIGINS, list) else [self.ALLOWED_ORIGINS]
             for origin in origins:
                 if not origin.startswith('https://'):

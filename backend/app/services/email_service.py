@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -22,6 +21,7 @@ class EmailService:
         self.smtp_password = settings.SMTP_PASSWORD
         self.from_email = settings.EMAIL_FROM
         self.smtp_timeout_seconds = settings.SMTP_TIMEOUT_SECONDS
+        self.frontend_url = settings.FRONTEND_URL.rstrip("/")
 
     def _send_message_via_smtp(self, msg: MIMEMultipart):
         """Send a message over SMTP with a bounded socket timeout."""
@@ -33,6 +33,11 @@ class EmailService:
             server.starttls()
             server.login(self.smtp_user, self.smtp_password)
             server.send_message(msg)
+
+    def _frontend_link(self, path: str) -> str:
+        """Build an absolute frontend URL without double slashes."""
+        normalized_path = path if path.startswith("/") else f"/{path}"
+        return f"{self.frontend_url}{normalized_path}"
     
     async def send_invitation_email(
         self,
@@ -47,7 +52,7 @@ class EmailService:
             logger.info("INVITATION EMAIL (DEV MODE):")
             logger.info(f"  To: {to_email}")
             logger.info(f"  From: {inviter_name}")
-            logger.info(f"  Invitation Link: http://localhost:3000/invite/{invitation_token}")
+            logger.info(f"  Invitation Link: {self._frontend_link(f'/invite/{invitation_token}')}")
             logger.info("  (In production, this would send an actual email)")
             return True
         
@@ -65,10 +70,7 @@ class EmailService:
                 msg['From'] = f'{display_name} <{self.from_email}>'
             msg['To'] = to_email
             
-            # Email content
-            # In development, use localhost. In production, use actual domain
-            base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-            invitation_url = f"{base_url}/invite/{invitation_token}"
+            invitation_url = self._frontend_link(f"/invite/{invitation_token}")
             
             text = f"""
 Hi there!
@@ -140,7 +142,7 @@ The Heka Team
             # In development, log instead of sending
             logger.info("PASSWORD RESET EMAIL (DEV MODE):")
             logger.info(f"  To: {to_email}")
-            logger.info(f"  Reset Link: http://localhost:3000/reset-password?token={reset_token}")
+            logger.info(f"  Reset Link: {self._frontend_link(f'/reset-password?token={reset_token}')}")
             logger.info("  (In production, this would send an actual email)")
             return True
         
@@ -156,8 +158,7 @@ The Heka Team
                 msg['From'] = f'{display_name} <{self.from_email}>'
             msg['To'] = to_email
             
-            base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-            reset_url = f"{base_url}/reset-password?token={reset_token}"
+            reset_url = self._frontend_link(f"/reset-password?token={reset_token}")
             
             text = f"""
 Hi {user_name},

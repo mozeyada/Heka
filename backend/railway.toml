@@ -23,10 +23,10 @@ retries = 3
 # - ALLOWED_ORIGINS
 # Optional:
 # - ENVIRONMENT=production
+# - FRONTEND_URL=https://heka-nine.vercel.app
 # - SENTRY_DSN
 # - STRIPE_SECRET_KEY
 # - STRIPE_PUBLISHABLE_KEY
 # - STRIPE_WEBHOOK_SECRET
 # - SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
-
 

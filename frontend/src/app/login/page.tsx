@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,6 +21,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const { login } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const inviteToken = searchParams?.get('invite');
 
   const {
@@ -102,7 +104,7 @@ function LoginForm() {
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
-            <div>
+            <div className="relative">
               <label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                 Email address
               </label>
@@ -129,11 +131,19 @@ function LoginForm() {
               <input
                 id="password"
                 {...register('password')}
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition duration-200"
+                className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pr-12 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition duration-200"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-3 top-[2.15rem] inline-flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-white/5 hover:text-zinc-200"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
               {errors.password && <p className="mt-2 text-xs font-semibold text-red-400">{errors.password.message}</p>}
             </div>
 
