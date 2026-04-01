@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -40,29 +40,13 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    if (!isAuthenticated || !user) {
-      fetchCurrentUser();
-    }
-
-    if (isAuthenticated && user) {
-      loadDashboardData();
-    }
-  }, [isAuthenticated, user, router, fetchCurrentUser]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      await fetchMyCouple();
+      const fetchedCouple = await fetchMyCouple();
       await fetchArguments();
 
-      if (couple) {
+      if (fetchedCouple) {
         try {
           const checkin = await checkinsAPI.getCurrent();
           setCurrentCheckin(checkin);
@@ -97,7 +81,22 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchArguments, fetchMyCouple]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    if (!isAuthenticated || !user) {
+      fetchCurrentUser();
+      return;
+    }
+
+    loadDashboardData();
+  }, [isAuthenticated, user, router, fetchCurrentUser, loadDashboardData]);
 
   const usageCount = usage?.usage_count ?? 0;
   const usageLimit = usage?.limit ?? 0;
@@ -359,7 +358,7 @@ export default function DashboardPage() {
               The AI Engine requires two perspectives. Connect with your partner to enable collaborative empathy alignment.
             </p>
             <button onClick={() => router.push('/couples/create')} className="rounded-xl bg-orange-500 px-5 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(249,115,22,0.3)] transition hover:scale-105">
-               Generate Link Code
+               Link Your Partner
             </button>
           </div>
         )}

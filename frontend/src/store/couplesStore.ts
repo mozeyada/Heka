@@ -16,7 +16,7 @@ interface CouplesState {
   isLoading: boolean;
   
   createCouple: (partnerEmail: string) => Promise<void>;
-  fetchMyCouple: () => Promise<void>;
+  fetchMyCouple: () => Promise<Couple | null>;
   clearCouple: () => void;
 }
 
@@ -40,10 +40,12 @@ export const useCouplesStore = create<CouplesState>((set) => ({
     try {
       const couple = await couplesAPI.getMyCouple();
       set({ couple, isLoading: false });
+      return couple;
     } catch (error: any) {
       if (error.response?.status === 404) {
         // No couple found - this is OK
         set({ couple: null, isLoading: false });
+        return null;
       } else {
         set({ isLoading: false });
         throw error;
@@ -55,4 +57,3 @@ export const useCouplesStore = create<CouplesState>((set) => ({
     set({ couple: null });
   },
 }));
-
