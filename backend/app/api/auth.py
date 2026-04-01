@@ -1,5 +1,6 @@
 """Authentication endpoints."""
 
+import logging
 import secrets
 from datetime import datetime, timedelta
 
@@ -30,6 +31,7 @@ from app.services.refresh_token_service import (
 )
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -288,11 +290,20 @@ async def forgot_password(
     )
     
     # Send email
-    await email_service.send_password_reset_email(
+    delivery = await email_service.send_password_reset_email(
         to_email=user.email,
         user_name=user.name,
         reset_token=reset_token
     )
+
+    if not delivery.success:
+        logger.warning(
+            "Password reset email delivery could not be confirmed email=%s delivery_status=%s error_code=%s error_message=%s",
+            user.email,
+            delivery.status,
+            delivery.error_code,
+            delivery.error_message,
+        )
     
     return {"message": "If an account exists, a reset email has been sent."}
 
@@ -325,4 +336,3 @@ async def reset_password(
     )
     
     return {"message": "Password successfully reset. You can now log in."}
-

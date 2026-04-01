@@ -3,12 +3,23 @@
 import asyncio
 import logging
 import smtplib
+from dataclasses import dataclass
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class EmailDeliveryResult:
+    """Structured result for email delivery attempts."""
+
+    success: bool
+    status: str
+    error_code: str | None = None
+    error_message: str | None = None
 
 
 class EmailService:
@@ -38,13 +49,56 @@ class EmailService:
         """Build an absolute frontend URL without double slashes."""
         normalized_path = path if path.startswith("/") else f"/{path}"
         return f"{self.frontend_url}{normalized_path}"
+
+    def _mask_email(self, value: str | None) -> str | None:
+        """Mask an email address for logs."""
+        if not value or "@" not in value:
+            return value
+        local, domain = value.split("@", 1)
+        if len(local) <= 2:
+            masked_local = f"{local[0]}***" if local else "***"
+        else:
+            masked_local = f"{local[:2]}***{local[-1]}"
+        return f"{masked_local}@{domain}"
+
+    def _smtp_snapshot(self) -> dict:
+        """Safe SMTP snapshot for diagnostics without leaking secrets."""
+        return {
+            "smtp_host": self.smtp_host,
+            "smtp_port": self.smtp_port,
+            "smtp_user": self._mask_email(self.smtp_user),
+            "email_from": self._mask_email(self.from_email),
+            "smtp_password_present": bool(self.smtp_password),
+            "smtp_timeout_seconds": self.smtp_timeout_seconds,
+            "frontend_url": self.frontend_url,
+        }
+
+    def _classify_email_error(self, exc: Exception) -> tuple[str, str]:
+        """Classify SMTP failures into actionable categories."""
+        if isinstance(exc, asyncio.TimeoutError):
+            return "smtp_timeout", "SMTP connection or delivery timed out"
+        if isinstance(exc, smtplib.SMTPAuthenticationError):
+            return "smtp_auth_failed", "SMTP authentication failed"
+        if isinstance(exc, smtplib.SMTPConnectError):
+            return "smtp_connect_failed", "SMTP connection could not be established"
+        if isinstance(exc, smtplib.SMTPServerDisconnected):
+            return "smtp_server_disconnected", "SMTP server disconnected unexpectedly"
+        if isinstance(exc, smtplib.SMTPRecipientsRefused):
+            return "smtp_recipient_refused", "Recipient was refused by the SMTP provider"
+        if isinstance(exc, smtplib.SMTPSenderRefused):
+            return "smtp_sender_refused", "Sender address was refused by the SMTP provider"
+        if isinstance(exc, smtplib.SMTPException):
+            return "smtp_error", str(exc)
+        if isinstance(exc, OSError):
+            return "network_error", str(exc)
+        return "unknown_error", str(exc)
     
     async def send_invitation_email(
         self,
         to_email: str,
         inviter_name: str,
         invitation_token: str
-    ) -> bool:
+    ) -> EmailDeliveryResult:
         """Send couple invitation email."""
         
         if not self.smtp_host:
@@ -54,7 +108,7 @@ class EmailService:
             logger.info(f"  From: {inviter_name}")
             logger.info(f"  Invitation Link: {self._frontend_link(f'/invite/{invitation_token}')}")
             logger.info("  (In production, this would send an actual email)")
-            return True
+            return EmailDeliveryResult(success=True, status="dev_log_only")
         
         try:
             # Create message
@@ -116,6 +170,12 @@ The Heka Team
             part2 = MIMEText(html, 'html')
             msg.attach(part1)
             msg.attach(part2)
+
+            logger.info(
+                "email_delivery_attempt kind=invitation to=%s smtp=%s",
+                self._mask_email(to_email),
+                self._smtp_snapshot(),
+            )
             
             # Keep SMTP off the async event loop and fail fast if the mail server stalls.
             await asyncio.wait_for(
@@ -123,19 +183,31 @@ The Heka Team
                 timeout=self.smtp_timeout_seconds + 2,
             )
             
-            logger.info(f"Invitation email sent to {to_email}")
-            return True
+            logger.info("email_delivery_succeeded kind=invitation to=%s", self._mask_email(to_email))
+            return EmailDeliveryResult(success=True, status="sent")
             
         except Exception as e:
-            logger.error(f"Failed to send invitation email: {e}")
-            return False
+            error_code, safe_message = self._classify_email_error(e)
+            logger.exception(
+                "email_delivery_failed kind=invitation to=%s error_code=%s error_message=%s smtp=%s",
+                self._mask_email(to_email),
+                error_code,
+                safe_message,
+                self._smtp_snapshot(),
+            )
+            return EmailDeliveryResult(
+                success=False,
+                status="pending_retry",
+                error_code=error_code,
+                error_message=safe_message,
+            )
 
     async def send_password_reset_email(
         self,
         to_email: str,
         user_name: str,
         reset_token: str
-    ) -> bool:
+    ) -> EmailDeliveryResult:
         """Send password reset email."""
         
         if not self.smtp_host:
@@ -144,7 +216,7 @@ The Heka Team
             logger.info(f"  To: {to_email}")
             logger.info(f"  Reset Link: {self._frontend_link(f'/reset-password?token={reset_token}')}")
             logger.info("  (In production, this would send an actual email)")
-            return True
+            return EmailDeliveryResult(success=True, status="dev_log_only")
         
         try:
             # Create message
@@ -208,18 +280,36 @@ The Heka Team
             part2 = MIMEText(html, 'html')
             msg.attach(part1)
             msg.attach(part2)
+
+            logger.info(
+                "email_delivery_attempt kind=password_reset to=%s smtp=%s",
+                self._mask_email(to_email),
+                self._smtp_snapshot(),
+            )
             
             await asyncio.wait_for(
                 asyncio.to_thread(self._send_message_via_smtp, msg),
                 timeout=self.smtp_timeout_seconds + 2,
             )
             
-            logger.info(f"Password reset email sent to {to_email}")
-            return True
+            logger.info("email_delivery_succeeded kind=password_reset to=%s", self._mask_email(to_email))
+            return EmailDeliveryResult(success=True, status="sent")
             
         except Exception as e:
-            logger.error(f"Failed to send password reset email: {e}")
-            return False
+            error_code, safe_message = self._classify_email_error(e)
+            logger.exception(
+                "email_delivery_failed kind=password_reset to=%s error_code=%s error_message=%s smtp=%s",
+                self._mask_email(to_email),
+                error_code,
+                safe_message,
+                self._smtp_snapshot(),
+            )
+            return EmailDeliveryResult(
+                success=False,
+                status="pending_retry",
+                error_code=error_code,
+                error_message=safe_message,
+            )
 
 
 # Singleton instance
