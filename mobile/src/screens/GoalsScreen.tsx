@@ -274,12 +274,10 @@ export default function GoalsScreen() {
                 <Ionicons name="sparkles" size={20} color={colors.brand[600]} />
               </View>
               <View style={styles.suggestionsHeaderText}>
-                <Text style={styles.suggestionsTitle}>
-                  AI-Powered Goal Suggestions
-                </Text>
+                <Text style={styles.suggestionsTitle}>Focused Goal Tracks</Text>
                 <Text style={styles.suggestionsSubtitle}>
-                  Based on your recent arguments, here are additional goals to
-                  consider.
+                  Only the strongest next moves are surfaced, so this stays
+                  actionable instead of overwhelming.
                 </Text>
               </View>
             </View>
@@ -378,11 +376,11 @@ export default function GoalsScreen() {
                 </View>
                 <View style={styles.suggestionsHeaderText}>
                   <Text style={styles.suggestionsTitle}>
-                    AI-Powered Suggestions
+                    Focused Goal Tracks
                   </Text>
                   <Text style={styles.suggestionsSubtitle}>
-                    Based on your recent arguments, here are personalized goals
-                    to strengthen your relationship.
+                    The strongest shared goals are surfaced first so you can
+                    start small and build real momentum.
                   </Text>
                 </View>
               </View>

@@ -1,6 +1,7 @@
 """AI Mediation endpoints."""
 
 import logging
+import re
 from datetime import datetime
 
 from bson import ObjectId
@@ -18,6 +19,7 @@ from app.db.database import get_database
 from app.models.argument import ArgumentInDB, ArgumentPriority, ArgumentStatus
 from app.models.couple import CoupleInDB
 from app.models.perspective import PerspectiveInDB
+from app.models.relationship_goal import GoalStatus
 from app.models.user import UserInDB
 from app.services.ai_service import ai_service
 from app.services.ai_suggestion_cache import ai_suggestion_cache_service
@@ -25,6 +27,61 @@ from app.services.ai_suggestion_cache import ai_suggestion_cache_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai", tags=["AI Mediation"])
+
+
+def _normalize_goal_title(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+
+
+async def _curate_goal_suggestions(
+    *,
+    suggestions: list[dict],
+    couple_id: str,
+    arguments: list[dict],
+    db: AsyncIOMotorDatabase,
+) -> list[dict]:
+    existing_goals = await db.relationship_goals.find(
+        {
+            "couple_id": ObjectId(couple_id),
+            "status": {"$in": [GoalStatus.ACTIVE.value, GoalStatus.PAUSED.value]},
+        },
+        {"title": 1},
+    ).to_list(length=20)
+
+    existing_titles = {
+        _normalize_goal_title(str(doc.get("title", "")))
+        for doc in existing_goals
+        if doc.get("title")
+    }
+    active_goal_count = len(existing_titles)
+
+    conflict_needs_extended_support = any(
+        (
+            (arg.get("updated_at") or arg.get("created_at"))
+            and (datetime.utcnow() - (arg.get("updated_at") or arg.get("created_at"))).days >= 14
+        )
+        for arg in arguments
+    )
+    max_active_goal_tracks = 4 if conflict_needs_extended_support else 2
+    remaining_slots = max(0, max_active_goal_tracks - active_goal_count)
+    if remaining_slots == 0:
+        return []
+
+    curated: list[dict] = []
+    seen_titles = set(existing_titles)
+    for suggestion in suggestions:
+        title = str(suggestion.get("title", "")).strip()
+        if not title:
+            continue
+        normalized_title = _normalize_goal_title(title)
+        if not normalized_title or normalized_title in seen_titles:
+            continue
+        seen_titles.add(normalized_title)
+        curated.append(suggestion)
+        if len(curated) >= remaining_slots:
+            break
+
+    return curated
 
 
 def _serialize_insight(insight_doc: dict) -> dict:
@@ -268,7 +325,18 @@ async def get_goal_suggestions(
     )
     
     if cached:
-        return AIGoalsResponse(suggestions=cached.suggestions)
+        current_args = await db.arguments.find({
+            "couple_id": ObjectId(couple.id),
+            "priority": {"$in": [ArgumentPriority.HIGH.value, ArgumentPriority.URGENT.value]},
+            "status": {"$in": [ArgumentStatus.ACTIVE.value, ArgumentStatus.ANALYZED.value]}
+        }).sort("priority", -1).sort("created_at", -1).limit(2).to_list(length=2)
+        curated_cached = await _curate_goal_suggestions(
+            suggestions=cached.suggestions,
+            couple_id=couple.id,
+            arguments=current_args,
+            db=db,
+        )
+        return AIGoalsResponse(suggestions=curated_cached)
 
     # 2. Cache miss - generate synchronously
     try:
@@ -296,18 +364,24 @@ async def get_goal_suggestions(
         suggestions, linked_argument_ids = await ai_service.generate_goal_suggestions(
             args_list, db
         )
+        curated_suggestions = await _curate_goal_suggestions(
+            suggestions=suggestions,
+            couple_id=couple.id,
+            arguments=args_list,
+            db=db,
+        )
         
         # Save to cache
         await ai_suggestion_cache_service.save_suggestions(
             couple.id,
             suggestion_type,
-            suggestions,
+            curated_suggestions,
             linked_argument_ids,
             db,
             ai_model=ai_service.model
         )
         
-        return AIGoalsResponse(suggestions=suggestions)
+        return AIGoalsResponse(suggestions=curated_suggestions)
         
     except Exception as e:
         logger.error(f"Error generating goal suggestions: {e}", exc_info=True)

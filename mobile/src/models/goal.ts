@@ -19,8 +19,11 @@ export type Goal = {
   created_by_user_id?: string;
   current_user_has_progress?: boolean;
   partner_has_progress?: boolean;
+  latest_progress_id?: string | null;
   latest_progress_by_user_id?: string | null;
   latest_progress_at?: string | null;
+  latest_progress_note?: string | null;
+  latest_progress_value?: number | null;
   latest_progress_acknowledged_by_current_user?: boolean;
   needs_user_progress?: boolean;
   next_action_type?: string;

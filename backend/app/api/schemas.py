@@ -331,8 +331,11 @@ class GoalResponse(BaseModel):
     created_by_user_id: str
     current_user_has_progress: bool = False
     partner_has_progress: bool = False
+    latest_progress_id: Optional[str] = None
     latest_progress_by_user_id: Optional[str] = None
     latest_progress_at: Optional[datetime] = None
+    latest_progress_note: Optional[str] = None
+    latest_progress_value: Optional[float] = None
     latest_progress_acknowledged_by_current_user: bool = True
     needs_user_progress: bool = False
     next_action_type: str = "review"

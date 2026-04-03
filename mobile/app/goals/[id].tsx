@@ -278,6 +278,33 @@ export default function GoalDetailScreen() {
           </Section>
         ) : null}
 
+        {(goal.latest_progress_note ||
+          typeof goal.latest_progress_value === "number") && (
+          <Section
+            title="Latest Shared Move"
+            subtitle="The freshest signal of where this goal stands right now."
+          >
+            <Card style={styles.latestMoveCard}>
+              {goal.latest_progress_at ? (
+                <Text style={styles.latestMoveDate}>
+                  {formatDate(goal.latest_progress_at)}
+                </Text>
+              ) : null}
+              {goal.latest_progress_note ? (
+                <Text style={styles.latestMoveNote}>
+                  {goal.latest_progress_note}
+                </Text>
+              ) : null}
+              {typeof goal.latest_progress_value === "number" ? (
+                <Text style={styles.latestMoveValue}>
+                  Progress pulse {(goal.latest_progress_value * 100).toFixed(0)}
+                  %
+                </Text>
+              ) : null}
+            </Card>
+          </Section>
+        )}
+
         <Section
           title="Momentum"
           subtitle="Track how this goal evolved over time."
@@ -668,5 +695,23 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.neutral[300],
     lineHeight: 22,
+  },
+  latestMoveCard: {
+    gap: spacing.sm,
+  },
+  latestMoveDate: {
+    ...typography.label,
+    fontSize: 11,
+    color: colors.neutral[400],
+    textTransform: "uppercase",
+  },
+  latestMoveNote: {
+    ...typography.body,
+    color: colors.neutral[100],
+    lineHeight: 22,
+  },
+  latestMoveValue: {
+    ...typography.label,
+    color: colors.brand[500],
   },
 });

@@ -53,6 +53,22 @@ export const GoalCard: React.FC<GoalCardProps> = ({
           ) : null}
         </View>
       )}
+      {(goal.latest_progress_note ||
+        typeof goal.latest_progress_value === "number") && (
+        <View style={styles.latestMoveBlock}>
+          <Text style={styles.latestMoveLabel}>Latest shared move</Text>
+          {goal.latest_progress_note ? (
+            <Text style={styles.latestMoveNote}>
+              {goal.latest_progress_note}
+            </Text>
+          ) : null}
+          {typeof goal.latest_progress_value === "number" ? (
+            <Text style={styles.latestMoveMeta}>
+              Progress pulse {(goal.latest_progress_value * 100).toFixed(0)}%
+            </Text>
+          ) : null}
+        </View>
+      )}
       {goal.target_date && (
         <Text style={styles.date}>
           Target: {new Date(goal.target_date).toLocaleDateString()}
@@ -141,6 +157,31 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontSize: 13,
     color: colors.neutral[400],
+  },
+  latestMoveBlock: {
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.neutral[600],
+    borderRadius: radii.md,
+    padding: spacing.md,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    gap: spacing.xs,
+  },
+  latestMoveLabel: {
+    ...typography.label,
+    fontSize: 10,
+    color: colors.neutral[400],
+    textTransform: "uppercase",
+  },
+  latestMoveNote: {
+    ...typography.body,
+    fontSize: 13,
+    color: colors.neutral[200],
+  },
+  latestMoveMeta: {
+    ...typography.label,
+    fontSize: 11,
+    color: colors.brand[500],
   },
   date: {
     ...typography.body,

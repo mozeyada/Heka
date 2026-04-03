@@ -48,7 +48,10 @@ def _build_goal_response(
     current_user_has_progress = any(p.user_id == current_user.id for p in goal.progress)
     partner_has_progress = any(p.user_id == partner_id for p in goal.progress)
     latest_progress = goal.progress[-1] if goal.progress else None
+    latest_progress_id = latest_progress.id if latest_progress else None
     latest_progress_by_user_id = latest_progress.user_id if latest_progress else None
+    latest_progress_note = latest_progress.notes if latest_progress else None
+    latest_progress_value = latest_progress.progress_value if latest_progress else None
     latest_progress_at: Optional[datetime] = None
     latest_progress_acknowledged_by_current_user = True
 
@@ -110,8 +113,11 @@ def _build_goal_response(
         created_by_user_id=goal.created_by_user_id,
         current_user_has_progress=current_user_has_progress,
         partner_has_progress=partner_has_progress,
+        latest_progress_id=latest_progress_id,
         latest_progress_by_user_id=latest_progress_by_user_id,
         latest_progress_at=latest_progress_at,
+        latest_progress_note=latest_progress_note,
+        latest_progress_value=latest_progress_value,
         latest_progress_acknowledged_by_current_user=latest_progress_acknowledged_by_current_user,
         needs_user_progress=needs_user_progress,
         next_action_type=next_action_type,
@@ -211,6 +217,14 @@ async def create_goal(
     
     result = await db.relationship_goals.insert_one(goal.to_mongo())
     goal.id = str(result.inserted_id)
+
+    from app.services.ai_suggestion_cache import ai_suggestion_cache_service
+
+    await ai_suggestion_cache_service.invalidate_cache(
+        couple.id,
+        suggestion_type="goals",
+        db=db,
+    )
     
     return _build_goal_response(goal=goal, current_user=current_user, couple=couple)
 
@@ -404,6 +418,14 @@ async def update_goal_progress(
             }
         }
     )
+
+    from app.services.ai_suggestion_cache import ai_suggestion_cache_service
+
+    await ai_suggestion_cache_service.invalidate_cache(
+        couple.id,
+        suggestion_type="goals",
+        db=db,
+    )
     
     # Fetch updated goal
     updated_doc = await db.relationship_goals.find_one({"_id": ObjectId(goal_id)})
@@ -459,6 +481,14 @@ async def complete_goal(
                 "updated_at": datetime.utcnow()
             }
         }
+    )
+
+    from app.services.ai_suggestion_cache import ai_suggestion_cache_service
+
+    await ai_suggestion_cache_service.invalidate_cache(
+        couple.id,
+        suggestion_type="goals",
+        db=db,
     )
     
     # Fetch updated goal

@@ -315,13 +315,14 @@ Respond in JSON format only."""
             return [], []
 
         system_prompt = """You are Heka, an expert AI relationship coach trained in the Gottman Method and Emotion-Focused Therapy.
-Based on the provided argument summaries and root causes, generate 3-5 highly actionable, positive relationship goals.
+Based on the provided argument summaries and root causes, generate highly actionable, positive relationship goals.
 
 RESPONSE STYLE:
 - Focus on building positive, observable behaviors (not just "stop doing X", but "start doing Y").
 - Goals MUST be SMART (Specific, Measurable, Achievable, Relevant, Time-bound).
 - Frame goals collaboratively ("We will...", "Let's practice...").
 - Do not repeat the argument; focus entirely on the solution and future habits.
+- Prefer quality over quantity. Each goal should feel distinct enough to deserve real attention.
 
 Respond in JSON format with:
 {
@@ -333,11 +334,12 @@ Respond in JSON format with:
     }
   ]
 }"""
-        user_prompt = f"""Based on these argument insights, suggest 3-5 relationship goals:
+        user_prompt = f"""Based on these argument insights, suggest 4 relationship goals:
 
 {json.dumps(insights, indent=2)}
 
-Generate goals in the specified JSON format."""
+Generate goals in the specified JSON format.
+Assume the product will usually surface only the 2 strongest suggestions first, so rank them by practical value."""
 
         response_json = await self._call_openai(system_prompt, user_prompt)
         
@@ -353,11 +355,15 @@ Generate goals in the specified JSON format."""
             return [], []
 
         system_prompt = """You are Heka, an expert AI relationship coach trained in the Gottman Method.
-Based on the provided argument summaries and root causes, generate 3-5 open-ended check-in questions for a weekly reflection.
+Based on the provided conflict context, generate exactly 3 open-ended weekly check-in questions that feel specific to this couple's recent dynamic.
 
 RESPONSE STYLE:
 - Questions MUST be incredibly gentle, non-accusatory, and forward-looking.
-- Include at least one question focused entirely on a positive moment or gratitude.
+- Each question must clearly connect to the actual issue, root causes, or perspective excerpts provided.
+- Avoid bland universal templates unless they are explicitly grounded in the provided context.
+- Include one question focused on repair and reassurance.
+- Include one question focused on appreciation or positive momentum.
+- Include one question focused on a practical habit the couple can carry into the next week.
 - Encourage deep reflection on underlying needs (attachment, safety) rather than logistics.
 - Frame questions to open up dialogue and assume positive intent.
 
@@ -365,8 +371,8 @@ Respond in JSON format with:
 {
   "questions": [
     {
-      "question": "A specific, open-ended question (e.g., 'When did you feel most connected this week, and what were we doing?')",
-      "category": "Emotional Connection"
+      "question": "A specific, open-ended question grounded in the couple's recent conflict",
+      "category": "Repair | Appreciation | Ritual"
     }
   ]
 }"""
@@ -374,7 +380,8 @@ Respond in JSON format with:
 
 {json.dumps(insights, indent=2)}
 
-Generate questions in the specified JSON format."""
+Generate exactly 3 questions in the specified JSON format.
+Make them feel like a sequenced weekly ritual, not three interchangeable prompts."""
 
         response_json = await self._call_openai(system_prompt, user_prompt)
         
@@ -418,6 +425,14 @@ Generate questions in the specified JSON format."""
             arg_id_str = str(arg_oid)
             arg = arg_id_map[arg_id_str]
             insight = insights_map.get(arg_id_str)
+            perspective_docs = await db.perspectives.find(
+                {"argument_id": arg_oid}
+            ).sort([("updated_at", -1)]).to_list(length=2)
+            perspective_glimpses = [
+                re.sub(r"\s+", " ", str(doc.get("content", "")).strip())[:220]
+                for doc in perspective_docs
+                if doc.get("content")
+            ]
             
             if insight:
                 result.append({
@@ -425,6 +440,7 @@ Generate questions in the specified JSON format."""
                     "category": arg.get("category", "N/A"),
                     "summary": insight.get("summary"),
                     "root_causes": insight.get("root_causes", []),
+                    "perspective_glimpses": perspective_glimpses,
                 })
             else:
                 # If no insight, still include the argument with basic info
@@ -433,6 +449,7 @@ Generate questions in the specified JSON format."""
                     "category": arg.get("category", "N/A"),
                     "summary": f"Recent argument about {arg.get('title', 'relationship issues')}",
                     "root_causes": [],
+                    "perspective_glimpses": perspective_glimpses,
                 })
         
         return result
@@ -541,4 +558,3 @@ Generate questions in the specified JSON format."""
 
 # Singleton instance
 ai_service = AIMediationService()
-
