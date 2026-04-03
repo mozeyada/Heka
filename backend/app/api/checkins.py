@@ -176,8 +176,6 @@ async def get_current_checkin(
         result = await db.relationship_checkins.insert_one(checkin.to_mongo())
         checkin.id = str(result.inserted_id)
         
-    partner_id = couple.user1_id if current_user.id == couple.user2_id else couple.user2_id
-    
     return await _build_checkin_response(checkin=checkin, current_user=current_user, couple=couple, db=db)
 
 
