@@ -44,6 +44,20 @@ export default function ArgumentsScreen() {
     );
   }, [args]);
 
+  const replyNeededCount = useMemo(
+    () =>
+      args.filter((arg) => arg.status !== "resolved" && arg.needs_user_response)
+        .length,
+    [args],
+  );
+  const readyForInsightCount = useMemo(
+    () =>
+      args.filter(
+        (arg) => arg.status !== "resolved" && arg.can_generate_insight,
+      ).length,
+    [args],
+  );
+
   const statCards: {
     label: string;
     value: number;
@@ -51,28 +65,28 @@ export default function ArgumentsScreen() {
     accent: string;
     subtitle: string;
   }[] = [
-      {
-        label: "Active",
-        value: statusCounts.active,
-        icon: "flame",
-        accent: colors.brand[600],
-        subtitle: "Needs action",
-      },
-      {
-        label: "History",
-        value: statusCounts.resolved,
-        icon: "checkmark-circle",
-        accent: colors.success,
-        subtitle: "Resolved",
-      },
-      {
-        label: "Drafts",
-        value: statusCounts.draft,
-        icon: "pencil",
-        accent: colors.neutral[300],
-        subtitle: "In progress",
-      },
-    ];
+    {
+      label: "Active",
+      value: statusCounts.active,
+      icon: "flame",
+      accent: colors.brand[600],
+      subtitle: "Needs action",
+    },
+    {
+      label: "History",
+      value: statusCounts.resolved,
+      icon: "checkmark-circle",
+      accent: colors.success,
+      subtitle: "Resolved",
+    },
+    {
+      label: "Drafts",
+      value: statusCounts.draft,
+      icon: "pencil",
+      accent: colors.neutral[300],
+      subtitle: "In progress",
+    },
+  ];
 
   const contentContainerStyle = useMemo(
     () => [
@@ -91,8 +105,8 @@ export default function ArgumentsScreen() {
     } catch (err: any) {
       setError(
         err.response?.data?.detail ||
-        err.message ||
-        "Failed to load arguments.",
+          err.message ||
+          "Failed to load arguments.",
       );
     } finally {
       setLoading(false);
@@ -191,8 +205,11 @@ export default function ArgumentsScreen() {
             <View style={styles.heroCopy}>
               <Text style={styles.heroTitle}>Resolve Smart</Text>
               <Text style={styles.heroSubtitle}>
-                Use structured prompts to capture both perspectives before
-                tensions rise.
+                {replyNeededCount > 0
+                  ? `${replyNeededCount} issue${replyNeededCount === 1 ? "" : "s"} need your response right now.`
+                  : readyForInsightCount > 0
+                    ? `${readyForInsightCount} issue${readyForInsightCount === 1 ? "" : "s"} are ready for insight.`
+                    : "Use structured prompts to capture both perspectives before tensions rise."}
               </Text>
             </View>
             <View style={styles.heroIcon}>
@@ -265,9 +282,7 @@ export default function ArgumentsScreen() {
       {filteredArgs.length === 0 && !loading ? (
         <Card style={styles.emptyCard}>
           <Ionicons
-            name={
-              activeTab === "active" ? "leaf-outline" : "file-tray-outline"
-            }
+            name={activeTab === "active" ? "leaf-outline" : "file-tray-outline"}
             size={24}
             color={colors.neutral[300]}
           />

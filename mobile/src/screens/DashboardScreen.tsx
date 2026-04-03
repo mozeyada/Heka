@@ -195,9 +195,9 @@ export default function DashboardScreen() {
   const usagePercentage = data.usage.is_unlimited
     ? 0
     : Math.min(
-      Math.round((data.usage.count / Math.max(data.usage.limit, 1)) * 100),
-      100,
-    );
+        Math.round((data.usage.count / Math.max(data.usage.limit, 1)) * 100),
+        100,
+      );
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -214,11 +214,23 @@ export default function DashboardScreen() {
     ? rawUserName.charAt(0).toUpperCase() + rawUserName.slice(1).toLowerCase()
     : null;
   const isCheckinCompleted = data.current_checkin?.status === "completed";
+  const checkinNeedsMyResponse = Boolean(
+    data.current_checkin?.needs_user_response,
+  );
   const goalsCount = data.goals.length;
   const activeGoalsLabel = goalsCount === 1 ? "Goal" : "Goals";
   const topArguments = data.arguments
     .filter((arg) => arg.status !== "resolved")
     .slice(0, 3);
+  const replyNeededCount = data.arguments.filter(
+    (arg) => arg.needs_user_response,
+  ).length;
+  const readyForInsightCount = data.arguments.filter(
+    (arg) => arg.can_generate_insight,
+  ).length;
+  const goalsNeedingMyMove = data.goals.filter(
+    (goal) => goal.needs_user_progress,
+  ).length;
   const hasArguments = topArguments.length > 0;
 
   return (
@@ -252,7 +264,15 @@ export default function DashboardScreen() {
             {getGreeting()}
             {userName ? `, ${userName}` : ""}.
           </Text>
-          <Text style={styles.subtitle}>Your relationship pulse.</Text>
+          <Text style={styles.subtitle}>
+            {replyNeededCount > 0
+              ? `${replyNeededCount} issue${replyNeededCount === 1 ? "" : "s"} need your response.`
+              : readyForInsightCount > 0
+                ? `${readyForInsightCount} issue${readyForInsightCount === 1 ? "" : "s"} are ready for insight.`
+                : goalsNeedingMyMove > 0
+                  ? `${goalsNeedingMyMove} goal${goalsNeedingMyMove === 1 ? "" : "s"} need your next move.`
+                  : "Your relationship pulse."}
+          </Text>
         </View>
         {/* Profile Avatar and Settings */}
         <View style={styles.avatarContainer}>
@@ -332,7 +352,11 @@ export default function DashboardScreen() {
             <View style={styles.statCardBody}>
               <View>
                 <Text style={styles.statValue}>
-                  {isCheckinCompleted ? "✓" : "—"}
+                  {isCheckinCompleted
+                    ? "✓"
+                    : checkinNeedsMyResponse
+                      ? "!"
+                      : "—"}
                 </Text>
                 <Text
                   style={[
@@ -342,7 +366,11 @@ export default function DashboardScreen() {
                       : styles.statDescriptionWarning,
                   ]}
                 >
-                  {isCheckinCompleted ? "Completed" : "Pending"}
+                  {isCheckinCompleted
+                    ? "Completed"
+                    : checkinNeedsMyResponse
+                      ? "Your turn"
+                      : "Pending"}
                 </Text>
               </View>
               <TouchableOpacity
@@ -363,7 +391,11 @@ export default function DashboardScreen() {
                       : styles.statButtonTextPrimary,
                   ]}
                 >
-                  {isCheckinCompleted ? "View" : "Complete Now"}
+                  {isCheckinCompleted
+                    ? "View"
+                    : checkinNeedsMyResponse
+                      ? "Respond Now"
+                      : "Complete Now"}
                 </Text>
                 <Ionicons
                   name={isCheckinCompleted ? "arrow-forward" : "flash"}
@@ -389,7 +421,11 @@ export default function DashboardScreen() {
             <View style={styles.statCardBody}>
               <View>
                 <Text style={styles.statValue}>{goalsCount}</Text>
-                <Text style={styles.statDescription}>{activeGoalsLabel}</Text>
+                <Text style={styles.statDescription}>
+                  {goalsNeedingMyMove > 0
+                    ? `${goalsNeedingMyMove} need you`
+                    : activeGoalsLabel}
+                </Text>
               </View>
               <TouchableOpacity
                 style={[styles.statButton, styles.statButtonGhost]}
@@ -444,14 +480,21 @@ export default function DashboardScreen() {
             {topArguments.map((arg, index) => {
               const { icon, backgroundColor, iconColor, label } =
                 getCategoryIconConfig(arg.category);
-              const statusVariant = getStatusBadgeVariant(arg.status);
+              const stateLabel = arg.needs_user_response
+                ? "Reply needed"
+                : arg.can_generate_insight
+                  ? "Ready for insight"
+                  : arg.insight_status === "current"
+                    ? "Insight current"
+                    : arg.status;
+              const statusVariant = getStatusBadgeVariant(stateLabel);
               return (
                 <TouchableOpacity
                   key={arg.id}
                   style={[
                     styles.argumentItem,
                     index < topArguments.length - 1 &&
-                    styles.argumentItemBorder,
+                      styles.argumentItemBorder,
                   ]}
                   onPress={() => router.push(`/arguments/${arg.id}`)}
                   activeOpacity={0.85}
@@ -480,7 +523,7 @@ export default function DashboardScreen() {
                               { color: statusVariant.textColor },
                             ]}
                           >
-                            {arg.status}
+                            {stateLabel}
                           </Text>
                         </View>
                         <Text style={styles.argumentCategory} numberOfLines={1}>

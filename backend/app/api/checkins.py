@@ -2,6 +2,7 @@
 
 import logging
 from datetime import date, datetime, timedelta
+from typing import Optional
 
 from bson import ObjectId
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -10,6 +11,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.api.dependencies import get_current_user
 from app.api.schemas import CheckInCreate, CheckInResponse
 from app.db.database import get_database
+from app.models.argument import ArgumentStatus
 from app.models.couple import CoupleInDB, CoupleStatus
 from app.models.relationship_checkin import CheckInStatus, RelationshipCheckInInDB
 from app.models.user import UserInDB
@@ -26,6 +28,105 @@ def get_monday_of_week(target_date: date = None) -> date:
     # Monday is 0, so subtract days to get to Monday
     days_since_monday = target_date.weekday()
     return target_date - timedelta(days=days_since_monday)
+
+
+async def _build_checkin_response(
+    checkin: RelationshipCheckInInDB,
+    current_user: UserInDB,
+    couple: CoupleInDB,
+    db: AsyncIOMotorDatabase,
+) -> CheckInResponse:
+    partner_id = couple.user1_id if current_user.id == couple.user2_id else couple.user2_id
+    current_user_completed = current_user.id in checkin.completed_by
+    partner_completed = partner_id in checkin.completed_by
+    awaiting_response_from_user_id: Optional[str] = None
+
+    open_argument_count = await db.arguments.count_documents(
+        {
+            "couple_id": ObjectId(couple.id),
+            "status": {"$in": [
+                ArgumentStatus.DRAFT.value,
+                ArgumentStatus.ACTIVE.value,
+                ArgumentStatus.ANALYZED.value,
+            ]},
+        }
+    )
+    active_goal_count = await db.relationship_goals.count_documents(
+        {
+            "couple_id": ObjectId(couple.id),
+            "status": "active",
+        }
+    )
+
+    if checkin.status == CheckInStatus.COMPLETED:
+        journey_state = "completed"
+        next_step_title = "Your shared reflection is unlocked."
+        next_step_description = (
+            "Read the harmony report together, compare what each of you felt, and decide what needs attention this week."
+        )
+    elif partner_completed and not current_user_completed:
+        journey_state = "reply_needed"
+        awaiting_response_from_user_id = current_user.id
+        next_step_title = "Your partner has already checked in."
+        next_step_description = (
+            "Add your side now so Heka can turn two separate reflections into one shared read on the relationship."
+        )
+    elif current_user_completed and not partner_completed:
+        journey_state = "waiting_on_partner"
+        awaiting_response_from_user_id = partner_id
+        next_step_title = "Your side is recorded."
+        next_step_description = (
+            "Your partner needs to complete their reflection before the comparison view and harmony report can open."
+        )
+    else:
+        journey_state = "ready_for_reflection"
+        awaiting_response_from_user_id = current_user.id
+        next_step_title = "Start this week's shared pulse check."
+        next_step_description = (
+            "Capture your current experience clearly so your partner has something real to answer, not just a vague signal."
+        )
+
+    if open_argument_count and active_goal_count:
+        focus_summary = (
+            f"This week sits on top of {open_argument_count} active issue"
+            f"{'' if open_argument_count == 1 else 's'} and {active_goal_count} active goal"
+            f"{'' if active_goal_count == 1 else 's'}."
+        )
+    elif open_argument_count:
+        focus_summary = (
+            f"You still have {open_argument_count} active issue"
+            f"{'' if open_argument_count == 1 else 's'} shaping the emotional climate this week."
+        )
+    elif active_goal_count:
+        focus_summary = (
+            f"You have {active_goal_count} active relationship goal"
+            f"{'' if active_goal_count == 1 else 's'} in motion; use this check-in to see whether they are actually helping."
+        )
+    else:
+        focus_summary = "Use this weekly sync to catch drift early and reinforce what is quietly working well."
+
+    return CheckInResponse(
+        id=checkin.id,
+        couple_id=checkin.couple_id,
+        week_start_date=checkin.week_start_date.isoformat(),
+        status=checkin.status.value,
+        journey_state=journey_state,
+        responses=checkin.user_responses.get(current_user.id),
+        partner_responses=checkin.user_responses.get(partner_id) if checkin.status == CheckInStatus.COMPLETED else None,
+        completed_by=checkin.completed_by,
+        current_user_completed=current_user_completed,
+        partner_completed=partner_completed,
+        needs_user_response=not current_user_completed,
+        awaiting_response_from_user_id=awaiting_response_from_user_id,
+        next_step_title=next_step_title,
+        next_step_description=next_step_description,
+        focus_summary=focus_summary,
+        open_argument_count=open_argument_count,
+        active_goal_count=active_goal_count,
+        completed_at=checkin.completed_at,
+        ai_harmony_report=checkin.ai_harmony_report,
+        created_at=checkin.created_at,
+    )
 
 
 @router.get("/current")
@@ -77,18 +178,7 @@ async def get_current_checkin(
         
     partner_id = couple.user1_id if current_user.id == couple.user2_id else couple.user2_id
     
-    return CheckInResponse(
-        id=checkin.id,
-        couple_id=checkin.couple_id,
-        week_start_date=checkin.week_start_date.isoformat(),
-        status=checkin.status.value,
-        responses=checkin.user_responses.get(current_user.id),
-        partner_responses=checkin.user_responses.get(partner_id) if checkin.status == CheckInStatus.COMPLETED else None,
-        completed_by=checkin.completed_by,
-        completed_at=checkin.completed_at,
-        ai_harmony_report=checkin.ai_harmony_report,
-        created_at=checkin.created_at
-    )
+    return await _build_checkin_response(checkin=checkin, current_user=current_user, couple=couple, db=db)
 
 
 @router.post("/current/complete")
@@ -174,18 +264,7 @@ async def complete_checkin(
     updated_doc = await db.relationship_checkins.find_one({"_id": ObjectId(checkin.id)})
     checkin = RelationshipCheckInInDB.from_mongo(updated_doc)
     
-    return CheckInResponse(
-        id=checkin.id,
-        couple_id=checkin.couple_id,
-        week_start_date=checkin.week_start_date.isoformat(),
-        status=checkin.status.value,
-        responses=checkin.user_responses.get(current_user.id),
-        partner_responses=checkin.user_responses.get(partner_id) if checkin.status == CheckInStatus.COMPLETED else None,
-        completed_by=checkin.completed_by,
-        completed_at=checkin.completed_at,
-        ai_harmony_report=checkin.ai_harmony_report,
-        created_at=checkin.created_at
-    )
+    return await _build_checkin_response(checkin=checkin, current_user=current_user, couple=couple, db=db)
 
 
 @router.get("/history")

@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import {
   View,
@@ -24,7 +23,6 @@ import { Card } from "../components/common";
 import { colors, spacing, typography, radii, shadows } from "../theme/tokens";
 
 export default function CheckinScreen() {
-  const router = useRouter();
   const [checkin, setCheckin] = useState<any>(null);
   const [responses, setResponses] = useState({ question1: "", question2: "" });
   const [loading, setLoading] = useState(true);
@@ -32,9 +30,9 @@ export default function CheckinScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<AICheckInSuggestion[]>([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const isCompleted = checkin?.status === "completed";
+  const needsMyResponse = Boolean(checkin?.needs_user_response);
   const submittedDate = checkin?.completed_at
     ? new Date(checkin.completed_at).toLocaleDateString()
     : null;
@@ -84,14 +82,11 @@ export default function CheckinScreen() {
 
   const loadAISuggestions = useCallback(async () => {
     try {
-      setLoadingSuggestions(true);
       const response = await fetchCheckinSuggestions();
       setAiSuggestions(response.suggestions || []);
     } catch (err: any) {
       console.log("Failed to load AI suggestions:", err);
       // Don't show error - suggestions are optional
-    } finally {
-      setLoadingSuggestions(false);
     }
   }, []);
 
@@ -153,12 +148,14 @@ export default function CheckinScreen() {
         <View style={styles.heroHeader}>
           <View style={styles.heroCopy}>
             <Text style={styles.heroTitle}>
-              {isCompleted ? "Check-in locked in" : "Ready for reflection"}
+              {checkin?.next_step_title ||
+                (isCompleted ? "Check-in locked in" : "Ready for reflection")}
             </Text>
             <Text style={styles.heroSubtitle}>
-              {isCompleted
-                ? "Review your partner pulse and plan the next session."
-                : "Answer two guided prompts to keep your connection aligned."}
+              {checkin?.next_step_description ||
+                (isCompleted
+                  ? "Review your partner pulse and plan the next session."
+                  : "Answer two guided prompts to keep your connection aligned.")}
             </Text>
           </View>
           <View
@@ -207,16 +204,53 @@ export default function CheckinScreen() {
             color={colors.surface}
           />
           <Text style={styles.primaryButtonText}>
-            {isCompleted ? "Review Responses" : "Start Check-in"}
+            {isCompleted
+              ? "Review Responses"
+              : needsMyResponse && checkin?.partner_completed
+                ? "Respond Now"
+                : "Start Check-in"}
           </Text>
         </TouchableOpacity>
       </LinearGradient>
+
+      {checkin?.focus_summary ? (
+        <Card style={styles.contextCard}>
+          <Text style={styles.contextTitle}>Shared context</Text>
+          <Text style={styles.contextCopy}>{checkin.focus_summary}</Text>
+          <View style={styles.contextMetaRow}>
+            <View style={styles.contextMetaPill}>
+              <Text style={styles.contextMetaText}>
+                {checkin.open_argument_count ?? 0} active issues
+              </Text>
+            </View>
+            <View style={styles.contextMetaPill}>
+              <Text style={styles.contextMetaText}>
+                {checkin.active_goal_count ?? 0} active goals
+              </Text>
+            </View>
+          </View>
+        </Card>
+      ) : null}
 
       {error && (
         <Card style={styles.errorCard}>
           <Text style={styles.errorText}>{error}</Text>
         </Card>
       )}
+
+      {!isCompleted &&
+      checkin?.partner_completed &&
+      !checkin?.current_user_completed ? (
+        <Card style={styles.partnerWaitingCard}>
+          <Text style={styles.partnerWaitingTitle}>
+            Your partner already checked in.
+          </Text>
+          <Text style={styles.partnerWaitingCopy}>
+            Finish your side now so the weekly ritual becomes a shared read
+            instead of a one-sided signal.
+          </Text>
+        </Card>
+      ) : null}
 
       {isCompleted ? (
         <CompletedCheckinView checkin={checkin} />
@@ -355,6 +389,22 @@ const CompletedCheckinView = ({ checkin }: any) => (
       </Text>
       <Text style={styles.responseText}>{checkin.responses.question2}</Text>
     </View>
+
+    {checkin.partner_responses ? (
+      <View style={styles.responseCard}>
+        <Text style={styles.promptLabel}>Partner reflection</Text>
+        <Text style={styles.responseText}>
+          {checkin.partner_responses.question1}
+        </Text>
+      </View>
+    ) : null}
+
+    {checkin.ai_harmony_report ? (
+      <View style={styles.responseCard}>
+        <Text style={styles.promptLabel}>Harmony report</Text>
+        <Text style={styles.responseText}>{checkin.ai_harmony_report}</Text>
+      </View>
+    ) : null}
   </Card>
 );
 
@@ -513,6 +563,56 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  contextCard: {
+    borderWidth: 1,
+    borderColor: colors.brand[200],
+    backgroundColor: colors.surface,
+    gap: spacing.md,
+  },
+  contextTitle: {
+    ...typography.label,
+    color: colors.brand[500],
+    textTransform: "uppercase",
+  },
+  contextCopy: {
+    ...typography.body,
+    color: colors.neutral[300],
+    lineHeight: 21,
+  },
+  contextMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  contextMetaPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.neutral[700],
+  },
+  contextMetaText: {
+    ...typography.label,
+    fontSize: 11,
+    color: colors.neutral[300],
+  },
+  partnerWaitingCard: {
+    borderWidth: 1,
+    borderColor: colors.warning,
+    backgroundColor: "rgba(249, 115, 22, 0.08)",
+    gap: spacing.sm,
+  },
+  partnerWaitingTitle: {
+    ...typography.heading,
+    fontSize: 18,
+    color: colors.neutral[100],
+  },
+  partnerWaitingCopy: {
+    ...typography.body,
+    color: colors.neutral[300],
+    lineHeight: 21,
   },
   errorCard: {
     backgroundColor: "rgba(239, 68, 68, 0.1)",

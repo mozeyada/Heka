@@ -61,6 +61,7 @@ export function CementWinModal({ isOpen, onClose, argumentId }: CementWinModalPr
                 title: goal.title,
                 description: goal.description,
                 target_date: targetDate.toISOString(),
+                first_step: 'I am opening this goal now so we can decide the first concrete move together.',
             });
             // Mark this specific goal as successfully saved
             setSavedIndexes(prev => new Set(prev).add(index));

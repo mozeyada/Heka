@@ -15,6 +15,7 @@ const argumentSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(255),
   category: z.string().min(1, 'Please select a category'),
   priority: z.string().default('medium'),
+  initial_perspective: z.string().min(10, 'Share enough context for your partner and the AI to understand your side').max(5000),
 });
 
 const categories = ['finances', 'communication', 'values', 'intimacy', 'family', 'lifestyle', 'future_plans', 'other'];
@@ -52,8 +53,8 @@ export default function CreateArgumentPage() {
     if (!crisisAccepted) { setError('Please acknowledge the safety notice before continuing.'); return; }
     try {
       setError(null);
-      await createArgument(data);
-      router.push('/dashboard');
+      const argument = await createArgument(data);
+      router.push(`/arguments/${argument.id}`);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to create argument');
     }
@@ -82,7 +83,7 @@ export default function CreateArgumentPage() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-teal-400 mb-2">AI Mediation</p>
           <h1 className="text-3xl font-medium tracking-tight text-white">Log New Conflict</h1>
           <p className="mt-2 text-sm text-zinc-400 max-w-lg">
-            Capture both sides of the disagreement so Heka's AI can deliver neutral, empathetic insights.
+            Capture the conflict and your side in one pass so your partner can respond immediately and the AI can move as soon as both perspectives are in.
           </p>
         </div>
 
@@ -157,6 +158,21 @@ export default function CreateArgumentPage() {
                 {errors.category && <p className="mt-2 text-xs font-semibold text-red-400">{errors.category.message}</p>}
               </div>
 
+              <div>
+                <label htmlFor="initial_perspective" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Your perspective</label>
+                <textarea
+                  id="initial_perspective"
+                  {...register('initial_perspective')}
+                  rows={7}
+                  placeholder="Describe what happened from your side, how it felt, what mattered to you, and what you need your partner to understand."
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3.5 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition resize-none"
+                />
+                {errors.initial_perspective && <p className="mt-2 text-xs font-semibold text-red-400">{errors.initial_perspective.message}</p>}
+                <p className="mt-3 text-xs text-zinc-500">
+                  This becomes the first context entry. Your partner will immediately see that this conflict needs their response.
+                </p>
+              </div>
+
               {/* Priority Visual Picker */}
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-3 block">How urgent is this?</label>
@@ -192,7 +208,7 @@ export default function CreateArgumentPage() {
             <div className="flex flex-wrap gap-3">
               <button type="submit" disabled={isLoading || (hasShownCrisisDisclaimer && !crisisAccepted)}
                 className="rounded-xl bg-white px-7 py-3 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                {isLoading ? 'Creating…' : 'Begin Mediation'}
+                {isLoading ? 'Creating…' : 'Create Conflict and Add My Side'}
               </button>
               <Link href="/dashboard" className="rounded-xl border border-white/10 bg-white/5 px-7 py-3 text-sm font-semibold text-zinc-300 transition hover:bg-white/10">
                 Cancel

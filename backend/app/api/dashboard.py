@@ -7,10 +7,14 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.api.arguments import _build_argument_response
+from app.api.checkins import _build_checkin_response
 from app.api.dependencies import get_current_user
+from app.api.goals import _build_goal_response
 from app.db.database import get_database
 from app.models.couple import CoupleInDB, CoupleStatus
-from app.models.relationship_checkin import CheckInStatus
+from app.models.relationship_checkin import CheckInStatus, RelationshipCheckInInDB
+from app.models.relationship_goal import RelationshipGoalInDB
 from app.models.usage import UsageType
 from app.models.user import UserInDB
 from app.services.subscription_service import subscription_service
@@ -68,16 +72,12 @@ async def get_dashboard_overview(
     )
     arguments = []
     async for arg_doc in arguments_cursor:
-        arguments.append(
-            {
-                "id": str(arg_doc["_id"]),
-                "title": arg_doc.get("title", ""),
-                "priority": arg_doc.get("priority", ""),
-                "status": arg_doc.get("status", ""),
-                "category": arg_doc.get("category", ""),
-                "created_at": arg_doc.get("created_at"),
-            }
+        enriched_argument = await _build_argument_response(
+            argument=arg_doc,
+            current_user=current_user,
+            db=db,
         )
+        arguments.append(enriched_argument.model_dump())
 
     # Active goals
     goals_cursor = (
@@ -92,14 +92,12 @@ async def get_dashboard_overview(
     )
     goals = []
     async for goal_doc in goals_cursor:
-        goals.append(
-            {
-                "id": str(goal_doc["_id"]),
-                "title": goal_doc.get("title", ""),
-                "status": goal_doc.get("status", ""),
-                "target_date": goal_doc.get("target_date"),
-            }
+        enriched_goal = _build_goal_response(
+            goal=RelationshipGoalInDB.from_mongo(goal_doc),
+            current_user=current_user,
+            couple=couple,
         )
+        goals.append(enriched_goal.model_dump())
 
     # Current check-in status
     today = date.today()
@@ -117,11 +115,13 @@ async def get_dashboard_overview(
             "completed_at": None,
         }
     elif checkin_doc:
-        current_checkin = {
-            "id": str(checkin_doc["_id"]),
-            "status": checkin_doc.get("status", ""),
-            "completed_at": checkin_doc.get("completed_at"),
-        }
+        enriched_checkin = await _build_checkin_response(
+            checkin=RelationshipCheckInInDB.from_mongo(checkin_doc),
+            current_user=current_user,
+            couple=couple,
+            db=db,
+        )
+        current_checkin = enriched_checkin.model_dump()
     else:
         current_checkin = {
             "status": CheckInStatus.PENDING.value,
@@ -150,5 +150,3 @@ async def get_dashboard_overview(
     }
 
     return overview
-
-

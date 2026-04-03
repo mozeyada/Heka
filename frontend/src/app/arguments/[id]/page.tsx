@@ -66,9 +66,18 @@ export default function ArgumentDetailPage() {
     if (!perspectiveContent.trim()) { setError('Perspective cannot be empty'); return; }
     try {
       setIsSubmitting(true); setError(null);
-      await perspectivesAPI.create(argumentId, perspectiveContent.trim());
+      const existingPerspective = perspectives.find((p) => p.user_id === user?.id);
+      if (existingPerspective) {
+        await perspectivesAPI.updateMine(argumentId, perspectiveContent.trim());
+      } else {
+        await perspectivesAPI.create(argumentId, perspectiveContent.trim());
+      }
       setPerspectiveContent(''); setShowPerspectiveForm(false);
-      await loadPerspectives(); await loadAIInsights();
+      await Promise.all([
+        loadPerspectives(),
+        loadAIInsights(),
+        fetchArgumentById(argumentId),
+      ]);
     } catch (err: any) { setError(err.response?.data?.detail || 'Failed to add perspective'); }
     finally { setIsSubmitting(false); }
   };
@@ -79,6 +88,7 @@ export default function ArgumentDetailPage() {
       const data = await aiSuggestionsAPI.analyzeArgument(argumentId);
       setAIInsights(data);
       setSafetyConcern(data?.safety_check?.blocked ? data?.safety_check : null);
+      await fetchArgumentById(argumentId);
       if (!data?.safety_check?.blocked) {
         Promise.all([aiSuggestionsAPI.generateArgumentGoals(argumentId), aiSuggestionsAPI.generateArgumentCheckins(argumentId)]).catch(() => {});
       }
@@ -129,6 +139,8 @@ export default function ArgumentDetailPage() {
     resolved: { label: 'Resolved', cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
     in_progress: { label: 'In Progress', cls: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
     active: { label: 'Active', cls: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
+    analyzed: { label: 'Analyzed', cls: 'bg-teal-500/10 text-teal-400 border-teal-500/20' },
+    draft: { label: 'Collecting Context', cls: 'bg-white/5 text-zinc-400 border-white/10' },
   };
   const { label: statusLabel, cls: statusCls } = statusConfig[currentArgument.status] ?? statusConfig.active;
   const priorityTone: Record<string, string> = {
@@ -137,6 +149,26 @@ export default function ArgumentDetailPage() {
     medium: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     low: 'bg-white/5 text-zinc-500 border-white/10',
   };
+  const currentUserPerspective = perspectives.find((p) => p.user_id === user?.id);
+  const partnerPerspective = perspectives.find((p) => p.user_id !== user?.id);
+  const journeyHeadline = currentArgument.needs_user_response
+    ? 'Your partner is waiting on your side of the story.'
+    : currentArgument.can_generate_insight
+      ? 'Both perspectives are in. Heka can generate the mediation insight now.'
+      : currentArgument.insight_status === 'current'
+        ? 'The current insight is up to date.'
+        : currentArgument.insight_status === 'stale'
+          ? 'New context was added. Regenerate the insight when you are ready.'
+          : 'Your side is in. The next move belongs to your partner.';
+  const journeyCopy = currentArgument.needs_user_response
+    ? 'Add your perspective so the conflict moves out of limbo and into a full two-sided mediation.'
+    : currentArgument.can_generate_insight
+      ? 'There is enough context to analyze without asking either partner to repeat themselves.'
+      : currentArgument.insight_status === 'current'
+        ? 'Do not re-run the AI unless someone added meaningful new context.'
+        : currentArgument.insight_status === 'stale'
+          ? 'The existing insight is now outdated because one side added or revised context.'
+          : 'Your partner still needs to respond before the AI should be involved.';
 
   return (
     <div className="min-h-screen text-zinc-300 pb-32 font-sans">
@@ -194,6 +226,39 @@ export default function ArgumentDetailPage() {
           </div>
         </div>
 
+        <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 backdrop-blur-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-75">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Journey State</p>
+              <h2 className="mt-2 text-xl font-medium text-white">{journeyHeadline}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-zinc-400">{journeyCopy}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
+                currentArgument.needs_user_response
+                  ? 'bg-red-500/10 text-red-300 border border-red-500/20'
+                  : currentArgument.can_generate_insight
+                    ? 'bg-teal-500/10 text-teal-300 border border-teal-500/20'
+                    : currentArgument.insight_status === 'current'
+                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                      : currentArgument.insight_status === 'stale'
+                        ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
+                        : 'bg-orange-500/10 text-orange-300 border border-orange-500/20'
+              }`}>
+                {currentArgument.needs_user_response
+                  ? 'Reply needed'
+                  : currentArgument.can_generate_insight
+                    ? 'Ready for insight'
+                    : currentArgument.insight_status === 'current'
+                      ? 'Insight current'
+                      : currentArgument.insight_status === 'stale'
+                        ? 'Insight stale'
+                        : 'Waiting on partner'}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Perspectives + Sidebar */}
         <div className="grid gap-8 lg:grid-cols-[1fr_280px] animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
           {/* Perspectives */}
@@ -206,28 +271,38 @@ export default function ArgumentDetailPage() {
               <span className="text-[10px] uppercase tracking-widest text-zinc-600">{perspectives.length}/2 submitted</span>
             </div>
 
-            {perspectives.length === 0 ? (
+              {perspectives.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center">
                 <p className="text-sm text-zinc-600">No perspectives yet. Add yours to begin.</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {perspectives.map((p, i) => (
-                  <article key={p.id} className="rounded-2xl border border-white/10 bg-black/20 p-6">
+                {perspectives.map((p) => {
+                  const isMine = p.user_id === user?.id;
+                  return (
+                  <article key={p.id} className={`rounded-2xl border p-6 ${isMine ? 'border-teal-500/20 bg-teal-500/[0.05]' : 'border-white/10 bg-black/20'}`}>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-teal-400">Perspective {i + 1}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-teal-400">
+                        {isMine ? 'Your Perspective' : 'Partner Perspective'}
+                      </span>
                       <span className="text-[10px] text-zinc-600">{new Date(p.created_at).toLocaleDateString()}</span>
                     </div>
                     <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-line border-l-2 border-teal-500/30 pl-4">{p.content}</p>
                   </article>
-                ))}
+                )})}
               </div>
             )}
 
             {!showPerspectiveForm ? (
-              <button onClick={() => setShowPerspectiveForm(true)} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:scale-[1.02]">
+              <button
+                onClick={() => {
+                  setPerspectiveContent(currentUserPerspective?.content ?? '');
+                  setShowPerspectiveForm(true);
+                }}
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:scale-[1.02]"
+              >
                 <Plus className="h-4 w-4" />
-                Add Your Perspective
+                {currentUserPerspective ? 'Add More Context' : 'Add Your Perspective'}
               </button>
             ) : (
               <div className="mt-8 space-y-4">
@@ -241,7 +316,7 @@ export default function ArgumentDetailPage() {
                 />
                 <div className="flex gap-3">
                   <button onClick={handleAddPerspective} disabled={isSubmitting} className="rounded-xl bg-white px-5 py-2.5 text-xs font-bold text-black transition hover:scale-[1.02] disabled:opacity-50">
-                    {isSubmitting ? 'Saving…' : 'Save Perspective'}
+                    {isSubmitting ? 'Saving…' : currentUserPerspective ? 'Save Updated Context' : 'Save Perspective'}
                   </button>
                   <button onClick={() => { setShowPerspectiveForm(false); setPerspectiveContent(''); }} className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-white/10">
                     Cancel
@@ -256,9 +331,20 @@ export default function ArgumentDetailPage() {
             <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 backdrop-blur-2xl">
               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4">Next Steps</h3>
               <ol className="space-y-3">
-                {['Both partners submit perspectives', 'Click Generate Insights', 'Review common ground & root causes', 'Mark resolved when complete'].map((step, i) => (
+                {[
+                  currentArgument.current_user_has_perspective ? 'Your side is recorded' : 'Add your perspective',
+                  currentArgument.partner_has_perspective ? "Partner's side is recorded" : 'Wait for partner response',
+                  currentArgument.can_generate_insight ? 'Generate or refresh insights' : 'Unlock insights with both sides',
+                  'Review guidance and resolve when ready',
+                ].map((step, i) => (
                   <li key={i} className="flex items-start gap-3 text-xs text-zinc-400">
-                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${i < perspectives.length ? 'bg-teal-500 text-black' : 'border border-white/20 text-zinc-600'}`}>{i + 1}</span>
+                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
+                      (i === 0 && currentArgument.current_user_has_perspective) ||
+                      (i === 1 && currentArgument.partner_has_perspective) ||
+                      (i === 2 && currentArgument.insight_status === 'current')
+                        ? 'bg-teal-500 text-black'
+                        : 'border border-white/20 text-zinc-600'
+                    }`}>{i + 1}</span>
                     {step}
                   </li>
                 ))}
@@ -273,7 +359,7 @@ export default function ArgumentDetailPage() {
 
         {/* AI Insights */}
         <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-8 backdrop-blur-2xl animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
               <h2 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Brain className="h-4 w-4 text-teal-400" />
@@ -281,10 +367,16 @@ export default function ArgumentDetailPage() {
               </h2>
               <p className="text-xs text-zinc-500 mt-1">Personalized guidance generated from both perspectives.</p>
             </div>
-            <button onClick={handleAnalyze} disabled={isAnalyzing || perspectives.length < 2}
+            <button onClick={handleAnalyze} disabled={isAnalyzing || !currentArgument.can_generate_insight}
               className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
               <Sparkles className="h-4 w-4" />
-              {isAnalyzing ? 'Analyzing…' : 'Generate Insights'}
+              {isAnalyzing
+                ? 'Analyzing…'
+                : currentArgument.insight_status === 'stale'
+                  ? 'Regenerate Insights'
+                  : currentArgument.insight_status === 'current'
+                    ? 'Insights Current'
+                    : 'Generate Insights'}
             </button>
           </div>
 
@@ -292,7 +384,11 @@ export default function ArgumentDetailPage() {
             <div className="rounded-2xl border border-dashed border-white/10 bg-black/10 p-8 text-center">
               <Sparkles className="h-8 w-8 text-zinc-700 mx-auto mb-3 animate-pulse" />
               <p className="text-sm text-zinc-500">
-                {perspectives.length < 2 ? 'Add at least two perspectives to unlock AI insights.' : 'Ready — click "Generate Insights" when both partners have submitted.'}
+                {currentArgument.needs_user_response
+                  ? 'Your response is still missing. Add it to unlock the mediation flow.'
+                  : !currentArgument.partner_has_perspective
+                    ? 'Waiting for your partner to add their perspective.'
+                    : 'Ready — generate the mediation insight when you want Heka to synthesize both sides.'}
               </p>
             </div>
           )}

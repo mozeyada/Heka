@@ -47,6 +47,8 @@ class Argument(BaseModel):
     category: ArgumentCategory
     priority: ArgumentPriority = ArgumentPriority.MEDIUM
     status: ArgumentStatus = ArgumentStatus.DRAFT
+    created_by_user_id: Optional[str] = None
+    latest_context_at: Optional[datetime] = None
     
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -68,6 +70,8 @@ class ArgumentInDB(Argument):
             del data["_id"]
         if "couple_id" in data and isinstance(data["couple_id"], ObjectId):
             data["couple_id"] = str(data["couple_id"])
+        if "created_by_user_id" in data and isinstance(data["created_by_user_id"], ObjectId):
+            data["created_by_user_id"] = str(data["created_by_user_id"])
         return cls(**data)
     
     def to_mongo(self) -> dict:
@@ -77,4 +81,6 @@ class ArgumentInDB(Argument):
             data["_id"] = ObjectId(self.id)
         if "couple_id" in data and isinstance(data["couple_id"], str):
             data["couple_id"] = ObjectId(data["couple_id"])
+        if "created_by_user_id" in data and isinstance(data["created_by_user_id"], str):
+            data["created_by_user_id"] = ObjectId(data["created_by_user_id"])
         return data

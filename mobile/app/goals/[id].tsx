@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -49,7 +49,6 @@ function formatDate(value?: string | null) {
 
 export default function GoalDetailScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [goal, setGoal] = useState<GoalDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -260,6 +259,25 @@ export default function GoalDetailScreen() {
           </View>
         </LinearGradient>
 
+        {goal.next_action_title ? (
+          <Section
+            title="Shared Journey"
+            subtitle="Keep this goal collaborative, not solo."
+          >
+            <Card style={styles.journeyCard}>
+              <Text style={styles.journeyLabel}>
+                {goal.needs_user_progress ? "Your move" : "Shared momentum"}
+              </Text>
+              <Text style={styles.journeyTitle}>{goal.next_action_title}</Text>
+              {goal.next_action_description ? (
+                <Text style={styles.journeyDescription}>
+                  {goal.next_action_description}
+                </Text>
+              ) : null}
+            </Card>
+          </Section>
+        ) : null}
+
         <Section
           title="Momentum"
           subtitle="Track how this goal evolved over time."
@@ -290,7 +308,11 @@ export default function GoalDetailScreen() {
           <Card style={styles.addProgressCard}>
             <TextInput
               style={styles.input}
-              placeholder="Capture what moved you forward today…"
+              placeholder={
+                goal.needs_user_progress
+                  ? "What is your next concrete move on this goal?"
+                  : "Capture what moved this goal forward today…"
+              }
               placeholderTextColor={colors.neutral[500]}
               multiline
               value={progressNote}
@@ -309,7 +331,11 @@ export default function GoalDetailScreen() {
               ) : (
                 <>
                   <Ionicons name="send" size={16} color={colors.surface} />
-                  <Text style={styles.secondaryActionText}>Log update</Text>
+                  <Text style={styles.secondaryActionText}>
+                    {goal.needs_user_progress
+                      ? "Add your next step"
+                      : "Log update"}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
@@ -620,5 +646,27 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.neutral[400],
     flex: 1,
+  },
+  journeyCard: {
+    borderWidth: 1,
+    borderColor: colors.brand[200],
+    backgroundColor: colors.surface,
+    gap: spacing.sm,
+  },
+  journeyLabel: {
+    ...typography.label,
+    fontSize: 11,
+    color: colors.brand[500],
+    textTransform: "uppercase",
+  },
+  journeyTitle: {
+    ...typography.heading,
+    fontSize: 20,
+    color: colors.neutral[100],
+  },
+  journeyDescription: {
+    ...typography.body,
+    color: colors.neutral[300],
+    lineHeight: 22,
   },
 });

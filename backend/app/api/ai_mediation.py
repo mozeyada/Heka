@@ -1,6 +1,7 @@
 """AI Mediation endpoints."""
 
 import logging
+from datetime import datetime
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -24,6 +25,25 @@ from app.services.ai_suggestion_cache import ai_suggestion_cache_service
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/ai", tags=["AI Mediation"])
+
+
+def _serialize_insight(insight_doc: dict) -> dict:
+    """Serialize an AI insight Mongo document for API responses."""
+
+    from app.models.ai_insight import AIInsightInDB
+
+    insight = AIInsightInDB.from_mongo(insight_doc)
+    return {
+        "id": insight.id,
+        "summary": insight.summary,
+        "common_ground": insight.common_ground,
+        "disagreements": insight.disagreements,
+        "root_causes": insight.root_causes,
+        "suggestions": insight.suggestions,
+        "communication_tips": insight.communication_tips,
+        "generated_at": insight.generated_at,
+        "model_used": insight.ai_model,
+    }
 
 
 @router.post("/arguments/{argument_id}/analyze")
@@ -83,16 +103,25 @@ async def analyze_argument(
             detail="Both perspectives must be submitted before AI analysis"
         )
     
+    latest_context_at = argument.latest_context_at or argument.updated_at
+    for persp in perspectives_list:
+        if persp.updated_at and (latest_context_at is None or persp.updated_at > latest_context_at):
+            latest_context_at = persp.updated_at
+
     # Check if analysis already exists
     existing_insight = await db.ai_insights.find_one({
         "argument_id": argument_oid
     })
     
     if existing_insight:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="AI analysis already exists for this argument"
-        )
+        generated_at = existing_insight.get("generated_at")
+        if generated_at and latest_context_at and generated_at >= latest_context_at:
+            logger.info(
+                "Returning current AI insight for argument %s without regenerating",
+                validated_argument_id,
+            )
+            return _serialize_insight(existing_insight)
+        await db.ai_insights.delete_one({"_id": existing_insight["_id"]})
     
     # Get couple to identify which perspective belongs to which user
     couple = CoupleInDB.from_mongo(couple_doc)
@@ -126,7 +155,12 @@ async def analyze_argument(
         # Update argument status to analyzed
         await db.arguments.update_one(
             {"_id": argument_oid},
-            {"$set": {"status": ArgumentStatus.ANALYZED.value}}
+            {
+                "$set": {
+                    "status": ArgumentStatus.ANALYZED.value,
+                    "updated_at": datetime.utcnow(),
+                }
+            }
         )
         
         return insights
@@ -211,20 +245,7 @@ async def get_ai_insights(
             detail="AI insights not found. Run analysis first."
         )
     
-    from app.models.ai_insight import AIInsightInDB
-    insight = AIInsightInDB.from_mongo(insight_doc)
-    
-    return {
-        "id": insight.id,
-        "summary": insight.summary,
-        "common_ground": insight.common_ground,
-        "disagreements": insight.disagreements,
-        "root_causes": insight.root_causes,
-        "suggestions": insight.suggestions,
-        "communication_tips": insight.communication_tips,
-        "generated_at": insight.generated_at,
-        "model_used": insight.ai_model
-    }
+    return _serialize_insight(insight_doc)
 
 
 @router.get("/goals/suggestions", response_model=AIGoalsResponse)
@@ -455,4 +476,3 @@ async def get_user_couple(user: UserInDB, db: AsyncIOMotorDatabase) -> CoupleInD
             detail="Active couple not found for this user."
         )
     return CoupleInDB.from_mongo(couple_doc)
-

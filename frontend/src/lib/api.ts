@@ -203,7 +203,7 @@ export const couplesAPI = {
 
 // Arguments API
 export const argumentsAPI = {
-  create: async (data: { title: string; category: string; priority?: string }) => {
+  create: async (data: { title: string; category: string; priority?: string; initial_perspective: string }) => {
     const response = await apiClient.post('/api/arguments/create', data);
     return response.data;
   },
@@ -238,6 +238,13 @@ export const perspectivesAPI = {
     return response.data;
   },
 
+  updateMine: async (argumentId: string, content: string) => {
+    const response = await apiClient.patch(`/api/perspectives/argument/${argumentId}/mine`, {
+      content,
+    });
+    return response.data;
+  },
+
   getByArgument: async (argumentId: string) => {
     const response = await apiClient.get(`/api/perspectives/argument/${argumentId}`);
     return response.data;
@@ -264,7 +271,7 @@ export const checkinsAPI = {
 
 // Goals API
 export const goalsAPI = {
-  create: async (data: { title: string; description?: string; target_date?: string }) => {
+  create: async (data: { title: string; description?: string; target_date?: string; first_step: string }) => {
     const response = await apiClient.post('/api/goals/create', data);
     return response.data;
   },

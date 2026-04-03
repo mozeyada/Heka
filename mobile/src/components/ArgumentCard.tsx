@@ -14,6 +14,14 @@ export const ArgumentCard: React.FC<ArgumentCardProps> = ({
   argument,
   onPress,
 }) => {
+  const stateLabel = argument.needs_user_response
+    ? "Reply needed"
+    : argument.can_generate_insight
+      ? "Ready for insight"
+      : argument.insight_status === "current"
+        ? "Insight current"
+        : "Waiting on partner";
+
   return (
     <TouchableOpacity onPress={onPress}>
       <Card style={styles.card}>
@@ -35,6 +43,29 @@ export const ArgumentCard: React.FC<ArgumentCardProps> = ({
         <Text style={styles.meta}>
           {argument.status} • {argument.category}
         </Text>
+        <View style={styles.footerRow}>
+          <View
+            style={[
+              styles.statePill,
+              argument.needs_user_response
+                ? styles.statePillWarning
+                : argument.can_generate_insight
+                  ? styles.statePillReady
+                  : argument.insight_status === "current"
+                    ? styles.statePillCurrent
+                    : styles.statePillWaiting,
+            ]}
+          >
+            <Text style={styles.statePillText}>{stateLabel}</Text>
+          </View>
+          <Text style={styles.metaHint}>
+            {argument.needs_user_response
+              ? "Your partner is waiting on you."
+              : argument.can_generate_insight
+                ? "Both sides are in."
+                : "Open to continue."}
+          </Text>
+        </View>
       </Card>
     </TouchableOpacity>
   );
@@ -81,6 +112,10 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.neutral[400],
   },
+  footerRow: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
   priorityPill: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
@@ -89,5 +124,33 @@ const styles = StyleSheet.create({
   priorityText: {
     ...typography.label,
     fontSize: 12,
+  },
+  statePill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.xl,
+  },
+  statePillWarning: {
+    backgroundColor: "#fff7ed",
+  },
+  statePillReady: {
+    backgroundColor: "#ecfeff",
+  },
+  statePillCurrent: {
+    backgroundColor: "#ecfdf5",
+  },
+  statePillWaiting: {
+    backgroundColor: "#eff6ff",
+  },
+  statePillText: {
+    ...typography.label,
+    fontSize: 11,
+    color: colors.neutral[100],
+  },
+  metaHint: {
+    ...typography.body,
+    fontSize: 12,
+    color: colors.neutral[400],
   },
 });

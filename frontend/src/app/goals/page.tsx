@@ -10,6 +10,10 @@ interface Goal {
   id: string; title: string; description?: string; status: string; target_date?: string;
   progress: Array<{ date: string; notes?: string; progress_value?: number }>;
   progress_updates: number; created_at: string;
+  momentum_state: string;
+  needs_user_progress: boolean;
+  next_action_title: string;
+  next_action_description: string;
 }
 
 export default function GoalsPage() {
@@ -18,7 +22,7 @@ export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newGoal, setNewGoal] = useState({ title: '', description: '', target_date: '' });
+  const [newGoal, setNewGoal] = useState({ title: '', description: '', target_date: '', first_step: '' });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
@@ -43,12 +47,13 @@ export default function GoalsPage() {
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGoal.title.trim()) { setError('Goal title is required'); return; }
+    if (!newGoal.first_step.trim()) { setError('Add the first concrete move you will take'); return; }
     try {
       setCreating(true); setError(null);
-      await goalsAPI.create(newGoal);
-      setNewGoal({ title: '', description: '', target_date: '' });
+      const createdGoal = await goalsAPI.create(newGoal);
+      setNewGoal({ title: '', description: '', target_date: '', first_step: '' });
       setShowCreateForm(false);
-      loadGoals();
+      router.push(`/goals/${createdGoal.id}`);
     } catch (e: any) { setError(e.response?.data?.detail || 'Failed to create goal'); }
     finally { setCreating(false); }
   };
@@ -70,9 +75,13 @@ export default function GoalsPage() {
   const handleCreateFromSuggestion = async (suggestion: any) => {
     try {
       setCreating(true); setError(null);
-      await goalsAPI.create({ title: suggestion.title, description: suggestion.description });
+      const createdGoal = await goalsAPI.create({
+        title: suggestion.title,
+        description: suggestion.description,
+        first_step: 'I am opening this goal so we can agree on our first concrete move this week.',
+      });
       setAiSuggestions(aiSuggestions.filter(s => s.title !== suggestion.title));
-      loadGoals();
+      router.push(`/goals/${createdGoal.id}`);
     } catch (e: any) { setError(e.response?.data?.detail || 'Failed to create goal'); }
     finally { setCreating(false); }
   };
@@ -119,7 +128,10 @@ export default function GoalsPage() {
         {/* Create Goal Form */}
         {showCreateForm && (
           <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-8 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-300">
-            <h2 className="text-sm font-semibold text-white mb-6">Define New Objective</h2>
+            <h2 className="text-sm font-semibold text-white mb-2">Define New Objective</h2>
+            <p className="mb-6 max-w-2xl text-xs leading-relaxed text-zinc-500">
+              Shared goals should begin with an actual first move, not just a title. Start the path with one concrete step so your partner can answer with theirs.
+            </p>
             <form onSubmit={handleCreateGoal} className="space-y-5">
               <div>
                 <label htmlFor="goal-title" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Goal Title *</label>
@@ -138,6 +150,15 @@ export default function GoalsPage() {
                 />
               </div>
               <div>
+                <label htmlFor="goal-first-step" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Your First Step *</label>
+                <textarea id="goal-first-step" value={newGoal.first_step}
+                  onChange={e => setNewGoal({ ...newGoal, first_step: e.target.value })}
+                  rows={3} placeholder="What will you actually do first to move this goal forward?"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition resize-none"
+                  required
+                />
+              </div>
+              <div>
                 <label htmlFor="goal-date" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Target Date (optional)</label>
                 <input id="goal-date" type="date" value={newGoal.target_date}
                   onChange={e => setNewGoal({ ...newGoal, target_date: e.target.value })}
@@ -149,7 +170,7 @@ export default function GoalsPage() {
                   className="rounded-xl bg-white px-6 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:scale-[1.02] disabled:opacity-50">
                   {creating ? 'Creating…' : 'Set Objective'}
                 </button>
-                <button type="button" onClick={() => { setShowCreateForm(false); setNewGoal({ title: '', description: '', target_date: '' }); }}
+                <button type="button" onClick={() => { setShowCreateForm(false); setNewGoal({ title: '', description: '', target_date: '', first_step: '' }); }}
                   className="rounded-xl border border-white/10 bg-white/5 px-6 py-2.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/10">
                   Cancel
                 </button>
@@ -219,6 +240,19 @@ export default function GoalsPage() {
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white mb-1">{goal.title}</h3>
                     {goal.description && <p className="text-xs text-zinc-500 leading-relaxed mb-3">{goal.description}</p>}
+                    <div className="mb-4 flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
+                        goal.needs_user_progress
+                          ? 'bg-amber-500/10 text-amber-300'
+                          : goal.momentum_state === 'in_motion'
+                            ? 'bg-emerald-500/10 text-emerald-300'
+                            : 'bg-indigo-500/10 text-indigo-300'
+                      }`}>
+                        {goal.needs_user_progress ? 'Your move' : goal.momentum_state.replace(/_/g, ' ')}
+                      </span>
+                      <p className="text-[11px] text-zinc-400">{goal.next_action_title}</p>
+                    </div>
+                    <p className="mb-4 max-w-2xl text-xs leading-relaxed text-zinc-500">{goal.next_action_description}</p>
                     {goal.target_date && (
                       <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] text-zinc-500">
                         <Calendar className="h-3 w-3" />
@@ -249,7 +283,7 @@ export default function GoalsPage() {
                     </button>
                     <button onClick={() => router.push(`/goals/${goal.id}`)}
                       className="flex-1 sm:flex-none rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/10">
-                      View Details
+                      {goal.needs_user_progress ? 'Respond to Goal' : 'View Details'}
                     </button>
                   </div>
                 </div>

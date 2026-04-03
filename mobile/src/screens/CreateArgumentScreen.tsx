@@ -23,6 +23,7 @@ export default function CreateArgumentScreen() {
     title: "",
     category: "communication",
     priority: "medium",
+    initial_perspective: "",
   });
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +42,12 @@ export default function CreateArgumentScreen() {
   const handleCreateArgument = async () => {
     if (!newArgument.title.trim()) {
       setError("Title is required.");
+      return;
+    }
+    if (!newArgument.initial_perspective.trim()) {
+      setError(
+        "Add your perspective so your partner has something real to answer.",
+      );
       return;
     }
     setIsCreating(true);
@@ -68,7 +75,7 @@ export default function CreateArgumentScreen() {
     >
       <PageHeading
         title="New Argument"
-        description="Capture context before inviting AI to help mediate."
+        description="Start the issue with your side of it so the conversation begins with clarity."
       />
 
       <LinearGradient
@@ -81,8 +88,8 @@ export default function CreateArgumentScreen() {
           <View style={styles.heroCopy}>
             <Text style={styles.heroTitle}>Intake in minutes</Text>
             <Text style={styles.heroSubtitle}>
-              A focused prompt helps both of you stay objective when emotions
-              are high.
+              Name the issue, then add your perspective immediately. The fastest
+              path to insight starts with one clear issue and one honest side.
             </Text>
           </View>
           <View style={styles.heroIcon}>
@@ -166,6 +173,18 @@ export default function CreateArgumentScreen() {
           })}
         </View>
 
+        <Text style={styles.label}>Your Perspective</Text>
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          placeholder="What happened, how did it affect you, and what do you need your partner to understand?"
+          placeholderTextColor={colors.neutral[400]}
+          value={newArgument.initial_perspective}
+          onChangeText={(text) =>
+            setNewArgument({ ...newArgument, initial_perspective: text })
+          }
+          multiline
+        />
+
         <TouchableOpacity
           style={[styles.primaryButton, isCreating && styles.buttonDisabled]}
           onPress={handleCreateArgument}
@@ -177,7 +196,7 @@ export default function CreateArgumentScreen() {
             color={colors.surface}
           />
           <Text style={styles.primaryButtonText}>
-            {isCreating ? "Saving..." : "Create Argument"}
+            {isCreating ? "Saving..." : "Create Issue and Add My Side"}
           </Text>
         </TouchableOpacity>
       </Card>
@@ -264,6 +283,10 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[600],
     padding: spacing.md,
     color: colors.neutral[100],
+  },
+  textArea: {
+    minHeight: 150,
+    textAlignVertical: "top",
   },
   chipRow: {
     flexDirection: "row",

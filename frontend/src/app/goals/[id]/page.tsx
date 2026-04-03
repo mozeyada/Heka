@@ -25,6 +25,12 @@ interface Goal {
   target_date?: string;
   progress: GoalProgress[];
   created_by_user_id: string;
+  momentum_state: string;
+  needs_user_progress: boolean;
+  next_action_title: string;
+  next_action_description: string;
+  latest_progress_by_user_id?: string;
+  latest_progress_acknowledged_by_current_user: boolean;
 }
 
 const EMOJI_OPTIONS = [
@@ -50,6 +56,8 @@ export default function GoalDetailPage() {
   const [progressNotes, setProgressNotes] = useState('');
   const [progressValue, setProgressValue] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+
+  const goalActionLabel = goal?.needs_user_progress ? 'Add Your Next Step' : 'Add More Momentum';
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -174,10 +182,42 @@ export default function GoalDetailPage() {
                 className="btn-primary flex items-center gap-2"
               >
                 <PlusCircle className="w-4 h-4" />
-                Log Update
+                {goalActionLabel}
               </button>
             )}
           </div>
+        </div>
+
+        <div className="section-shell p-6 bg-white">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-500">Shared Journey</p>
+              <h2 className="mt-2 text-2xl font-semibold text-neutral-950">{goal.next_action_title}</h2>
+              <p className="mt-3 text-sm leading-relaxed text-neutral-600">{goal.next_action_description}</p>
+            </div>
+            <div className={`rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] ${
+              goal.needs_user_progress
+                ? 'border border-amber-200 bg-amber-50 text-amber-700'
+                : goal.momentum_state === 'completed'
+                  ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border border-indigo-200 bg-indigo-50 text-indigo-700'
+            }`}>
+              {goal.needs_user_progress ? 'Your move' : goal.momentum_state.replace(/_/g, ' ')}
+            </div>
+          </div>
+          {goal.latest_progress_by_user_id && (
+            <div className="mt-5 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+              <p className="text-sm text-neutral-700">
+                Latest momentum came from{' '}
+                <span className="font-semibold text-neutral-950">
+                  {partnerMap[goal.latest_progress_by_user_id] || 'your partner'}
+                </span>.
+                {goal.latest_progress_by_user_id !== user?.id && !goal.latest_progress_acknowledged_by_current_user
+                  ? ' You have not acknowledged that update yet.'
+                  : ' The shared loop is currently visible to both of you.'}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Create Progress Form */}
@@ -194,7 +234,9 @@ export default function GoalDetailPage() {
                   onChange={(e) => setProgressNotes(e.target.value)}
                   className="input-field mt-2"
                   rows={3}
-                  placeholder="What steps did you take towards this goal today?"
+                  placeholder={goal.needs_user_progress
+                    ? "What is your next concrete move on this shared goal?"
+                    : "Add more context, support, or momentum around this goal."}
                   required
                 />
               </div>
@@ -213,7 +255,7 @@ export default function GoalDetailPage() {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="submit" disabled={submitting} className="btn-primary">
-                  {submitting ? 'Posting...' : 'Post Update'}
+                  {submitting ? 'Posting...' : goalActionLabel}
                 </button>
                 <button type="button" onClick={() => setShowProgressForm(false)} className="btn-secondary">
                   Cancel

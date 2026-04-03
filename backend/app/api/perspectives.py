@@ -1,5 +1,6 @@
 """Perspectives endpoints."""
 
+from datetime import datetime
 from typing import List
 
 from bson import ObjectId
@@ -7,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.api.dependencies import get_current_user
-from app.api.schemas import PerspectiveCreate, PerspectiveResponse
+from app.api.schemas import PerspectiveCreate, PerspectiveResponse, PerspectiveUpdate
 from app.core.sanitization import sanitize_text, validate_object_id
 from app.db.database import get_database
 from app.models.argument import ArgumentInDB, ArgumentStatus
@@ -76,11 +77,14 @@ async def create_perspective(
             detail="You have already submitted a perspective for this argument"
         )
     
+    now = datetime.utcnow()
+
     # Create perspective
     perspective = PerspectiveInDB(
         argument_id=validated_argument_id,
         user_id=current_user.id,
-        content=sanitized_content
+        content=sanitized_content,
+        updated_at=now,
     )
     
     result = await db.perspectives.insert_one(perspective.to_mongo())
@@ -91,12 +95,17 @@ async def create_perspective(
         "argument_id": argument_oid
     })
     
-    if perspectives_count >= 2:
-        # Both perspectives submitted, ready for AI analysis
-        await db.arguments.update_one(
-            {"_id": argument_oid},
-            {"$set": {"status": ArgumentStatus.ACTIVE.value}}
-        )
+    next_status = ArgumentStatus.ACTIVE.value if perspectives_count >= 2 else ArgumentStatus.DRAFT.value
+    await db.arguments.update_one(
+        {"_id": argument_oid},
+        {
+            "$set": {
+                "status": next_status,
+                "latest_context_at": now,
+                "updated_at": now,
+            }
+        }
+    )
     
     return PerspectiveResponse(
         id=perspective.id,
@@ -104,6 +113,88 @@ async def create_perspective(
         user_id=perspective.user_id,
         content=perspective.content,
         created_at=perspective.created_at
+    )
+
+
+@router.patch("/argument/{argument_id}/mine", response_model=PerspectiveResponse)
+async def update_my_perspective(
+    argument_id: str,
+    payload: PerspectiveUpdate,
+    current_user: UserInDB = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Update the current user's perspective with new context."""
+
+    try:
+        validated_argument_id = validate_object_id(argument_id)
+        argument_oid = ObjectId(validated_argument_id)
+        sanitized_content = sanitize_text(payload.content, max_length=5000)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+    arg_doc = await db.arguments.find_one({"_id": argument_oid})
+    if not arg_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Argument not found"
+        )
+
+    argument = ArgumentInDB.from_mongo(arg_doc)
+    couple_doc = await db.couples.find_one({
+        "_id": ObjectId(argument.couple_id),
+        "$or": [
+            {"user1_id": ObjectId(current_user.id)},
+            {"user2_id": ObjectId(current_user.id)}
+        ],
+        "status": CoupleStatus.ACTIVE.value
+    })
+
+    if not couple_doc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied to this argument"
+        )
+
+    existing_perspective = await db.perspectives.find_one({
+        "argument_id": argument_oid,
+        "user_id": ObjectId(current_user.id),
+    })
+    if not existing_perspective:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Your perspective does not exist yet"
+        )
+
+    now = datetime.utcnow()
+    await db.perspectives.update_one(
+        {"_id": existing_perspective["_id"]},
+        {"$set": {"content": sanitized_content, "updated_at": now}},
+    )
+
+    perspectives_count = await db.perspectives.count_documents({"argument_id": argument_oid})
+    next_status = ArgumentStatus.ACTIVE.value if perspectives_count >= 2 else ArgumentStatus.DRAFT.value
+    await db.arguments.update_one(
+        {"_id": argument_oid},
+        {
+            "$set": {
+                "status": next_status,
+                "latest_context_at": now,
+                "updated_at": now,
+            }
+        }
+    )
+
+    updated_doc = await db.perspectives.find_one({"_id": existing_perspective["_id"]})
+    perspective = PerspectiveInDB.from_mongo(updated_doc)
+    return PerspectiveResponse(
+        id=perspective.id,
+        argument_id=perspective.argument_id,
+        user_id=perspective.user_id,
+        content=perspective.content,
+        created_at=perspective.created_at,
     )
 
 
@@ -166,4 +257,3 @@ async def get_perspectives_for_argument(
         ))
     
     return perspectives
-

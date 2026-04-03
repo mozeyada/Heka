@@ -10,6 +10,16 @@ interface Argument {
   category: string;
   priority: string;
   status: string;
+  created_by_user_id?: string;
+  perspective_count: number;
+  current_user_has_perspective: boolean;
+  partner_has_perspective: boolean;
+  awaiting_response_from_user_id?: string | null;
+  needs_user_response: boolean;
+  insight_status: string;
+  can_generate_insight: boolean;
+  insight_generated_at?: string | null;
+  latest_context_at?: string | null;
   summary?: string;
   created_at: string;
   updated_at: string;
@@ -20,7 +30,7 @@ interface ArgumentsState {
   currentArgument: Argument | null;
   isLoading: boolean;
   
-  createArgument: (data: { title: string; category: string; priority?: string }) => Promise<void>;
+  createArgument: (data: { title: string; category: string; priority?: string; initial_perspective: string }) => Promise<Argument>;
   fetchArguments: () => Promise<void>;
   fetchArgumentById: (id: string) => Promise<void>;
   clearCurrentArgument: () => void;
@@ -39,6 +49,7 @@ export const useArgumentsStore = create<ArgumentsState>((set) => ({
         arguments: [newArgument, ...state.arguments],
         isLoading: false,
       }));
+      return newArgument;
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -71,4 +82,3 @@ export const useArgumentsStore = create<ArgumentsState>((set) => ({
     set({ currentArgument: null });
   },
 }));
-

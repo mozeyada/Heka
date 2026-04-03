@@ -16,6 +16,14 @@ export async function submitPerspective(argumentId: string, content: string) {
   return response.data;
 }
 
+export async function updateMyPerspective(argumentId: string, content: string) {
+  const response = await api.patch(
+    `/api/perspectives/argument/${argumentId}/mine`,
+    { content },
+  );
+  return response.data;
+}
+
 export async function getPerspectivesForArgument(
   argumentId: string,
 ): Promise<Perspective[]> {

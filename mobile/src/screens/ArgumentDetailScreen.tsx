@@ -16,16 +16,21 @@ import ConfettiCannon from "react-native-confetti-cannon";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getAIInsights, analyzeArgument, AIInsight } from "../api/ai";
-import { fetchArgument, deleteArgument, updateArgumentStatus } from "../api/arguments";
-import { CementWinModal } from "../components/arguments/CementWinModal";
 import {
-  submitPerspective,
+  fetchArgument,
+  deleteArgument,
+  updateArgumentStatus,
+} from "../api/arguments";
+import {
   getPerspectivesForArgument,
   Perspective,
+  submitPerspective,
+  updateMyPerspective,
 } from "../api/perspectives";
+import { CementWinModal } from "../components/arguments/CementWinModal";
 import { Card, Section, Skeleton } from "../components/common";
 import { useAuthStore } from "../store/auth";
-import { colors, spacing, radii, typography, shadows } from "../theme/tokens";
+import { colors, spacing, radii, typography } from "../theme/tokens";
 
 type Props = {
   argumentId?: string;
@@ -90,6 +95,7 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
     try {
       const insights = await analyzeArgument(argumentId);
       setAIInsights(insights);
+      await loadData();
     } catch (error: any) {
       const errorMessage =
         error.response?.data?.detail || "Failed to analyze argument";
@@ -105,9 +111,9 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
     setError(null);
     try {
       const updatedArg = await updateArgumentStatus(argumentId, newStatus);
-      setArgument((prev: any) => ({ ...prev, status: newStatus }));
+      setArgument(updatedArg);
 
-      if (newStatus === 'resolved') {
+      if (newStatus === "resolved") {
         confettiRef.current?.start();
         setTimeout(() => setShowCementModal(true), 1500);
       }
@@ -203,16 +209,18 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
 
         {error && <ErrorCard message={error} />}
 
+        <JourneySection argument={argument} />
+
         <PerspectivesSection
           argumentId={argumentId!}
+          argument={argument}
           perspectives={perspectives}
           userId={userId}
           onUpdate={loadData}
         />
 
         <AIInsightsSection
-          argumentId={argumentId!}
-          perspectivesCount={perspectives.length}
+          argument={argument}
           aiInsights={aiInsights}
           isAnalyzing={analyzing}
           onAnalyze={handleAnalyze}
@@ -364,7 +372,10 @@ const ArgumentHeader = ({
 
       {/* Always Visible Action Plan Button */}
       <TouchableOpacity
-        style={[styles.resolveButton, { backgroundColor: colors.success, marginTop: 12 }]}
+        style={[
+          styles.resolveButton,
+          { backgroundColor: colors.success, marginTop: 12 },
+        ]}
         onPress={onViewActionPlan}
       >
         <Ionicons
@@ -385,8 +396,39 @@ const ErrorCard = ({ message }: { message: string }) => (
   </Card>
 );
 
+const JourneySection = ({ argument }: { argument: any }) => {
+  const label = argument.needs_user_response
+    ? "Your response is needed"
+    : argument.can_generate_insight
+      ? argument.insight_status === "stale"
+        ? "Context changed"
+        : "Ready for insight"
+      : argument.insight_status === "current"
+        ? "Insight is current"
+        : "Waiting on partner";
+
+  const copy = argument.needs_user_response
+    ? "Your partner has already left their side. Add your perspective now so the issue becomes shared, not one-sided."
+    : argument.can_generate_insight
+      ? argument.insight_status === "stale"
+        ? "New context was added after the last insight. Refresh the analysis so it reflects what is true now."
+        : "Both perspectives are in. Generate the synthesis once instead of making each person guess what the other meant."
+      : argument.current_user_has_perspective
+        ? "Your side is recorded. The next move belongs to your partner."
+        : "Start by adding your side clearly so your partner can respond to something concrete.";
+
+  return (
+    <Card style={styles.journeyCard}>
+      <Text style={styles.journeyEyebrow}>Journey State</Text>
+      <Text style={styles.journeyTitle}>{label}</Text>
+      <Text style={styles.journeyCopy}>{copy}</Text>
+    </Card>
+  );
+};
+
 const PerspectivesSection = ({
   argumentId,
+  argument,
   perspectives,
   userId,
   onUpdate,
@@ -396,16 +438,21 @@ const PerspectivesSection = ({
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasUserSubmitted = perspectives.some(
+  const currentUserPerspective = perspectives.find(
     (p: Perspective) => p.user_id === userId,
   );
+  const hasUserSubmitted = Boolean(currentUserPerspective);
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
     setIsSubmitting(true);
     setError(null);
     try {
-      await submitPerspective(argumentId, content.trim());
+      if (currentUserPerspective) {
+        await updateMyPerspective(argumentId, content.trim());
+      } else {
+        await submitPerspective(argumentId, content.trim());
+      }
       setContent("");
       setShowForm(false);
       onUpdate(); // Refresh data
@@ -431,12 +478,17 @@ const PerspectivesSection = ({
 
       {error && <Text style={styles.inlineErrorText}>{error}</Text>}
 
-      {!hasUserSubmitted && !showForm && (
+      {!showForm && (
         <TouchableOpacity
           style={styles.button}
-          onPress={() => setShowForm(true)}
+          onPress={() => {
+            setContent(currentUserPerspective?.content ?? "");
+            setShowForm(true);
+          }}
         >
-          <Text style={styles.buttonText}>Add Your Perspective</Text>
+          <Text style={styles.buttonText}>
+            {hasUserSubmitted ? "Add More Context" : "Add Your Perspective"}
+          </Text>
         </TouchableOpacity>
       )}
 
@@ -444,7 +496,11 @@ const PerspectivesSection = ({
         <View style={styles.formContainer}>
           <TextInput
             style={styles.textArea}
-            placeholder="Describe what happened, how it made you feel, and what you need..."
+            placeholder={
+              hasUserSubmitted
+                ? "Add what changed, what still hurts, or what your partner still needs to understand..."
+                : "Describe what happened, how it made you feel, and what you need..."
+            }
             placeholderTextColor={colors.neutral[400]}
             multiline
             value={content}
@@ -460,7 +516,11 @@ const PerspectivesSection = ({
               disabled={isSubmitting || !content.trim()}
             >
               <Text style={styles.buttonText}>
-                {isSubmitting ? "Saving..." : "Save Perspective"}
+                {isSubmitting
+                  ? "Saving..."
+                  : hasUserSubmitted
+                    ? "Save Updated Context"
+                    : "Save Perspective"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -475,9 +535,7 @@ const PerspectivesSection = ({
 
       {hasUserSubmitted && !showForm && (
         <View style={styles.submittedMessage}>
-          <Text style={styles.submittedText}>
-            ✓ You have submitted your perspective.
-          </Text>
+          <Text style={styles.submittedText}>✓ Your side is recorded.</Text>
         </View>
       )}
     </Section>
@@ -503,19 +561,25 @@ const PerspectiveCard = ({
 );
 
 const AIInsightsSection = ({
-  perspectivesCount,
+  argument,
   aiInsights,
   isAnalyzing,
   onAnalyze,
 }: any) => {
-  const canAnalyze = perspectivesCount >= 2;
+  const canAnalyze = Boolean(argument?.can_generate_insight);
+  const generateLabel =
+    argument?.insight_status === "stale"
+      ? "Refresh Insights"
+      : argument?.insight_status === "current"
+        ? "Insights Current"
+        : "Generate Insights";
 
   return (
     <Section
       title="AI Insights"
       subtitle="Get personalized mediation insights based on both perspectives."
     >
-      {canAnalyze && !aiInsights && (
+      {canAnalyze && argument?.insight_status !== "current" && (
         <TouchableOpacity
           style={[styles.button, isAnalyzing && styles.buttonDisabled]}
           onPress={onAnalyze}
@@ -524,7 +588,7 @@ const AIInsightsSection = ({
           {isAnalyzing ? (
             <ActivityIndicator color={colors.surface} />
           ) : (
-            <Text style={styles.buttonText}>Generate Insights</Text>
+            <Text style={styles.buttonText}>{generateLabel}</Text>
           )}
         </TouchableOpacity>
       )}
@@ -533,8 +597,10 @@ const AIInsightsSection = ({
         <EmptyState
           message={
             canAnalyze
-              ? 'Click "Generate Insights" to get personalized mediation guidance.'
-              : "Add at least two perspectives to unlock AI insights."
+              ? "Both sides are in. Generate the shared synthesis when you are ready."
+              : argument?.needs_user_response
+                ? "Your partner is waiting on your side before insight can become shared."
+                : "Wait until both perspectives are present before generating insight."
           }
         />
       ) : aiInsights.safety_check?.blocked ? (
@@ -761,6 +827,29 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.brand[200],
     textAlign: "center",
+  },
+  journeyCard: {
+    borderWidth: 1,
+    borderColor: colors.brand[200],
+    backgroundColor: colors.surface,
+  },
+  journeyEyebrow: {
+    ...typography.label,
+    fontSize: 11,
+    color: colors.brand[500],
+    textTransform: "uppercase",
+    marginBottom: spacing.sm,
+  },
+  journeyTitle: {
+    ...typography.heading,
+    fontSize: 20,
+    color: colors.neutral[100],
+  },
+  journeyCopy: {
+    ...typography.body,
+    color: colors.neutral[300],
+    marginTop: spacing.sm,
+    lineHeight: 22,
   },
   emptyState: {
     padding: spacing.xl,

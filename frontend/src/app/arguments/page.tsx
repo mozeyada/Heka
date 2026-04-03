@@ -48,6 +48,14 @@ const priorityBadge: Record<string, string> = {
   low: 'bg-white/5 text-zinc-500 border border-white/10',
 };
 
+const journeyPillMap: Record<string, { label: string; cls: string }> = {
+  needs_reply: { label: 'Reply Needed', cls: 'bg-red-500/10 text-red-300 border border-red-500/20' },
+  waiting_partner: { label: 'Waiting on Partner', cls: 'bg-orange-500/10 text-orange-300 border border-orange-500/20' },
+  ready: { label: 'Ready for Insight', cls: 'bg-teal-500/10 text-teal-300 border border-teal-500/20' },
+  stale: { label: 'New Context Added', cls: 'bg-amber-500/10 text-amber-300 border border-amber-500/20' },
+  current: { label: 'Insight Current', cls: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' },
+};
+
 export default function ArgumentsPage() {
   const router = useRouter();
   const { user, isAuthenticated, fetchCurrentUser } = useAuthStore();
@@ -187,6 +195,15 @@ export default function ArgumentsPage() {
             <div className="space-y-4">
               {currentList.map((arg) => {
                 const { icon: CategoryIcon, bg, color, label } = categoryIconMap[arg.category?.toLowerCase() ?? ''] ?? defaultCategory;
+                const journey = arg.needs_user_response
+                  ? journeyPillMap.needs_reply
+                  : arg.insight_status === 'stale'
+                    ? journeyPillMap.stale
+                    : arg.can_generate_insight
+                      ? journeyPillMap.ready
+                      : arg.insight_status === 'current'
+                        ? journeyPillMap.current
+                        : journeyPillMap.waiting_partner;
                 return (
                   <button key={arg.id} onClick={() => router.push(`/arguments/${arg.id}`)}
                     className={`w-full text-left rounded-3xl border bg-white/[0.02] p-5 sm:p-6 backdrop-blur-xl transition-all hover:bg-white/[0.04] group ${priorityGlow[arg.priority] ?? 'border-white/10'}`}>
@@ -195,9 +212,10 @@ export default function ArgumentsPage() {
                         <CategoryIcon className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <div className="mb-1.5 flex flex-wrap items-center gap-2">
                           <h2 className="text-sm font-semibold text-white truncate max-w-[280px] sm:max-w-none">{arg.title}</h2>
                           {arg.priority && <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${priorityBadge[arg.priority] ?? ''}`}>{arg.priority}</span>}
+                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest ${journey.cls}`}>{journey.label}</span>
                         </div>
                         <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-zinc-600">
                           <span>{label}</span>
@@ -207,7 +225,15 @@ export default function ArgumentsPage() {
                           <FileText className="h-3 w-3" />
                           <span>{formatDate(arg.created_at)}</span>
                         </div>
-                        {arg.summary && <p className="mt-2 text-xs text-zinc-500 line-clamp-1">{arg.summary}</p>}
+                        <p className="mt-2 text-xs text-zinc-500 line-clamp-2">
+                          {arg.needs_user_response
+                            ? 'Your partner logged this issue. Add your perspective so Heka can move the conversation forward.'
+                            : arg.can_generate_insight
+                              ? 'Both sides are in. Open this issue and generate the mediation insight.'
+                              : arg.insight_status === 'current'
+                                ? 'This issue already has a current insight. Add more context only if the situation changed.'
+                                : 'Your side is logged. The next move belongs to your partner.'}
+                        </p>
                       </div>
                       <ChevronRight className="h-5 w-5 shrink-0 text-zinc-700 transition group-hover:text-white group-hover:translate-x-0.5" />
                     </div>

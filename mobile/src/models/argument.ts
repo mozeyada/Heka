@@ -4,5 +4,16 @@ export type Argument = {
   category: string;
   priority: string;
   status: string;
+  created_by_user_id?: string | null;
+  perspective_count?: number;
+  current_user_has_perspective?: boolean;
+  partner_has_perspective?: boolean;
+  awaiting_response_from_user_id?: string | null;
+  needs_user_response?: boolean;
+  insight_status?: "not_ready" | "ready" | "stale" | "current";
+  can_generate_insight?: boolean;
+  insight_generated_at?: string | null;
+  latest_context_at?: string | null;
   created_at: string;
+  updated_at?: string;
 };

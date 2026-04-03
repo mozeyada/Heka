@@ -23,6 +23,80 @@ from app.models.user import UserInDB
 router = APIRouter(prefix="/api/arguments", tags=["Arguments"])
 
 
+async def _build_argument_response(
+    argument: ArgumentInDB,
+    current_user: UserInDB,
+    db: AsyncIOMotorDatabase,
+) -> ArgumentResponse:
+    """Build an enriched argument response with journey metadata."""
+
+    couple_doc = await db.couples.find_one({"_id": ObjectId(argument.couple_id)})
+    if not couple_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Couple not found for argument",
+        )
+
+    user1_id = str(couple_doc["user1_id"])
+    user2_id = str(couple_doc["user2_id"])
+    partner_id = user2_id if str(current_user.id) == user1_id else user1_id
+
+    perspective_docs = await db.perspectives.find({"argument_id": ObjectId(argument.id)}).to_list(length=10)
+    perspective_map = {
+        str(doc["user_id"]): doc
+        for doc in perspective_docs
+    }
+
+    current_user_has_perspective = str(current_user.id) in perspective_map
+    partner_has_perspective = partner_id in perspective_map
+    perspective_count = len(perspective_map)
+
+    awaiting_response_from_user_id = None
+    if not current_user_has_perspective:
+        awaiting_response_from_user_id = str(current_user.id)
+    elif not partner_has_perspective:
+        awaiting_response_from_user_id = partner_id
+
+    latest_context_at = argument.latest_context_at or argument.updated_at
+    for doc in perspective_docs:
+        updated_at = doc.get("updated_at") or doc.get("created_at")
+        if updated_at and (latest_context_at is None or updated_at > latest_context_at):
+            latest_context_at = updated_at
+
+    insight_doc = await db.ai_insights.find_one({"argument_id": ObjectId(argument.id)})
+    insight_generated_at = insight_doc.get("generated_at") if insight_doc else None
+
+    if perspective_count < 2:
+        insight_status = "not_ready"
+    elif insight_generated_at is None:
+        insight_status = "ready"
+    elif latest_context_at and latest_context_at > insight_generated_at:
+        insight_status = "stale"
+    else:
+        insight_status = "current"
+
+    return ArgumentResponse(
+        id=argument.id,
+        couple_id=argument.couple_id,
+        title=argument.title,
+        category=argument.category.value,
+        priority=argument.priority.value,
+        status=argument.status.value,
+        created_by_user_id=argument.created_by_user_id,
+        perspective_count=perspective_count,
+        current_user_has_perspective=current_user_has_perspective,
+        partner_has_perspective=partner_has_perspective,
+        awaiting_response_from_user_id=awaiting_response_from_user_id,
+        needs_user_response=awaiting_response_from_user_id == str(current_user.id),
+        insight_status=insight_status,
+        can_generate_insight=insight_status in {"ready", "stale"},
+        insight_generated_at=insight_generated_at,
+        latest_context_at=latest_context_at,
+        created_at=argument.created_at,
+        updated_at=argument.updated_at,
+    )
+
+
 @router.post("/create", response_model=ArgumentResponse, status_code=status.HTTP_201_CREATED)
 async def create_argument(
     argument_data: ArgumentCreate,
@@ -34,6 +108,7 @@ async def create_argument(
     # Sanitize title input
     try:
         sanitized_title = sanitize_text(argument_data.title, max_length=255)
+        sanitized_initial_perspective = sanitize_text(argument_data.initial_perspective, max_length=5000)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -101,16 +176,31 @@ async def create_argument(
         )
     
     # Create argument
+    latest_context_at = datetime.utcnow()
     argument = ArgumentInDB(
         couple_id=couple.id,
         title=sanitized_title,
         category=category,
         priority=priority,
-        status=ArgumentStatus.DRAFT
+        status=ArgumentStatus.DRAFT,
+        created_by_user_id=current_user.id,
+        latest_context_at=latest_context_at,
     )
     
     result = await db.arguments.insert_one(argument.to_mongo())
     argument.id = str(result.inserted_id)
+
+    from app.models.perspective import PerspectiveInDB
+
+    # The creator should provide the first perspective immediately.
+
+    perspective = PerspectiveInDB(
+        argument_id=argument.id,
+        user_id=current_user.id,
+        content=sanitized_initial_perspective,
+        updated_at=latest_context_at,
+    )
+    await db.perspectives.insert_one(perspective.to_mongo())
     
     # Invalidate suggestion cache when any new argument is created to ensure fresh insights
     from app.services.ai_suggestion_cache import ai_suggestion_cache_service
@@ -125,16 +215,7 @@ async def create_argument(
         db
     )
     
-    return ArgumentResponse(
-        id=argument.id,
-        couple_id=argument.couple_id,
-        title=argument.title,
-        category=argument.category.value,
-        priority=argument.priority.value,
-        status=argument.status.value,
-        created_at=argument.created_at,
-        updated_at=argument.updated_at
-    )
+    return await _build_argument_response(argument, current_user, db)
 
 
 @router.get("/", response_model=List[ArgumentResponse])
@@ -190,16 +271,7 @@ async def get_arguments(
 
     async for arg_doc in cursor:
         arg = ArgumentInDB.from_mongo(arg_doc)
-        arguments.append(ArgumentResponse(
-            id=arg.id,
-            couple_id=arg.couple_id,
-            title=arg.title,
-            category=arg.category.value,
-            priority=arg.priority.value,
-            status=arg.status.value,
-            created_at=arg.created_at,
-            updated_at=arg.updated_at
-        ))
+        arguments.append(await _build_argument_response(arg, current_user, db))
     
     return arguments
 
@@ -247,16 +319,7 @@ async def get_argument(
             detail="Access denied to this argument"
         )
     
-    return ArgumentResponse(
-        id=argument.id,
-        couple_id=argument.couple_id,
-        title=argument.title,
-        category=argument.category.value,
-        priority=argument.priority.value,
-        status=argument.status.value,
-        created_at=argument.created_at,
-        updated_at=argument.updated_at
-    )
+    return await _build_argument_response(argument, current_user, db)
 
 
 @router.patch("/{argument_id}/status", response_model=ArgumentResponse)
@@ -334,16 +397,7 @@ async def update_argument_status(
     argument.status = new_status
     argument.updated_at = updated_at
     
-    return ArgumentResponse(
-        id=argument.id,
-        couple_id=argument.couple_id,
-        title=argument.title,
-        category=argument.category.value,
-        priority=argument.priority.value,
-        status=argument.status.value,
-        created_at=argument.created_at,
-        updated_at=argument.updated_at
-    )
+    return await _build_argument_response(argument, current_user, db)
 
 
 @router.delete("/{argument_id}", status_code=status.HTTP_204_NO_CONTENT)

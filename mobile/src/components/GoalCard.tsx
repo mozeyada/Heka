@@ -31,6 +31,28 @@ export const GoalCard: React.FC<GoalCardProps> = ({
       {goal.description && (
         <Text style={styles.description}>{goal.description}</Text>
       )}
+      {!isCompleted && goal.next_action_title && (
+        <View style={styles.nextActionBlock}>
+          <View
+            style={[
+              styles.nextActionPill,
+              goal.needs_user_progress
+                ? styles.nextActionPillWarning
+                : styles.nextActionPillReady,
+            ]}
+          >
+            <Text style={styles.nextActionPillText}>
+              {goal.needs_user_progress ? "Your move" : "Shared momentum"}
+            </Text>
+          </View>
+          <Text style={styles.nextActionTitle}>{goal.next_action_title}</Text>
+          {goal.next_action_description ? (
+            <Text style={styles.nextActionDescription}>
+              {goal.next_action_description}
+            </Text>
+          ) : null}
+        </View>
+      )}
       {goal.target_date && (
         <Text style={styles.date}>
           Target: {new Date(goal.target_date).toLocaleDateString()}
@@ -89,6 +111,36 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.neutral[400],
     marginBottom: spacing.md,
+  },
+  nextActionBlock: {
+    marginBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  nextActionPill: {
+    alignSelf: "flex-start",
+    borderRadius: radii.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  nextActionPillWarning: {
+    backgroundColor: "#fff7ed",
+  },
+  nextActionPillReady: {
+    backgroundColor: "#ecfeff",
+  },
+  nextActionPillText: {
+    ...typography.label,
+    fontSize: 11,
+    color: colors.neutral[100],
+  },
+  nextActionTitle: {
+    ...typography.label,
+    color: colors.neutral[100],
+  },
+  nextActionDescription: {
+    ...typography.body,
+    fontSize: 13,
+    color: colors.neutral[400],
   },
   date: {
     ...typography.body,

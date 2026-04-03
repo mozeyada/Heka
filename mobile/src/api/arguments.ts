@@ -35,8 +35,12 @@ export async function createArgument(data: {
   title: string;
   category: string;
   priority: string;
+  initial_perspective: string;
 }): Promise<ArgumentDetail> {
-  const response = await api.post<ArgumentDetail>("/api/arguments/", data);
+  const response = await api.post<ArgumentDetail>(
+    "/api/arguments/create",
+    data,
+  );
   return response.data;
 }
 

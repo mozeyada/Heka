@@ -24,15 +24,19 @@ export async function fetchGoal(goalId: string): Promise<GoalDetail> {
 
 export async function createGoal(data: {
   title: string;
-  description: string;
-  target_date: string;
+  description?: string;
+  target_date?: string;
+  first_step: string;
 }): Promise<Goal> {
-  const response = await api.post<Goal>("/api/goals/", data);
+  const response = await api.post<Goal>("/api/goals/create", data);
   return response.data;
 }
 
 export async function updateGoalStatus(goalId: string, status: string) {
-  const response = await api.patch(`/api/goals/${goalId}/status`, { status });
+  if (status !== "completed") {
+    throw new Error("Only completing goals is currently supported in mobile.");
+  }
+  const response = await api.post(`/api/goals/${goalId}/complete`);
   return response.data;
 }
 

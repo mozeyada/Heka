@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  AlertCircle,
   ArrowLeft,
   HeartHandshake,
   Lock,
@@ -83,8 +84,8 @@ export default function CheckInPage() {
     try {
       setSubmitting(true);
       setError(null);
-      await checkinsAPI.complete(responses);
-      router.push('/dashboard');
+      const updatedCheckin = await checkinsAPI.complete(responses);
+      setCheckin(updatedCheckin);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to complete check-in');
     } finally {
@@ -171,7 +172,43 @@ export default function CheckInPage() {
       <div className="app-container max-w-5xl space-y-8">
         {error && <ErrorAlert message={error} onDismiss={() => setError(null)} />}
 
-        {checkin?.status === 'awaiting_partner' && (
+        <div className="section-shell overflow-hidden p-7 md:p-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-2xl">
+              <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] ${
+                checkin?.needs_user_response
+                  ? 'border border-amber-500/20 bg-amber-500/10 text-amber-300'
+                  : checkin?.status === 'completed'
+                    ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                    : 'border border-indigo-500/20 bg-indigo-500/10 text-indigo-300'
+              }`}>
+                {checkin?.needs_user_response ? <AlertCircle className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
+                {checkin?.journey_state?.replace(/_/g, ' ') || 'weekly sync'}
+              </div>
+              <h2 className="mt-5 text-3xl font-medium tracking-tight text-white">
+                {checkin?.next_step_title || 'Start this week’s reflection.'}
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                {checkin?.next_step_description}
+              </p>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-white/10 bg-black/25 p-5 md:min-w-[280px]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Shared context</p>
+              <p className="mt-3 text-sm leading-relaxed text-zinc-300">{checkin?.focus_summary}</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+                  {checkin?.open_argument_count ?? 0} active issues
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+                  {checkin?.active_goal_count ?? 0} active goals
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {checkin?.current_user_completed && !checkin?.partner_completed && (
           <div className="section-shell overflow-hidden p-8 md:p-10">
             <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
               <div className="max-w-xl">
@@ -193,6 +230,31 @@ export default function CheckInPage() {
                   <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-indigo-400" style={{ animationDelay: '0.1s' }} />
                   <span className="h-2.5 w-2.5 animate-bounce rounded-full bg-indigo-400" style={{ animationDelay: '0.2s' }} />
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {checkin?.partner_completed && !checkin?.current_user_completed && (
+          <div className="section-shell overflow-hidden p-8 md:p-10">
+            <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+              <div className="max-w-xl">
+                <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-amber-300">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  Your response is needed
+                </div>
+                <h2 className="mt-5 text-3xl font-medium tracking-tight text-white">Your partner already checked in.</h2>
+                <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                  Finish your reflection now to unlock the shared comparison and harmony report. Right now, the weekly ritual is waiting on you.
+                </p>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-white/10 bg-black/30 p-6 md:min-w-[280px]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Partner status</p>
+                <p className="mt-3 text-lg font-semibold text-white">Checked in and waiting</p>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-500">
+                  Your side is the missing half of the report.
+                </p>
               </div>
             </div>
           </div>
@@ -257,7 +319,7 @@ export default function CheckInPage() {
           </div>
         )}
 
-        {(checkin?.status === 'pending' || !checkin?.status) && (
+        {!checkin?.current_user_completed && (
           <form onSubmit={handleSubmit} className="space-y-8">
             {aiSuggestions.length > 0 && (
               <div className="section-shell p-7 md:p-8">
@@ -342,7 +404,7 @@ export default function CheckInPage() {
             <div className="flex flex-wrap gap-3">
               <button type="submit" disabled={submitting} className="btn-primary inline-flex items-center gap-2">
                 <SendHorizontal className="h-4 w-4" />
-                {submitting ? 'Submitting…' : 'Submit Check-in'}
+                {submitting ? 'Submitting…' : checkin?.partner_completed ? 'Submit My Side and Unlock Report' : 'Submit Check-in'}
               </button>
               <Link href="/dashboard" className="btn-secondary inline-flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />

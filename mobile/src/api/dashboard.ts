@@ -21,6 +21,9 @@ export type DashboardOverview = {
     priority: string;
     status: string;
     category: string;
+    needs_user_response?: boolean;
+    can_generate_insight?: boolean;
+    insight_status?: string;
     created_at: string;
   }[];
   goals: {
@@ -28,11 +31,17 @@ export type DashboardOverview = {
     title: string;
     status: string;
     target_date: string | null;
+    needs_user_progress?: boolean;
+    next_action_title?: string;
+    next_action_description?: string;
   }[];
   current_checkin: {
     id?: string;
     status: string;
     completed_at: string | null;
+    needs_user_response?: boolean;
+    next_step_title?: string;
+    next_step_description?: string;
   } | null;
   week_start_date: string;
 };

@@ -213,6 +213,7 @@ class ArgumentCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=255)
     category: str  # Will be validated against ArgumentCategory enum
     priority: str = "medium"  # Will be validated against ArgumentPriority enum
+    initial_perspective: str = Field(..., min_length=10, max_length=5000)
 
 
 class ArgumentUpdate(BaseModel):
@@ -229,6 +230,16 @@ class ArgumentResponse(BaseModel):
     category: str
     priority: str
     status: str
+    created_by_user_id: Optional[str] = None
+    perspective_count: int = 0
+    current_user_has_perspective: bool = False
+    partner_has_perspective: bool = False
+    awaiting_response_from_user_id: Optional[str] = None
+    needs_user_response: bool = False
+    insight_status: str = "not_ready"
+    can_generate_insight: bool = False
+    insight_generated_at: Optional[datetime] = None
+    latest_context_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 
@@ -237,6 +248,12 @@ class ArgumentResponse(BaseModel):
 class PerspectiveCreate(BaseModel):
     """Create perspective request."""
     argument_id: str
+    content: str = Field(..., min_length=10, max_length=5000)
+
+
+class PerspectiveUpdate(BaseModel):
+    """Update or extend a perspective with new context."""
+
     content: str = Field(..., min_length=10, max_length=5000)
 
 
@@ -261,11 +278,21 @@ class CheckInResponse(BaseModel):
     couple_id: str
     week_start_date: str  # ISO date string
     status: str
+    journey_state: str
     
     # Dual tracking
     responses: Optional[dict] = None          # Current user's responses
     partner_responses: Optional[dict] = None  # Partner's responses (only shown if both completed)
     completed_by: list[str] = Field(default_factory=list)  # User IDs who completed it
+    current_user_completed: bool = False
+    partner_completed: bool = False
+    needs_user_response: bool = False
+    awaiting_response_from_user_id: Optional[str] = None
+    next_step_title: str
+    next_step_description: str
+    focus_summary: Optional[str] = None
+    open_argument_count: int = 0
+    active_goal_count: int = 0
     completed_at: Optional[datetime] = None
     
     ai_harmony_report: Optional[str] = None
@@ -278,6 +305,7 @@ class GoalCreate(BaseModel):
     title: str = Field(..., min_length=3, max_length=255)
     description: Optional[str] = None
     target_date: Optional[str] = None  # ISO date string
+    first_step: str = Field(..., min_length=8, max_length=2000)
 
 
 class GoalProgressUpdate(BaseModel):
@@ -301,6 +329,16 @@ class GoalResponse(BaseModel):
     target_date: Optional[str] = None
     progress: list
     created_by_user_id: str
+    current_user_has_progress: bool = False
+    partner_has_progress: bool = False
+    latest_progress_by_user_id: Optional[str] = None
+    latest_progress_at: Optional[datetime] = None
+    latest_progress_acknowledged_by_current_user: bool = True
+    needs_user_progress: bool = False
+    next_action_type: str = "review"
+    next_action_title: str
+    next_action_description: str
+    momentum_state: str = "new"
     progress_updates: int
     created_at: datetime
     updated_at: datetime

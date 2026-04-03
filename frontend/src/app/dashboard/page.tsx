@@ -148,6 +148,9 @@ export default function DashboardPage() {
   // Relationship Pulse Math (Smart UI)
   const activeIssuesCount = args.filter(a => a.status !== 'resolved').length;
   const isHealthy = activeIssuesCount === 0;
+  const issuesNeedingMyResponse = args.filter((a: any) => a.status !== 'resolved' && a.needs_user_response).length;
+  const issuesReadyForInsight = args.filter((a: any) => a.status !== 'resolved' && a.can_generate_insight).length;
+  const goalsNeedingMyMove = goals.filter((goal: any) => goal.needs_user_progress).length;
 
   return (
     <div className="min-h-screen text-zinc-300 antialiased font-sans pb-32">
@@ -179,7 +182,13 @@ export default function DashboardPage() {
               {getGreeting()}, <span className="text-teal-400">{userName}</span>.
             </h1>
             <p className="text-sm font-medium text-zinc-400">
-              {isHealthy ? 'Your relationship pulse is stable.' : 'There are active issues awaiting mediation.'}
+              {isHealthy
+                ? 'Your relationship pulse is stable.'
+                : issuesNeedingMyResponse > 0
+                  ? `${issuesNeedingMyResponse} issue${issuesNeedingMyResponse === 1 ? '' : 's'} need your response right now.`
+                  : issuesReadyForInsight > 0
+                    ? `${issuesReadyForInsight} issue${issuesReadyForInsight === 1 ? '' : 's'} are ready for AI mediation.`
+                    : 'There are active issues awaiting partner alignment.'}
             </p>
           </div>
         </div>
@@ -251,14 +260,20 @@ export default function DashboardPage() {
                      <AlertCircle className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">Pending Sync</p>
-                    <p className="text-[11px] text-zinc-500">Awaiting your partner's responses to generate insights.</p>
+                    <p className="text-sm font-medium text-white">
+                      {currentCheckin?.needs_user_response ? 'Your reply is needed' : 'Waiting on partner'}
+                    </p>
+                    <p className="text-[11px] text-zinc-500">
+                      {currentCheckin?.next_step_description || 'Awaiting your partner\'s responses to generate insights.'}
+                    </p>
                   </div>
                 </div>
               ) : (
                 <div className="py-4">
                   <p className="text-3xl font-light text-white mb-2">—</p>
-                  <p className="text-sm font-medium text-zinc-500">Pending Alignment Check</p>
+                  <p className="text-sm font-medium text-zinc-500">
+                    {currentCheckin?.next_step_title || 'Pending Alignment Check'}
+                  </p>
                 </div>
               )}
             </div>
@@ -283,8 +298,20 @@ export default function DashboardPage() {
             <div className="flex-1 space-y-6">
               <div>
                 <p className="text-4xl font-medium text-white mb-1">{goals.length}</p>
-                <p className="text-xs text-zinc-500">Active relationship goals being tracked.</p>
+                <p className="text-xs text-zinc-500">
+                  {goalsNeedingMyMove > 0
+                    ? `${goalsNeedingMyMove} goal${goalsNeedingMyMove === 1 ? '' : 's'} need your next move.`
+                    : 'Active relationship goals being tracked.'}
+                </p>
               </div>
+
+              {goals.length > 0 && (
+                <div className="rounded-2xl border border-white/5 bg-black/20 p-5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Next shared move</p>
+                  <p className="mt-3 text-sm font-medium text-white">{goals[0].next_action_title}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-500">{goals[0].next_action_description}</p>
+                </div>
+              )}
 
               {/* The "Smart" Proactive Empty State */}
               {goals.length === 0 && (
@@ -329,8 +356,15 @@ export default function DashboardPage() {
              </div>
           ) : (
             <div className="space-y-3">
-              {args.filter(a => a.status !== 'resolved').slice(0, 3).map((arg) => {
+              {args.filter(a => a.status !== 'resolved').slice(0, 3).map((arg: any) => {
                 const { icon: CategoryIcon, bg, color, text } = getCategoryIconConfig(arg.category);
+                const stateLabel = arg.needs_user_response
+                  ? 'Reply needed'
+                  : arg.can_generate_insight
+                    ? 'Ready for insight'
+                    : arg.insight_status === 'current'
+                      ? 'Insight current'
+                      : 'Waiting on partner';
                 return (
                   <button key={arg.id} onClick={() => router.push(`/arguments/${arg.id}`)} className="w-full flex items-center justify-between rounded-2xl border border-white/5 bg-black/20 p-4 transition-colors hover:bg-white/5 group">
                     <div className="flex items-center gap-4 min-w-0 pr-4">
@@ -339,7 +373,18 @@ export default function DashboardPage() {
                        </div>
                        <div className="flex flex-col items-start min-w-0">
                           <span className="truncate text-sm font-semibold text-white max-w-[200px] sm:max-w-xs">{arg.title}</span>
-                          <span className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">{text}</span>
+                          <span className="mt-1 text-[10px] uppercase tracking-widest text-zinc-500">{text}</span>
+                          <span className={`mt-2 rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-widest ${
+                            arg.needs_user_response
+                              ? 'bg-red-500/10 text-red-300'
+                              : arg.can_generate_insight
+                                ? 'bg-teal-500/10 text-teal-300'
+                                : arg.insight_status === 'current'
+                                  ? 'bg-emerald-500/10 text-emerald-300'
+                                  : 'bg-orange-500/10 text-orange-300'
+                          }`}>
+                            {stateLabel}
+                          </span>
                        </div>
                     </div>
                     <ChevronRight className="h-4 w-4 shrink-0 text-zinc-600 transition-colors group-hover:text-white" />

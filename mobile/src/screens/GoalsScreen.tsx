@@ -31,6 +31,7 @@ export default function GoalsScreen() {
     title: "",
     description: "",
     target_date: "",
+    first_step: "",
   });
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +80,8 @@ export default function GoalsScreen() {
         title: suggestion.title,
         description: suggestion.description,
         target_date: "",
+        first_step:
+          "I am opening this goal now so we can decide the first concrete move together.",
       });
       setShowCreateForm(false);
       loadGoals();
@@ -103,13 +106,22 @@ export default function GoalsScreen() {
       setError("Title is required.");
       return;
     }
+    if (!newGoal.first_step.trim()) {
+      setError("Add the first concrete move so this goal starts with action.");
+      return;
+    }
     setIsCreating(true);
     setError(null);
     try {
-      await createGoal(newGoal);
-      setNewGoal({ title: "", description: "", target_date: "" });
+      const createdGoal = await createGoal(newGoal);
+      setNewGoal({
+        title: "",
+        description: "",
+        target_date: "",
+        first_step: "",
+      });
       setShowCreateForm(false);
-      loadGoals();
+      router.push(`/goals/${createdGoal.id}`);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to create goal.");
     } finally {
@@ -207,8 +219,8 @@ export default function GoalsScreen() {
           <View style={styles.heroCopy}>
             <Text style={styles.heroTitle}>Shared Milestones</Text>
             <Text style={styles.heroSubtitle}>
-              Align on what matters most. Track commitments and reflections in
-              one calm space.
+              Align on what matters most. Every goal should begin with a real
+              first move and then stay visibly shared.
             </Text>
           </View>
           <View style={styles.heroPill}>
@@ -307,7 +319,8 @@ export default function GoalsScreen() {
         <Card style={styles.formCard}>
           <Text style={styles.sectionTitle}>Create New Goal</Text>
           <Text style={styles.sectionSubtitle}>
-            Define what success looks like this week.
+            Define what success looks like and anchor it with the first concrete
+            step you will take.
           </Text>
           <TextInput
             style={styles.input}
@@ -323,6 +336,16 @@ export default function GoalsScreen() {
             value={newGoal.description}
             onChangeText={(text) =>
               setNewGoal({ ...newGoal, description: text })
+            }
+            multiline
+          />
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Your first concrete step"
+            placeholderTextColor={colors.neutral[400]}
+            value={newGoal.first_step}
+            onChangeText={(text) =>
+              setNewGoal({ ...newGoal, first_step: text })
             }
             multiline
           />
