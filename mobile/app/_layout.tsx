@@ -14,7 +14,6 @@ import { registerForPushNotifications } from "../src/services/notifications";
 import { registerSentry } from "../src/services/sentry";
 import { useAuthStore } from "../src/store/auth";
 
-
 function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
@@ -23,7 +22,9 @@ function RootLayout() {
 
   useEffect(() => {
     registerSentry();
-    void initializeMixpanel();
+    initializeMixpanel().catch((error) => {
+      Sentry.captureException(error);
+    });
   }, []);
 
   useEffect(() => {

@@ -206,7 +206,9 @@ api.interceptors.response.use(
         // Only logout if we're not in the middle of a login operation
         const authStore = useAuthStore.getState();
         if (!authStore.loading) {
-          console.log("[API] Refresh failed, calling logout (not during login)");
+          console.log(
+            "[API] Refresh failed, calling logout (not during login)",
+          );
           authStore.logout();
         } else {
           console.log(
@@ -231,12 +233,12 @@ api.interceptors.response.use(
         reason,
         hasAuthHeader: !!normalizeAuthHeader(
           originalRequest?.headers?.Authorization ||
-          error.config?.headers?.Authorization,
+            error.config?.headers?.Authorization,
         ),
         authHeader: (() => {
           const header = normalizeAuthHeader(
             originalRequest?.headers?.Authorization ||
-            error.config?.headers?.Authorization,
+              error.config?.headers?.Authorization,
           );
           return header ? `${header.substring(0, 30)}...` : "none";
         })(),

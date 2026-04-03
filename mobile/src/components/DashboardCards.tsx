@@ -1,8 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { Text, StyleSheet, TouchableOpacity } from "react-native";
 
 import { Card } from "./common";
-import { colors, spacing, typography, radii, shadows } from "../theme/tokens";
+import { colors, spacing, typography, radii } from "../theme/tokens";
 
 interface StatCardProps {
   label: string;

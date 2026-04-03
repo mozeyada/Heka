@@ -19,12 +19,7 @@ import { exportUserData, deleteAccount } from "../src/api/users";
 import { PageHeading } from "../src/components/PageHeading";
 import { Card, Section } from "../src/components/common";
 import { useAuthStore } from "../src/store/auth";
-import {
-  colors,
-  spacing,
-  typography,
-  radii,
-} from "../src/theme/tokens";
+import { colors, spacing, typography, radii } from "../src/theme/tokens";
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -144,10 +139,7 @@ export default function SettingsScreen() {
         )}
 
         {/* Account Overview */}
-        <Section
-          title="Account Overview"
-          subtitle={user.email}
-        >
+        <Section title="Account Overview" subtitle={user.email}>
           <Card>
             <View style={styles.accountInfo}>
               <View style={styles.infoRow}>

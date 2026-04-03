@@ -333,7 +333,7 @@ export default function SubscriptionScreen() {
                   styles.upgradeButton,
                   styles.premiumButton,
                   creatingCheckout === "premium" &&
-                  styles.upgradeButtonDisabled,
+                    styles.upgradeButtonDisabled,
                 ]}
                 onPress={() => handleUpgrade("premium")}
                 disabled={creatingCheckout === "premium"}
