@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import httpx
+
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -31,6 +33,7 @@ class EmailService:
         self.smtp_user = settings.SMTP_USER
         self.smtp_password = settings.SMTP_PASSWORD
         self.from_email = settings.EMAIL_FROM
+        self.resend_api_key = settings.RESEND_API_KEY
         self.smtp_timeout_seconds = settings.SMTP_TIMEOUT_SECONDS
         self.frontend_url = settings.FRONTEND_URL.rstrip("/")
 
@@ -73,6 +76,14 @@ class EmailService:
             "frontend_url": self.frontend_url,
         }
 
+    def _resend_snapshot(self) -> dict:
+        """Safe Resend snapshot for diagnostics without leaking secrets."""
+        return {
+            "resend_api_key_present": bool(self.resend_api_key),
+            "email_from": self.from_email,
+            "frontend_url": self.frontend_url,
+        }
+
     def _classify_email_error(self, exc: Exception) -> tuple[str, str]:
         """Classify SMTP failures into actionable categories."""
         if isinstance(exc, asyncio.TimeoutError):
@@ -89,9 +100,83 @@ class EmailService:
             return "smtp_sender_refused", "Sender address was refused by the SMTP provider"
         if isinstance(exc, smtplib.SMTPException):
             return "smtp_error", str(exc)
+        if isinstance(exc, httpx.TimeoutException):
+            return "resend_timeout", "Resend API request timed out"
+        if isinstance(exc, httpx.ConnectError):
+            return "resend_connect_failed", "Could not connect to Resend API"
+        if isinstance(exc, httpx.HTTPStatusError):
+            body = exc.response.text.strip()
+            message = body[:300] if body else f"HTTP {exc.response.status_code}"
+            return "resend_api_error", message
+        if isinstance(exc, httpx.HTTPError):
+            return "resend_http_error", str(exc)
         if isinstance(exc, OSError):
             return "network_error", str(exc)
         return "unknown_error", str(exc)
+
+    async def _send_via_resend(
+        self,
+        *,
+        to_email: str,
+        subject: str,
+        text: str,
+        html: str,
+        kind: str,
+    ) -> EmailDeliveryResult:
+        """Send email through Resend's HTTPS API."""
+        logger.info(
+            "email_delivery_attempt kind=%s transport=resend to=%s resend=%s",
+            kind,
+            self._mask_email(to_email),
+            self._resend_snapshot(),
+        )
+
+        try:
+            async with httpx.AsyncClient(
+                base_url="https://api.resend.com",
+                timeout=self.smtp_timeout_seconds + 2,
+                headers={
+                    "Authorization": f"Bearer {self.resend_api_key}",
+                    "Content-Type": "application/json",
+                    "User-Agent": "heka-backend/0.1.0",
+                },
+            ) as client:
+                response = await client.post(
+                    "/emails",
+                    json={
+                        "from": self.from_email,
+                        "to": [to_email],
+                        "subject": subject,
+                        "text": text,
+                        "html": html,
+                    },
+                )
+                response.raise_for_status()
+                payload = response.json()
+
+            logger.info(
+                "email_delivery_succeeded kind=%s transport=resend to=%s email_id=%s",
+                kind,
+                self._mask_email(to_email),
+                payload.get("id"),
+            )
+            return EmailDeliveryResult(success=True, status="sent")
+        except Exception as exc:
+            error_code, safe_message = self._classify_email_error(exc)
+            logger.exception(
+                "email_delivery_failed kind=%s transport=resend to=%s error_code=%s error_message=%s resend=%s",
+                kind,
+                self._mask_email(to_email),
+                error_code,
+                safe_message,
+                self._resend_snapshot(),
+            )
+            return EmailDeliveryResult(
+                success=False,
+                status="pending_retry",
+                error_code=error_code,
+                error_message=safe_message,
+            )
     
     async def send_invitation_email(
         self,
@@ -101,7 +186,7 @@ class EmailService:
     ) -> EmailDeliveryResult:
         """Send couple invitation email."""
         
-        if not self.smtp_host:
+        if not self.smtp_host and not self.resend_api_key:
             # In development, log instead of sending
             logger.info("INVITATION EMAIL (DEV MODE):")
             logger.info(f"  To: {to_email}")
@@ -164,7 +249,16 @@ The Heka Team
 </body>
 </html>
 """
-            
+
+            if self.resend_api_key:
+                return await self._send_via_resend(
+                    to_email=to_email,
+                    subject=msg['Subject'],
+                    text=text,
+                    html=html,
+                    kind="invitation",
+                )
+
             # Add parts
             part1 = MIMEText(text, 'plain')
             part2 = MIMEText(html, 'html')
@@ -172,7 +266,7 @@ The Heka Team
             msg.attach(part2)
 
             logger.info(
-                "email_delivery_attempt kind=invitation to=%s smtp=%s",
+                "email_delivery_attempt kind=invitation transport=smtp to=%s smtp=%s",
                 self._mask_email(to_email),
                 self._smtp_snapshot(),
             )
@@ -183,13 +277,13 @@ The Heka Team
                 timeout=self.smtp_timeout_seconds + 2,
             )
             
-            logger.info("email_delivery_succeeded kind=invitation to=%s", self._mask_email(to_email))
+            logger.info("email_delivery_succeeded kind=invitation transport=smtp to=%s", self._mask_email(to_email))
             return EmailDeliveryResult(success=True, status="sent")
             
         except Exception as e:
             error_code, safe_message = self._classify_email_error(e)
             logger.exception(
-                "email_delivery_failed kind=invitation to=%s error_code=%s error_message=%s smtp=%s",
+                "email_delivery_failed kind=invitation transport=smtp to=%s error_code=%s error_message=%s smtp=%s",
                 self._mask_email(to_email),
                 error_code,
                 safe_message,
@@ -210,7 +304,7 @@ The Heka Team
     ) -> EmailDeliveryResult:
         """Send password reset email."""
         
-        if not self.smtp_host:
+        if not self.smtp_host and not self.resend_api_key:
             # In development, log instead of sending
             logger.info("PASSWORD RESET EMAIL (DEV MODE):")
             logger.info(f"  To: {to_email}")
@@ -274,7 +368,16 @@ The Heka Team
 </body>
 </html>
 """
-            
+
+            if self.resend_api_key:
+                return await self._send_via_resend(
+                    to_email=to_email,
+                    subject=msg['Subject'],
+                    text=text,
+                    html=html,
+                    kind="password_reset",
+                )
+
             # Add parts
             part1 = MIMEText(text, 'plain')
             part2 = MIMEText(html, 'html')
@@ -282,7 +385,7 @@ The Heka Team
             msg.attach(part2)
 
             logger.info(
-                "email_delivery_attempt kind=password_reset to=%s smtp=%s",
+                "email_delivery_attempt kind=password_reset transport=smtp to=%s smtp=%s",
                 self._mask_email(to_email),
                 self._smtp_snapshot(),
             )
@@ -292,13 +395,13 @@ The Heka Team
                 timeout=self.smtp_timeout_seconds + 2,
             )
             
-            logger.info("email_delivery_succeeded kind=password_reset to=%s", self._mask_email(to_email))
+            logger.info("email_delivery_succeeded kind=password_reset transport=smtp to=%s", self._mask_email(to_email))
             return EmailDeliveryResult(success=True, status="sent")
             
         except Exception as e:
             error_code, safe_message = self._classify_email_error(e)
             logger.exception(
-                "email_delivery_failed kind=password_reset to=%s error_code=%s error_message=%s smtp=%s",
+                "email_delivery_failed kind=password_reset transport=smtp to=%s error_code=%s error_message=%s smtp=%s",
                 self._mask_email(to_email),
                 error_code,
                 safe_message,

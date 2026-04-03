@@ -53,6 +53,7 @@ class Settings(BaseSettings):
 
     # Email
     EMAIL_FROM: str = "noreply@heka.app"
+    RESEND_API_KEY: str = ""
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""

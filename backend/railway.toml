@@ -24,9 +24,10 @@ retries = 3
 # Optional:
 # - ENVIRONMENT=production
 # - FRONTEND_URL=https://heka-nine.vercel.app
+# - RESEND_API_KEY
+# - EMAIL_FROM=Heka <onboarding@resend.dev>
 # - SENTRY_DSN
 # - STRIPE_SECRET_KEY
 # - STRIPE_PUBLISHABLE_KEY
 # - STRIPE_WEBHOOK_SECRET
-# - SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
-
+# - SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD (local/dev fallback)
