@@ -142,12 +142,13 @@ async def complete_checkin(
         
     is_fully_completed = partner_id in checkin.completed_by
     new_status = CheckInStatus.COMPLETED if is_fully_completed else CheckInStatus.AWAITING_PARTNER
+    completed_by_object_ids = [ObjectId(user_id) for user_id in checkin.completed_by]
     
     update_data = {
         "$set": {
             "status": new_status.value,
             f"user_responses.{current_user.id}": checkin_data.responses,
-            "completed_by": checkin.completed_by,
+            "completed_by": completed_by_object_ids,
             "updated_at": datetime.utcnow()
         }
     }
@@ -250,4 +251,3 @@ async def get_checkin_history(
         ],
         "next_offset": next_offset
     }
-
