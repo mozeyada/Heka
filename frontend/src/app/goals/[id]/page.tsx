@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -72,15 +72,7 @@ export default function GoalDetailPage() {
     ? "Add Your Next Step"
     : "Add More Momentum";
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login");
-      return;
-    }
-    loadData();
-  }, [isAuthenticated, router, goalId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -112,7 +104,15 @@ export default function GoalDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [goalId, user?.id]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+    loadData();
+  }, [isAuthenticated, loadData, router]);
 
   const handleUpdateProgress = async (e: React.FormEvent) => {
     e.preventDefault();

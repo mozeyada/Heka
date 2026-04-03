@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   FileText,
@@ -66,7 +66,7 @@ export default function ArgumentsPage() {
   const hasRequestedAuth = useRef(false);
   const hasLoadedArguments = useRef(false);
 
-  const loadArguments = async () => {
+  const loadArguments = useCallback(async () => {
     try {
       setError(null);
       await fetchArguments();
@@ -75,7 +75,7 @@ export default function ArgumentsPage() {
     } finally {
       setHasInitialized(true);
     }
-  };
+  }, [fetchArguments]);
 
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -89,7 +89,7 @@ export default function ArgumentsPage() {
       hasRequestedAuth.current = true;
       fetchCurrentUser().catch(() => { setError('Could not load your profile. Please refresh.'); setHasInitialized(true); }).finally(() => { hasRequestedAuth.current = false; });
     }
-  }, [isAuthenticated, user, fetchCurrentUser, router]);
+  }, [isAuthenticated, user, fetchCurrentUser, loadArguments, router]);
 
   if (!hasInitialized || isLoading || (!user && isAuthenticated)) return <LoadingPage />;
 

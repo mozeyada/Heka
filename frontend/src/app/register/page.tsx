@@ -7,7 +7,7 @@ import { Check, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { passwordRequirementChecks, registerSchema, type RegisterFormData } from './schema';
+import { passwordRequirementChecks, registerSchema, type RegisterFormData } from '@/lib/registerSchema';
 
 function RegisterForm() {
   const router = useRouter();

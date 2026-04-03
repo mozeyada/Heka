@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowRight, CheckCircle2, MailOpen, UserRound, XCircle } from 'lucide-react';
@@ -24,29 +24,7 @@ export default function AcceptInvitationPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'needs_auth'>('loading');
   const [message, setMessage] = useState('');
 
-  useEffect(() => {
-    if (!token) {
-      setStatus('error');
-      setMessage('Invalid invitation link. Please check the link and try again.');
-      return;
-    }
-
-    const checkAuth = async () => {
-      const authToken = localStorage.getItem('access_token');
-      if (!authToken) {
-        sessionStorage.setItem('pending_invitation_token', token);
-        setStatus('needs_auth');
-        setMessage('Please login or register to accept this invitation.');
-        return;
-      }
-
-      acceptInvitation();
-    };
-
-    checkAuth();
-  }, [token]);
-
-  const acceptInvitation = async () => {
+  const acceptInvitation = useCallback(async () => {
     if (!token) {
       setStatus('error');
       setMessage('Invalid invitation token');
@@ -82,7 +60,29 @@ export default function AcceptInvitationPage() {
         setMessage('This invitation is tied to a different email. Login or register with the invited address.');
       }
     }
-  };
+  }, [fetchMyCouple, router, token]);
+
+  useEffect(() => {
+    if (!token) {
+      setStatus('error');
+      setMessage('Invalid invitation link. Please check the link and try again.');
+      return;
+    }
+
+    const checkAuth = async () => {
+      const authToken = localStorage.getItem('access_token');
+      if (!authToken) {
+        sessionStorage.setItem('pending_invitation_token', token);
+        setStatus('needs_auth');
+        setMessage('Please login or register to accept this invitation.');
+        return;
+      }
+
+      acceptInvitation();
+    };
+
+    checkAuth();
+  }, [acceptInvitation, token]);
 
   const shellClasses = 'min-h-screen pb-20 text-zinc-300';
 

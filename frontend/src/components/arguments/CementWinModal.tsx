@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { aiSuggestionsAPI, goalsAPI } from '@/lib/api';
 
 interface GoalSuggestion {
@@ -8,6 +8,7 @@ interface GoalSuggestion {
 
 interface CheckinSuggestion {
     question: string;
+    category?: string;
 }
 
 interface CementWinModalProps {
@@ -24,15 +25,7 @@ export function CementWinModal({ isOpen, onClose, argumentId }: CementWinModalPr
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [savedIndexes, setSavedIndexes] = useState<Set<number>>(new Set());
 
-    useEffect(() => {
-        if (isOpen && argumentId) {
-            loadSuggestions();
-            // Reset saved state when modal opens for a new argument
-            setSavedIndexes(new Set());
-        }
-    }, [isOpen, argumentId]);
-
-    const loadSuggestions = async () => {
+    const loadSuggestions = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -49,7 +42,15 @@ export function CementWinModal({ isOpen, onClose, argumentId }: CementWinModalPr
         } finally {
             setLoading(false);
         }
-    };
+    }, [argumentId]);
+
+    useEffect(() => {
+        if (isOpen && argumentId) {
+            loadSuggestions();
+            // Reset saved state when modal opens for a new argument
+            setSavedIndexes(new Set());
+        }
+    }, [argumentId, isOpen, loadSuggestions]);
 
     const handleSaveGoal = async (goal: GoalSuggestion, index: number) => {
         setSavingIndex(index);
@@ -71,6 +72,12 @@ export function CementWinModal({ isOpen, onClose, argumentId }: CementWinModalPr
         } finally {
             setSavingIndex(null);
         }
+    };
+
+    const getCheckinTimingLabel = (index: number) => {
+        if (index === 0) return 'Use next week';
+        if (index === 1) return 'Use the week after';
+        return 'Keep in reserve';
     };
 
     if (!isOpen) return null;
@@ -150,13 +157,28 @@ export function CementWinModal({ isOpen, onClose, argumentId }: CementWinModalPr
                             {/* Check-in Section */}
                             {checkins.length > 0 && (
                                 <section>
-                                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Weekly Check-in Question</h3>
-                                    <div className="bg-indigo-50 rounded-xl p-4 flex items-start gap-3">
-                                        <span className="text-xl">💬</span>
-                                        <div>
-                                            <p className="text-indigo-900 italic font-medium">"{checkins[0].question}"</p>
-                                            <p className="text-xs text-indigo-600 mt-1">Ask this next week.</p>
-                                        </div>
+                                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Weekly Check-in Rituals</h3>
+                                    <div className="space-y-3">
+                                        {checkins.slice(0, 3).map((checkin, index) => (
+                                            <div key={`${checkin.question}-${index}`} className="rounded-xl border border-indigo-100 bg-indigo-50/90 p-4">
+                                                <div className="flex items-start gap-3">
+                                                    <span className="text-xl">💬</span>
+                                                    <div className="flex-1">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-700">
+                                                                {getCheckinTimingLabel(index)}
+                                                            </span>
+                                                            {checkin.category ? (
+                                                                <span className="inline-flex rounded-full bg-indigo-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-600">
+                                                                    {checkin.category}
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
+                                                        <p className="mt-3 text-sm font-medium italic text-indigo-950">"{checkin.question}"</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </section>
                             )}

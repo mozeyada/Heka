@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
@@ -38,11 +38,7 @@ export default function ArgumentDetailPage() {
   const [perspectiveContent, setPerspectiveContent] = useState('');
   const [safetyConcern, setSafetyConcern] = useState<SafetyCheck | null>(null);
 
-  useEffect(() => {
-    if (argumentId) { fetchArgumentById(argumentId); loadPerspectives(); loadAIInsights(); }
-  }, [argumentId, fetchArgumentById]);
-
-  const loadPerspectives = async () => {
+  const loadPerspectives = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await perspectivesAPI.getByArgument(argumentId);
@@ -50,9 +46,9 @@ export default function ArgumentDetailPage() {
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to load perspectives');
     } finally { setIsLoading(false); }
-  };
+  }, [argumentId]);
 
-  const loadAIInsights = async () => {
+  const loadAIInsights = useCallback(async () => {
     try {
       const data = await aiSuggestionsAPI.getInsightsForArgument(argumentId);
       setAIInsights(data);
@@ -60,7 +56,11 @@ export default function ArgumentDetailPage() {
     } catch (err: any) {
       if (err.response?.status !== 404) setError('Failed to load AI insights');
     }
-  };
+  }, [argumentId]);
+
+  useEffect(() => {
+    if (argumentId) { fetchArgumentById(argumentId); loadPerspectives(); loadAIInsights(); }
+  }, [argumentId, fetchArgumentById, loadAIInsights, loadPerspectives]);
 
   const handleAddPerspective = async () => {
     if (!perspectiveContent.trim()) { setError('Perspective cannot be empty'); return; }
