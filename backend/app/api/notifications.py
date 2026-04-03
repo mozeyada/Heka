@@ -14,11 +14,11 @@ from app.api.schemas import (
 )
 from app.db.database import get_database
 from app.models.user import UserInDB
-from app.services.notification_preferences import normalize_notification_preferences
 from app.services.device_token_service import (
     revoke_device_token,
     upsert_device_token,
 )
+from app.services.notification_preferences import normalize_notification_preferences
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
