@@ -11,11 +11,18 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { fetchGoalSuggestions, AIGoalSuggestion } from "../api/ai_suggestions";
-import { fetchGoals, createGoal, updateGoalStatus, Goal } from "../api/goals";
+import {
+  fetchGoals,
+  createGoal,
+  updateGoalStatus,
+  deleteGoal,
+  Goal,
+} from "../api/goals";
 import { GoalCard } from "../components/GoalCard";
 import { PageHeading } from "../components/PageHeading";
 import { Card } from "../components/common";
@@ -54,6 +61,9 @@ export default function GoalsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<AIGoalSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [goalActionState, setGoalActionState] = useState<
+    Record<string, "completing" | "removing" | undefined>
+  >({});
 
   const loadGoals = useCallback(async () => {
     setLoading(true);
@@ -62,9 +72,7 @@ export default function GoalsScreen() {
       const data = await fetchGoals();
       setGoals(data);
     } catch (err: any) {
-      setError(
-        err.response?.data?.detail || err.message || "Failed to load goals.",
-      );
+      setError(getApiErrorMessage(err, "Failed to load goals."));
     } finally {
       setLoading(false);
     }
@@ -107,7 +115,7 @@ export default function GoalsScreen() {
         aiSuggestions.filter((s) => s.title !== suggestion.title),
       );
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to create goal.");
+      setError(getApiErrorMessage(err, "Failed to create goal."));
     } finally {
       setIsCreating(false);
     }
@@ -156,12 +164,52 @@ export default function GoalsScreen() {
 
   const handleCompleteGoal = async (goalId: string) => {
     try {
+      setGoalActionState((current) => ({ ...current, [goalId]: "completing" }));
+      setError(null);
       await updateGoalStatus(goalId, "completed");
-      loadGoals();
+      await loadGoals();
     } catch (err: any) {
       setError(getApiErrorMessage(err, "Failed to complete goal."));
+    } finally {
+      setGoalActionState((current) => ({ ...current, [goalId]: undefined }));
     }
   };
+
+  const handleRemoveGoal = useCallback((goal: Goal) => {
+    Alert.alert(
+      goal.status === "archived"
+        ? "Remove archived goal?"
+        : "Remove this goal?",
+      goal.status === "archived"
+        ? "This archived goal will disappear from your space."
+        : "This goal will disappear from your space and stay archived for your partner.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setGoalActionState((current) => ({
+                ...current,
+                [goal.id]: "removing",
+              }));
+              setError(null);
+              await deleteGoal(goal.id);
+              await loadGoals();
+            } catch (err: any) {
+              setError(getApiErrorMessage(err, "Failed to remove goal."));
+            } finally {
+              setGoalActionState((current) => ({
+                ...current,
+                [goal.id]: undefined,
+              }));
+            }
+          },
+        },
+      ],
+    );
+  }, [loadGoals]);
 
   const activeGoals = useMemo(
     () => goals.filter((g) => g.status === "active"),
@@ -486,6 +534,9 @@ export default function GoalsScreen() {
                   goal={goal}
                   onPress={() => router.push(`/goals/${goal.id}`)}
                   onComplete={() => handleCompleteGoal(goal.id)}
+                  onRemove={() => handleRemoveGoal(goal)}
+                  isCompleting={goalActionState[goal.id] === "completing"}
+                  isRemoving={goalActionState[goal.id] === "removing"}
                 />
               ))}
             </View>
@@ -505,6 +556,8 @@ export default function GoalsScreen() {
                   goal={goal}
                   onPress={() => router.push(`/goals/${goal.id}`)}
                   onComplete={() => {}}
+                  onRemove={() => handleRemoveGoal(goal)}
+                  isRemoving={goalActionState[goal.id] === "removing"}
                 />
               ))}
             </View>
@@ -525,6 +578,8 @@ export default function GoalsScreen() {
                   goal={goal}
                   onPress={() => router.push(`/goals/${goal.id}`)}
                   onComplete={() => {}}
+                  onRemove={() => handleRemoveGoal(goal)}
+                  isRemoving={goalActionState[goal.id] === "removing"}
                 />
               ))}
             </View>

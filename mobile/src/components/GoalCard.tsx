@@ -9,17 +9,32 @@ interface GoalCardProps {
   goal: Goal;
   onPress: () => void;
   onComplete: () => void;
+  onRemove: () => void;
+  isCompleting?: boolean;
+  isRemoving?: boolean;
 }
 
 export const GoalCard: React.FC<GoalCardProps> = ({
   goal,
   onPress,
   onComplete,
+  onRemove,
+  isCompleting = false,
+  isRemoving = false,
 }) => {
   const isCompleted = goal.status === "completed";
+  const isArchived = goal.status === "archived";
 
   return (
-    <Card style={isCompleted ? styles.completedCard : styles.card}>
+    <Card
+      style={
+        isArchived
+          ? styles.archivedCard
+          : isCompleted
+            ? styles.completedCard
+            : styles.card
+      }
+    >
       <View style={styles.header}>
         <Text style={styles.title}>{goal.title}</Text>
         {isCompleted && (
@@ -27,11 +42,16 @@ export const GoalCard: React.FC<GoalCardProps> = ({
             <Text style={styles.statusText}>✓ Completed</Text>
           </View>
         )}
+        {isArchived && (
+          <View style={styles.archivedPill}>
+            <Text style={styles.archivedText}>Archived</Text>
+          </View>
+        )}
       </View>
       {goal.description && (
         <Text style={styles.description}>{goal.description}</Text>
       )}
-      {!isCompleted && goal.next_action_title && (
+      {!isCompleted && !isArchived && goal.next_action_title && (
         <View style={styles.nextActionBlock}>
           <View
             style={[
@@ -78,14 +98,26 @@ export const GoalCard: React.FC<GoalCardProps> = ({
         <TouchableOpacity style={styles.button} onPress={onPress}>
           <Text style={styles.buttonText}>View</Text>
         </TouchableOpacity>
-        {!isCompleted && (
+        {!isCompleted && !isArchived && (
           <TouchableOpacity
             style={[styles.button, styles.completeButton]}
             onPress={onComplete}
+            disabled={isCompleting || isRemoving}
           >
-            <Text style={styles.buttonText}>Complete</Text>
+            <Text style={[styles.buttonText, styles.completeButtonText]}>
+              {isCompleting ? "Completing..." : "Complete"}
+            </Text>
           </TouchableOpacity>
         )}
+        <TouchableOpacity
+          style={[styles.button, styles.removeButton]}
+          onPress={onRemove}
+          disabled={isCompleting || isRemoving}
+        >
+          <Text style={[styles.buttonText, styles.removeButtonText]}>
+            {isRemoving ? "Removing..." : "Remove"}
+          </Text>
+        </TouchableOpacity>
       </View>
     </Card>
   );
@@ -99,6 +131,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     backgroundColor: "rgba(34, 197, 94, 0.05)",
     borderColor: colors.success,
+  },
+  archivedCard: {
+    marginBottom: spacing.lg,
+    backgroundColor: "rgba(113, 113, 122, 0.08)",
+    borderColor: colors.neutral[600],
   },
   header: {
     flexDirection: "row",
@@ -122,6 +159,17 @@ const styles = StyleSheet.create({
     ...typography.label,
     fontSize: 12,
     color: colors.surface,
+  },
+  archivedPill: {
+    backgroundColor: colors.neutral[700],
+    borderRadius: radii.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  archivedText: {
+    ...typography.label,
+    fontSize: 12,
+    color: colors.neutral[100],
   },
   description: {
     ...typography.body,
@@ -209,5 +257,15 @@ const styles = StyleSheet.create({
   completeButton: {
     backgroundColor: colors.success,
     borderColor: colors.success,
+  },
+  completeButtonText: {
+    color: colors.surface,
+  },
+  removeButton: {
+    backgroundColor: "rgba(239, 68, 68, 0.08)",
+    borderColor: colors.danger,
+  },
+  removeButtonText: {
+    color: colors.danger,
   },
 });

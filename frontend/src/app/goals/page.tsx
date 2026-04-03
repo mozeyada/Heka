@@ -9,6 +9,7 @@ import {
   Plus,
   X,
   Calendar,
+  Trash2,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { aiSuggestionsAPI, getApiErrorMessage, goalsAPI } from "@/lib/api";
@@ -49,6 +50,9 @@ export default function GoalsPage() {
   const [error, setError] = useState<string | null>(null);
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [goalActionState, setGoalActionState] = useState<
+    Record<string, "completing" | "removing" | undefined>
+  >({});
 
   const trimmedTitle = newGoal.title.trim();
   const trimmedFirstStep = newGoal.first_step.trim();
@@ -110,10 +114,35 @@ export default function GoalsPage() {
 
   const handleCompleteGoal = async (goalId: string) => {
     try {
+      setGoalActionState((current) => ({ ...current, [goalId]: "completing" }));
+      setError(null);
       await goalsAPI.complete(goalId);
-      loadGoals();
+      await loadGoals();
     } catch (e: any) {
       setError(getApiErrorMessage(e, "Failed to complete goal"));
+    } finally {
+      setGoalActionState((current) => ({ ...current, [goalId]: undefined }));
+    }
+  };
+
+  const handleRemoveGoal = async (goal: Goal) => {
+    const confirmed = window.confirm(
+      goal.status === "archived"
+        ? "Remove this archived goal from your space?"
+        : "Remove this goal from your space? Your partner will keep it in archive.",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setGoalActionState((current) => ({ ...current, [goal.id]: "removing" }));
+      setError(null);
+      await goalsAPI.delete(goal.id);
+      await loadGoals();
+    } catch (e: any) {
+      setError(getApiErrorMessage(e, "Failed to remove goal"));
+    } finally {
+      setGoalActionState((current) => ({ ...current, [goal.id]: undefined }));
     }
   };
 
@@ -490,17 +519,31 @@ export default function GoalsPage() {
                   <div className="flex sm:flex-col gap-3 sm:w-36 shrink-0">
                     <button
                       onClick={() => handleCompleteGoal(goal.id)}
+                      disabled={goalActionState[goal.id] !== undefined}
                       className="flex-1 sm:flex-none rounded-xl bg-emerald-500 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(16,185,129,0.2)] transition hover:scale-[1.02]"
                     >
-                      Mark Complete
+                      {goalActionState[goal.id] === "completing"
+                        ? "Completing..."
+                        : "Mark Complete"}
                     </button>
                     <button
                       onClick={() => router.push(`/goals/${goal.id}`)}
+                      disabled={goalActionState[goal.id] !== undefined}
                       className="flex-1 sm:flex-none rounded-xl border border-white/10 bg-white/5 py-2.5 text-xs font-semibold text-zinc-300 transition hover:bg-white/10"
                     >
                       {goal.needs_user_progress
                         ? "Respond to Goal"
                         : "View Details"}
+                    </button>
+                    <button
+                      onClick={() => handleRemoveGoal(goal)}
+                      disabled={goalActionState[goal.id] !== undefined}
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 py-2.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {goalActionState[goal.id] === "removing"
+                        ? "Removing..."
+                        : "Remove"}
                     </button>
                   </div>
                 </div>
@@ -540,6 +583,15 @@ export default function GoalsPage() {
                   >
                     View
                   </button>
+                  <button
+                    onClick={() => handleRemoveGoal(goal)}
+                    disabled={goalActionState[goal.id] !== undefined}
+                    className="shrink-0 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {goalActionState[goal.id] === "removing"
+                      ? "Removing..."
+                      : "Remove"}
+                  </button>
                 </div>
               </div>
             ))}
@@ -571,6 +623,15 @@ export default function GoalsPage() {
                     className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-400 transition hover:text-white hover:bg-white/10"
                   >
                     View
+                  </button>
+                  <button
+                    onClick={() => handleRemoveGoal(goal)}
+                    disabled={goalActionState[goal.id] !== undefined}
+                    className="shrink-0 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {goalActionState[goal.id] === "removing"
+                      ? "Removing..."
+                      : "Remove"}
                   </button>
                 </div>
               </div>
