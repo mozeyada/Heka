@@ -238,7 +238,8 @@ async def get_pending_invitations(
                 "invitee_email": inv.invitee_email,
                 "created_at": inv.created_at.isoformat(),
                 "expires_at": inv.expires_at.isoformat(),
-                "is_expired": inv.expires_at < datetime.utcnow()
+                "is_expired": inv.expires_at < datetime.utcnow(),
+                "invite_link": email_service.get_invitation_link(inv.token),
             }
             for inv in invitations
         ]

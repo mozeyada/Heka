@@ -53,6 +53,14 @@ class EmailService:
         normalized_path = path if path.startswith("/") else f"/{path}"
         return f"{self.frontend_url}{normalized_path}"
 
+    def get_invitation_link(self, invitation_token: str) -> str:
+        """Return the frontend invite URL for a pending invitation."""
+        return self._frontend_link(f"/invite/{invitation_token}")
+
+    def get_password_reset_link(self, reset_token: str) -> str:
+        """Return the frontend password reset URL."""
+        return self._frontend_link(f"/reset-password?token={reset_token}")
+
     def _mask_email(self, value: str | None) -> str | None:
         """Mask an email address for logs."""
         if not value or "@" not in value:
@@ -191,7 +199,7 @@ class EmailService:
             logger.info("INVITATION EMAIL (DEV MODE):")
             logger.info(f"  To: {to_email}")
             logger.info(f"  From: {inviter_name}")
-            logger.info(f"  Invitation Link: {self._frontend_link(f'/invite/{invitation_token}')}")
+            logger.info(f"  Invitation Link: {self.get_invitation_link(invitation_token)}")
             logger.info("  (In production, this would send an actual email)")
             return EmailDeliveryResult(success=True, status="dev_log_only")
         
@@ -209,7 +217,7 @@ class EmailService:
                 msg['From'] = f'{display_name} <{self.from_email}>'
             msg['To'] = to_email
             
-            invitation_url = self._frontend_link(f"/invite/{invitation_token}")
+            invitation_url = self.get_invitation_link(invitation_token)
             
             text = f"""
 Hi there!
@@ -308,7 +316,7 @@ The Heka Team
             # In development, log instead of sending
             logger.info("PASSWORD RESET EMAIL (DEV MODE):")
             logger.info(f"  To: {to_email}")
-            logger.info(f"  Reset Link: {self._frontend_link(f'/reset-password?token={reset_token}')}")
+            logger.info(f"  Reset Link: {self.get_password_reset_link(reset_token)}")
             logger.info("  (In production, this would send an actual email)")
             return EmailDeliveryResult(success=True, status="dev_log_only")
         
@@ -324,7 +332,7 @@ The Heka Team
                 msg['From'] = f'{display_name} <{self.from_email}>'
             msg['To'] = to_email
             
-            reset_url = self._frontend_link(f"/reset-password?token={reset_token}")
+            reset_url = self.get_password_reset_link(reset_token)
             
             text = f"""
 Hi {user_name},

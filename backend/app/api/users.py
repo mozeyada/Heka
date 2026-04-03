@@ -10,6 +10,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.api.dependencies import get_current_user
 from app.db.database import get_database
 from app.models.user import UserInDB
+from app.services.notification_preferences import normalize_notification_preferences
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
@@ -35,6 +36,9 @@ async def export_user_data(
                 "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
                 "terms_accepted_at": current_user.terms_accepted_at.isoformat() if current_user.terms_accepted_at else None,
                 "privacy_accepted_at": current_user.privacy_accepted_at.isoformat() if current_user.privacy_accepted_at else None,
+                "notification_preferences": normalize_notification_preferences(
+                    current_user.notification_preferences
+                ),
             },
             "couples": [],
             "arguments": [],
@@ -234,4 +238,3 @@ async def delete_account(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete account: {str(e)}"
         )
-

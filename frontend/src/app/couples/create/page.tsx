@@ -9,6 +9,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   ArrowLeft,
+  Copy,
+  ExternalLink,
   Link2,
   Mail,
   RefreshCcw,
@@ -34,6 +36,7 @@ interface PendingInvitation {
   created_at: string;
   expires_at: string;
   is_expired: boolean;
+  invite_link: string;
 }
 
 export default function CreateCouplePage() {
@@ -115,6 +118,16 @@ export default function CreateCouplePage() {
       setError(err.response?.data?.detail || 'Failed to resend invitation');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCopyInviteLink = async (inviteLink: string) => {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setSuccessMessage('Invite link copied. You can open it in a private window or send it directly while email delivery is still being finalized.');
+      setTimeout(() => setSuccessMessage(null), 3500);
+    } catch {
+      setError('Could not copy the invite link from this browser. Try opening it directly instead.');
     }
   };
 
@@ -299,7 +312,7 @@ export default function CreateCouplePage() {
                 <h2 className="mt-2 text-2xl font-medium tracking-tight text-white">Outstanding partner requests</h2>
               </div>
               <div className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs text-zinc-500">
-                Resend available for inactive invites
+                Open or copy the invite link while email is still being finalized
               </div>
             </div>
 
@@ -322,14 +335,33 @@ export default function CreateCouplePage() {
                       )}
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleResend(inv.id)}
-                    disabled={isLoading}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <RefreshCcw className="h-4 w-4" />
-                    Resend
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleCopyInviteLink(inv.invite_link)}
+                      disabled={isLoading}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copy Link
+                    </button>
+                    <a
+                      href={inv.invite_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-white/[0.08]"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Open Link
+                    </a>
+                    <button
+                      onClick={() => handleResend(inv.id)}
+                      disabled={isLoading}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <RefreshCcw className="h-4 w-4" />
+                      Resend
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

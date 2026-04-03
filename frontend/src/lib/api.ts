@@ -137,6 +137,45 @@ export const authAPI = {
   },
 };
 
+export interface NotificationChannelPreference {
+  email: boolean;
+  in_app: boolean;
+}
+
+export interface RelationshipNotificationPreferences {
+  invites: NotificationChannelPreference;
+  partner_activity: NotificationChannelPreference;
+  check_in_reminders: NotificationChannelPreference;
+  goal_updates: NotificationChannelPreference;
+  ai_insights: NotificationChannelPreference;
+}
+
+export interface NotificationPreferences {
+  account_emails: {
+    security_and_recovery: boolean;
+    billing_and_subscription: boolean;
+    legal_and_policy: boolean;
+  };
+  relationship_notifications: RelationshipNotificationPreferences;
+  can_edit_account_emails: boolean;
+}
+
+export const notificationsAPI = {
+  getPreferences: async (): Promise<NotificationPreferences> => {
+    const response = await apiClient.get('/api/notifications/preferences');
+    return response.data;
+  },
+
+  updatePreferences: async (
+    relationshipNotifications: RelationshipNotificationPreferences
+  ): Promise<NotificationPreferences> => {
+    const response = await apiClient.put('/api/notifications/preferences', {
+      relationship_notifications: relationshipNotifications,
+    });
+    return response.data;
+  },
+};
+
 // Couples API
 export const couplesAPI = {
   create: async (partnerEmail: string) => {

@@ -1,5 +1,6 @@
 """User model for MongoDB."""
 
+from copy import deepcopy
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, Optional
@@ -14,6 +15,26 @@ class UserRole(str, Enum):
     ADMIN = "admin"
 
 
+def default_notification_preferences() -> Dict[str, Any]:
+    """Return the default notification preference structure."""
+    return deepcopy(
+        {
+            "account_emails": {
+                "security_and_recovery": True,
+                "billing_and_subscription": True,
+                "legal_and_policy": True,
+            },
+            "relationship_notifications": {
+                "invites": {"email": True, "in_app": True},
+                "partner_activity": {"email": True, "in_app": True},
+                "check_in_reminders": {"email": True, "in_app": True},
+                "goal_updates": {"email": False, "in_app": True},
+                "ai_insights": {"email": False, "in_app": True},
+            },
+        }
+    )
+
+
 class User(BaseModel):
     """User document model."""
     
@@ -26,8 +47,9 @@ class User(BaseModel):
     is_active: bool = True
     is_verified: bool = False
     
-    # Privacy settings
-    privacy_settings: Dict[str, Any] = {}
+    # Privacy and communication settings
+    privacy_settings: Dict[str, Any] = Field(default_factory=dict)
+    notification_preferences: Dict[str, Any] = Field(default_factory=default_notification_preferences)
     
     # Legal acceptance tracking
     terms_accepted_at: Optional[datetime] = None

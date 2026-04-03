@@ -130,6 +130,51 @@ class DeviceTokenCreate(BaseModel):
         return v
 
 
+class NotificationChannelPreference(BaseModel):
+    """Per-channel preference for a relationship notification category."""
+
+    email: bool = True
+    in_app: bool = True
+
+
+class RelationshipNotificationPreferences(BaseModel):
+    """Editable notification preferences for relationship activity."""
+
+    invites: NotificationChannelPreference = Field(default_factory=NotificationChannelPreference)
+    partner_activity: NotificationChannelPreference = Field(default_factory=NotificationChannelPreference)
+    check_in_reminders: NotificationChannelPreference = Field(default_factory=NotificationChannelPreference)
+    goal_updates: NotificationChannelPreference = Field(
+        default_factory=lambda: NotificationChannelPreference(email=False, in_app=True)
+    )
+    ai_insights: NotificationChannelPreference = Field(
+        default_factory=lambda: NotificationChannelPreference(email=False, in_app=True)
+    )
+
+
+class AccountEmailPreferences(BaseModel):
+    """Always-on account-critical email categories."""
+
+    security_and_recovery: bool = True
+    billing_and_subscription: bool = True
+    legal_and_policy: bool = True
+
+
+class NotificationPreferencesResponse(BaseModel):
+    """Current notification preferences shown in settings."""
+
+    account_emails: AccountEmailPreferences = Field(default_factory=AccountEmailPreferences)
+    relationship_notifications: RelationshipNotificationPreferences = Field(
+        default_factory=RelationshipNotificationPreferences
+    )
+    can_edit_account_emails: bool = False
+
+
+class NotificationPreferencesUpdate(BaseModel):
+    """Editable notification preference payload."""
+
+    relationship_notifications: RelationshipNotificationPreferences
+
+
 class UserResponse(BaseModel):
     """User response (public info only)."""
     id: str
@@ -313,4 +358,3 @@ class AIGoalsResponse(BaseModel):
 class AICheckInsResponse(BaseModel):
     """Response for AI-generated check-in questions."""
     suggestions: List[AICheckInSuggestion] = Field(default_factory=list)
-
