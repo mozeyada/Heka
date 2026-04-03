@@ -11,7 +11,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { goalsAPI, aiSuggestionsAPI } from "@/lib/api";
+import { aiSuggestionsAPI, getApiErrorMessage, goalsAPI } from "@/lib/api";
 
 interface Goal {
   id: string;
@@ -30,6 +30,7 @@ interface Goal {
   latest_progress_at?: string | null;
   latest_progress_note?: string | null;
   latest_progress_value?: number | null;
+  archived_for_current_user?: boolean;
 }
 
 export default function GoalsPage() {
@@ -49,6 +50,9 @@ export default function GoalsPage() {
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
+  const trimmedTitle = newGoal.title.trim();
+  const trimmedFirstStep = newGoal.first_step.trim();
+
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (!token || !isAuthenticated) {
@@ -64,9 +68,7 @@ export default function GoalsPage() {
       setLoading(true);
       setGoals(await goalsAPI.getAll());
     } catch (e: any) {
-      setError(
-        e.response?.data?.detail || e.message || "Failed to load goals.",
-      );
+      setError(getApiErrorMessage(e, "Failed to load goals."));
     } finally {
       setLoading(false);
     }
@@ -74,18 +76,23 @@ export default function GoalsPage() {
 
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newGoal.title.trim()) {
-      setError("Goal title is required");
+    if (trimmedTitle.length < 3) {
+      setError("Goal title must be at least 3 characters");
       return;
     }
-    if (!newGoal.first_step.trim()) {
-      setError("Add the first concrete move you will take");
+    if (trimmedFirstStep.length < 8) {
+      setError("Add a real first step with at least 8 characters");
       return;
     }
     try {
       setCreating(true);
       setError(null);
-      const createdGoal = await goalsAPI.create(newGoal);
+      const createdGoal = await goalsAPI.create({
+        title: trimmedTitle,
+        description: newGoal.description.trim() || undefined,
+        target_date: newGoal.target_date || undefined,
+        first_step: trimmedFirstStep,
+      });
       setNewGoal({
         title: "",
         description: "",
@@ -95,7 +102,7 @@ export default function GoalsPage() {
       setShowCreateForm(false);
       router.push(`/goals/${createdGoal.id}`);
     } catch (e: any) {
-      setError(e.response?.data?.detail || "Failed to create goal");
+      setError(getApiErrorMessage(e, "Failed to create goal"));
     } finally {
       setCreating(false);
     }
@@ -106,7 +113,7 @@ export default function GoalsPage() {
       await goalsAPI.complete(goalId);
       loadGoals();
     } catch (e: any) {
-      setError(e.response?.data?.detail || "Failed to complete goal");
+      setError(getApiErrorMessage(e, "Failed to complete goal"));
     }
   };
 
@@ -137,7 +144,7 @@ export default function GoalsPage() {
       );
       router.push(`/goals/${createdGoal.id}`);
     } catch (e: any) {
-      setError(e.response?.data?.detail || "Failed to create goal");
+      setError(getApiErrorMessage(e, "Failed to create goal"));
     } finally {
       setCreating(false);
     }
@@ -145,6 +152,7 @@ export default function GoalsPage() {
 
   const activeGoals = goals.filter((g) => g.status === "active");
   const completedGoals = goals.filter((g) => g.status === "completed");
+  const archivedGoals = goals.filter((g) => g.status === "archived");
 
   if (loading)
     return (
@@ -230,6 +238,7 @@ export default function GoalsPage() {
                   placeholder="e.g., Have weekly date nights"
                   className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition"
                   required
+                  minLength={3}
                   maxLength={255}
                 />
               </div>
@@ -268,7 +277,11 @@ export default function GoalsPage() {
                   placeholder="What will you actually do first to move this goal forward?"
                   className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/50 transition resize-none"
                   required
+                  minLength={8}
                 />
+                <p className="mt-2 text-[11px] text-zinc-500">
+                  Start with one concrete move, not a vague intention.
+                </p>
               </div>
               <div>
                 <label
@@ -367,6 +380,7 @@ export default function GoalsPage() {
         {/* Empty State */}
         {activeGoals.length === 0 &&
           completedGoals.length === 0 &&
+          archivedGoals.length === 0 &&
           !showCreateForm && (
             <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-14 backdrop-blur-2xl text-center animate-in fade-in duration-700 delay-200">
               <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10">
@@ -519,6 +533,38 @@ export default function GoalsPage() {
                         </p>
                       )}
                     </div>
+                  </div>
+                  <button
+                    onClick={() => router.push(`/goals/${goal.id}`)}
+                    className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-zinc-400 transition hover:text-white hover:bg-white/10"
+                  >
+                    View
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {archivedGoals.length > 0 && (
+          <div className="space-y-4 animate-in fade-in duration-700 delay-300">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+              Archived ({archivedGoals.length})
+            </p>
+            {archivedGoals.map((goal) => (
+              <div
+                key={goal.id}
+                className="rounded-3xl border border-zinc-500/15 bg-zinc-500/[0.02] p-6 backdrop-blur-xl"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-white truncate">
+                      {goal.title}
+                    </h3>
+                    <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+                      Your partner stepped away from this goal. It stays here as
+                      archived context unless you remove it from your side too.
+                    </p>
                   </div>
                   <button
                     onClick={() => router.push(`/goals/${goal.id}`)}

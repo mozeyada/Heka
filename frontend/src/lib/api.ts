@@ -12,7 +12,7 @@ const apiClient = axios.create({
   },
 });
 
-function getApiErrorMessage(error: any, fallback: string): string {
+export function getApiErrorMessage(error: any, fallback: string): string {
   const detail = error.response?.data?.detail;
 
   if (typeof detail === 'string' && detail.trim()) {

@@ -14,6 +14,7 @@ class GoalStatus(str, Enum):
     ACTIVE = "active"
     COMPLETED = "completed"
     PAUSED = "paused"
+    ARCHIVED = "archived"
     CANCELLED = "cancelled"
 
 
@@ -45,6 +46,8 @@ class RelationshipGoal(BaseModel):
     # Metrics
     created_by_user_id: str  # User who created the goal
     progress_updates: int = 0  # Number of progress updates
+    hidden_for_user_ids: List[str] = Field(default_factory=list)
+    archived_for_user_ids: List[str] = Field(default_factory=list)
     
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -57,10 +60,11 @@ class RelationshipGoal(BaseModel):
 
 class RelationshipGoalInDB(RelationshipGoal):
     """Goal document as stored in MongoDB."""
-    
+
     @classmethod
     def from_mongo(cls, data: dict) -> "RelationshipGoalInDB":
         """Convert MongoDB document to RelationshipGoalInDB."""
+        data = data.copy()
         if "_id" in data:
             data["id"] = str(data["_id"])
             del data["_id"]
@@ -68,14 +72,29 @@ class RelationshipGoalInDB(RelationshipGoal):
             data["couple_id"] = str(data["couple_id"])
         if "created_by_user_id" in data and isinstance(data["created_by_user_id"], ObjectId):
             data["created_by_user_id"] = str(data["created_by_user_id"])
+        if data.get("hidden_for_user_ids") is None:
+            data["hidden_for_user_ids"] = []
+        elif "hidden_for_user_ids" in data:
+            data["hidden_for_user_ids"] = [str(user_id) for user_id in data["hidden_for_user_ids"]]
+        if data.get("archived_for_user_ids") is None:
+            data["archived_for_user_ids"] = []
+        elif "archived_for_user_ids" in data:
+            data["archived_for_user_ids"] = [str(user_id) for user_id in data["archived_for_user_ids"]]
         if "target_date" in data and isinstance(data["target_date"], datetime):
             data["target_date"] = data["target_date"].date()
         # Convert progress entries
-        if "progress" in data and data["progress"]:
+        if data.get("progress") is None:
+            data["progress"] = []
+        elif "progress" in data and data["progress"]:
             progress_list = []
             for p in data["progress"]:
+                p = dict(p)
                 if isinstance(p.get("date"), datetime):
                     p["date"] = p["date"].date()
+                if isinstance(p.get("date"), str):
+                    p["date"] = datetime.fromisoformat(p["date"].replace("Z", "+00:00")).date()
+                if p.get("reactions") is None:
+                    p["reactions"] = []
                 progress_list.append(GoalProgress(**p))
             data["progress"] = progress_list
         return cls(**data)
@@ -101,4 +120,3 @@ class RelationshipGoalInDB(RelationshipGoal):
                 progress_list.append(p_dict)
             data["progress"] = progress_list
         return data
-

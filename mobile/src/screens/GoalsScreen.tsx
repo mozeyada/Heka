@@ -21,6 +21,23 @@ import { PageHeading } from "../components/PageHeading";
 import { Card } from "../components/common";
 import { colors, spacing, typography, radii, shadows } from "../theme/tokens";
 
+function getApiErrorMessage(error: any, fallback: string): string {
+  const detail = error?.response?.data?.detail;
+
+  if (typeof detail === "string" && detail.trim()) {
+    return detail;
+  }
+
+  if (Array.isArray(detail) && detail.length > 0) {
+    const firstMessage = detail.find((item) => typeof item?.msg === "string")?.msg;
+    if (firstMessage) {
+      return firstMessage;
+    }
+  }
+
+  return error?.message || fallback;
+}
+
 export default function GoalsScreen() {
   const router = useRouter();
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -102,18 +119,26 @@ export default function GoalsScreen() {
   }, [loadGoals]);
 
   const handleCreateGoal = async () => {
-    if (!newGoal.title.trim()) {
-      setError("Title is required.");
+    const trimmedTitle = newGoal.title.trim();
+    const trimmedFirstStep = newGoal.first_step.trim();
+
+    if (trimmedTitle.length < 3) {
+      setError("Goal title must be at least 3 characters.");
       return;
     }
-    if (!newGoal.first_step.trim()) {
-      setError("Add the first concrete move so this goal starts with action.");
+    if (trimmedFirstStep.length < 8) {
+      setError("Add a real first step with at least 8 characters.");
       return;
     }
     setIsCreating(true);
     setError(null);
     try {
-      const createdGoal = await createGoal(newGoal);
+      const createdGoal = await createGoal({
+        title: trimmedTitle,
+        description: newGoal.description.trim() || undefined,
+        target_date: newGoal.target_date || undefined,
+        first_step: trimmedFirstStep,
+      });
       setNewGoal({
         title: "",
         description: "",
@@ -123,7 +148,7 @@ export default function GoalsScreen() {
       setShowCreateForm(false);
       router.push(`/goals/${createdGoal.id}`);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to create goal.");
+      setError(getApiErrorMessage(err, "Failed to create goal."));
     } finally {
       setIsCreating(false);
     }
@@ -134,7 +159,7 @@ export default function GoalsScreen() {
       await updateGoalStatus(goalId, "completed");
       loadGoals();
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to complete goal.");
+      setError(getApiErrorMessage(err, "Failed to complete goal."));
     }
   };
 
@@ -146,8 +171,12 @@ export default function GoalsScreen() {
     () => goals.filter((g) => g.status === "completed"),
     [goals],
   );
+  const archivedGoals = useMemo(
+    () => goals.filter((g) => g.status === "archived"),
+    [goals],
+  );
   const completionRate = goals.length
-    ? Math.round((completedGoals.length / goals.length) * 100)
+    ? Math.round((completedGoals.length / Math.max(goals.length, 1)) * 100)
     : 0;
   const insets = useSafeAreaInsets();
 
@@ -362,7 +391,10 @@ export default function GoalsScreen() {
         </Card>
       )}
 
-      {goals.length === 0 && !showCreateForm ? (
+      {activeGoals.length === 0 &&
+      completedGoals.length === 0 &&
+      archivedGoals.length === 0 &&
+      !showCreateForm ? (
         <View style={styles.emptySection}>
           {aiSuggestions.length > 0 && (
             <Card style={styles.suggestionsCard}>
@@ -468,6 +500,26 @@ export default function GoalsScreen() {
                 </Text>
               </View>
               {completedGoals.map((goal) => (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  onPress={() => router.push(`/goals/${goal.id}`)}
+                  onComplete={() => {}}
+                />
+              ))}
+            </View>
+          )}
+
+          {archivedGoals.length > 0 && (
+            <View style={styles.sectionBlock}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Archived</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Your partner stepped away. These stay here as history unless
+                  you remove them too.
+                </Text>
+              </View>
+              {archivedGoals.map((goal) => (
                 <GoalCard
                   key={goal.id}
                   goal={goal}

@@ -10,9 +10,10 @@ import {
   Star,
   ThumbsUp,
   PlusCircle,
+  Trash2,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { goalsAPI, couplesAPI } from "@/lib/api";
+import { couplesAPI, getApiErrorMessage, goalsAPI } from "@/lib/api";
 import { PageHeading } from "@/components/PageHeading";
 
 interface GoalProgress {
@@ -42,6 +43,7 @@ interface Goal {
   latest_progress_note?: string;
   latest_progress_value?: number;
   latest_progress_acknowledged_by_current_user: boolean;
+  archived_for_current_user?: boolean;
 }
 
 const EMOJI_OPTIONS = [
@@ -67,6 +69,7 @@ export default function GoalDetailPage() {
   const [progressNotes, setProgressNotes] = useState("");
   const [progressValue, setProgressValue] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const goalActionLabel = goal?.needs_user_progress
     ? "Add Your Next Step"
@@ -100,7 +103,7 @@ export default function GoalDetailPage() {
       }
     } catch (error: any) {
       console.error("Failed to load goal:", error);
-      setError(error.response?.data?.detail || "Failed to load goal details.");
+      setError(getApiErrorMessage(error, "Failed to load goal details."));
     } finally {
       setLoading(false);
     }
@@ -126,7 +129,7 @@ export default function GoalDetailPage() {
       setShowProgressForm(false);
       loadData(); // Reload to get new progress
     } catch (error: any) {
-      setError(error.response?.data?.detail || "Failed to add progress.");
+      setError(getApiErrorMessage(error, "Failed to add progress."));
     } finally {
       setSubmitting(false);
     }
@@ -139,6 +142,28 @@ export default function GoalDetailPage() {
       loadData();
     } catch (error: any) {
       console.error("Failed to react:", error);
+    }
+  };
+
+  const handleDeleteGoal = async () => {
+    if (!goal) return;
+
+    const confirmed = window.confirm(
+      goal.archived_for_current_user
+        ? "Remove this archived goal from your space?"
+        : "Remove this shared goal from your space? Your partner will keep it in archive.",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeleting(true);
+      await goalsAPI.delete(goalId);
+      router.push("/goals");
+    } catch (error: any) {
+      setError(getApiErrorMessage(error, "Failed to delete goal."));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -158,9 +183,26 @@ export default function GoalDetailPage() {
         title={goal.title}
         description={goal.description || "Track your collaborative progress"}
         actions={
-          <Link href="/goals" className="btn-secondary">
-            Back
-          </Link>
+          <div className="flex items-center gap-3">
+            {goal.status !== "cancelled" && (
+              <button
+                type="button"
+                onClick={handleDeleteGoal}
+                disabled={deleting}
+                className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleting
+                  ? "Removing..."
+                  : goal.archived_for_current_user
+                    ? "Remove From My Space"
+                    : "Remove From My Space"}
+              </button>
+            )}
+            <Link href="/goals" className="btn-secondary">
+              Back
+            </Link>
+          </div>
         }
       />
 
@@ -168,6 +210,15 @@ export default function GoalDetailPage() {
         {error && (
           <div className="section-shell border border-red-200 bg-red-50 p-5">
             <p className="text-sm font-semibold text-red-600">{error}</p>
+          </div>
+        )}
+
+        {goal.archived_for_current_user && (
+          <div className="section-shell border border-zinc-200 bg-zinc-50 p-5">
+            <p className="text-sm font-semibold text-zinc-700">
+              Your partner stepped away from this goal. It is archived for you
+              as reference only, and new shared updates are closed.
+            </p>
           </div>
         )}
 
@@ -194,7 +245,7 @@ export default function GoalDetailPage() {
                 {partnerMap[goal.created_by_user_id] || "You"}
               </span>
             </p>
-            {goal.status === "active" && (
+            {goal.status === "active" && !goal.archived_for_current_user && (
               <button
                 onClick={() => setShowProgressForm(!showProgressForm)}
                 className="btn-primary flex items-center gap-2"

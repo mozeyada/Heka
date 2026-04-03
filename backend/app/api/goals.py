@@ -7,6 +7,7 @@ from typing import List, Optional
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pydantic import ValidationError
 
 from app.api.dependencies import get_current_user
 from app.api.schemas import (
@@ -46,6 +47,19 @@ def _serialize_goal_progress(goal: RelationshipGoalInDB) -> list[dict]:
         }
         for p in goal.progress
     ]
+
+
+def _parse_goal_doc(doc: dict) -> RelationshipGoalInDB:
+    """Parse a goal document defensively so one malformed legacy record cannot break the whole feed."""
+    try:
+        return RelationshipGoalInDB.from_mongo(doc)
+    except (ValidationError, ValueError, TypeError) as exc:
+        logger.exception(
+            "Failed to parse relationship goal document goal_id=%s",
+            doc.get("_id"),
+            exc_info=exc,
+        )
+        raise
 
 
 def _build_goal_response(
@@ -306,9 +320,17 @@ async def get_goals(
         .skip(offset)
         .limit(limit)
     ).to_list(length=limit)
-    goals = [RelationshipGoalInDB.from_mongo(doc) for doc in goals_docs]
-    
-    return [_build_goal_response(goal=goal, current_user=current_user, couple=couple) for goal in goals]
+    responses: list[GoalResponse] = []
+    for doc in goals_docs:
+        try:
+            goal = _parse_goal_doc(doc)
+            responses.append(
+                _build_goal_response(goal=goal, current_user=current_user, couple=couple)
+            )
+        except (ValidationError, ValueError, TypeError):
+            continue
+
+    return responses
 
 
 @router.get("/{goal_id}", response_model=GoalResponse)
@@ -349,7 +371,13 @@ async def get_goal(
             detail="Goal not found"
         )
     
-    goal = RelationshipGoalInDB.from_mongo(goal_doc)
+    try:
+        goal = _parse_goal_doc(goal_doc)
+    except (ValidationError, ValueError, TypeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="This goal is stored in an invalid format. Please create a new one or contact support."
+        ) from exc
     
     return _build_goal_response(goal=goal, current_user=current_user, couple=couple)
 
@@ -393,7 +421,7 @@ async def update_goal_progress(
             detail="Goal not found"
         )
     
-    goal = RelationshipGoalInDB.from_mongo(goal_doc)
+    goal = _parse_goal_doc(goal_doc)
     if _is_goal_archived_for_user(goal, current_user.id) or goal.status == GoalStatus.ARCHIVED:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -464,7 +492,7 @@ async def update_goal_progress(
     
     # Fetch updated goal
     updated_doc = await db.relationship_goals.find_one({"_id": ObjectId(goal_id)})
-    updated_goal = RelationshipGoalInDB.from_mongo(updated_doc)
+    updated_goal = _parse_goal_doc(updated_doc)
     
     return _build_goal_response(goal=updated_goal, current_user=current_user, couple=couple)
 
@@ -507,7 +535,7 @@ async def complete_goal(
             detail="Goal not found"
         )
     
-    goal = RelationshipGoalInDB.from_mongo(goal_doc)
+    goal = _parse_goal_doc(goal_doc)
     if _is_goal_archived_for_user(goal, current_user.id) or goal.status == GoalStatus.ARCHIVED:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -536,7 +564,7 @@ async def complete_goal(
     
     # Fetch updated goal
     updated_doc = await db.relationship_goals.find_one({"_id": ObjectId(goal_id)})
-    updated_goal = RelationshipGoalInDB.from_mongo(updated_doc)
+    updated_goal = _parse_goal_doc(updated_doc)
     
     return _build_goal_response(goal=updated_goal, current_user=current_user, couple=couple)
 
@@ -576,7 +604,7 @@ async def delete_goal(
             detail="Goal not found"
         )
 
-    goal = RelationshipGoalInDB.from_mongo(goal_doc)
+    goal = _parse_goal_doc(goal_doc)
     if _is_goal_hidden_for_user(goal, current_user.id):
         return {
             "message": "Goal already removed from your space.",
@@ -674,7 +702,7 @@ async def react_to_goal_progress(
             detail="Goal not found"
         )
     
-    goal = RelationshipGoalInDB.from_mongo(goal_doc)
+    goal = _parse_goal_doc(goal_doc)
     if _is_goal_archived_for_user(goal, current_user.id) or goal.status == GoalStatus.ARCHIVED:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -731,6 +759,6 @@ async def react_to_goal_progress(
     
     # Fetch updated goal
     updated_doc = await db.relationship_goals.find_one({"_id": ObjectId(goal_id)})
-    updated_goal = RelationshipGoalInDB.from_mongo(updated_doc)
+    updated_goal = _parse_goal_doc(updated_doc)
     
     return _build_goal_response(goal=updated_goal, current_user=current_user, couple=couple)

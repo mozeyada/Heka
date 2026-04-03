@@ -21,9 +21,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { useCouplesStore } from '@/store/couplesStore';
 import { useArgumentsStore } from '@/store/argumentsStore';
-import { checkinsAPI } from '@/lib/api';
-import { goalsAPI } from '@/lib/api';
-import { subscriptionsAPI } from '@/lib/api';
+import { checkinsAPI, getApiErrorMessage, goalsAPI, subscriptionsAPI } from '@/lib/api';
 import { LoadingPage } from '@/components/LoadingSpinner';
 import { ErrorAlert } from '@/components/ErrorAlert';
 
@@ -77,7 +75,7 @@ export default function DashboardPage() {
         }
       }
     } catch (error: any) {
-      setError(error.response?.data?.detail || error.message || 'Failed to load dashboard data. Please try again.');
+      setError(getApiErrorMessage(error, 'Failed to load dashboard data. Please try again.'));
     } finally {
       setLoading(false);
     }
