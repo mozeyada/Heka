@@ -3,6 +3,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { CreditCard, LifeBuoy, XCircle } from 'lucide-react';
 
 function PaymentFailedContent() {
   const searchParams = useSearchParams();
@@ -10,58 +11,52 @@ function PaymentFailedContent() {
   const error = searchParams?.get('error') || 'Your payment could not be processed.';
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50 px-4">
-      <div className="w-full max-w-md">
-        <div className="section-shell border border-red-200 bg-red-50/60 p-10 text-center">
-          <div className="mb-6 flex items-center justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-              <svg
-                className="h-8 w-8 text-red-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+    <div className="min-h-screen pb-20 text-zinc-300">
+      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div className="absolute left-[-12%] top-[10%] h-[42vh] w-[42vh] rounded-full bg-red-900/18 blur-[140px]" />
+        <div className="absolute right-[-10%] top-[22%] h-[46vh] w-[46vh] rounded-full bg-orange-900/18 blur-[155px]" />
+        <div className="absolute bottom-[-12%] left-[24%] h-[34vh] w-[34vh] rounded-full bg-rose-900/12 blur-[130px]" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+      </div>
+
+      <div className="app-container flex min-h-screen items-center justify-center py-12">
+        <div className="w-full max-w-xl">
+          <div className="section-shell border border-red-500/20 bg-red-500/[0.06] p-8 text-center md:p-10">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-red-400/20 bg-red-400/10 text-red-300">
+              <XCircle className="h-8 w-8" />
             </div>
-          </div>
 
-          <h1 className="text-2xl font-bold text-neutral-900">Payment Failed</h1>
+            <h1 className="mt-6 text-3xl font-medium tracking-tight text-white">Payment failed</h1>
 
-          <div className="mx-auto mt-6 max-w-sm rounded-xl border border-red-300 bg-white/80 p-4">
-            <p className="text-sm font-semibold text-red-700">{error}</p>
-            <p className="mt-2 text-xs text-red-600">
-              Common reasons: card declined, insufficient funds, or expired card.
+            <div className="mx-auto mt-6 max-w-lg rounded-[1.6rem] border border-red-500/20 bg-black/25 p-5 text-left">
+              <p className="text-sm font-semibold text-red-200">{error}</p>
+              <p className="mt-3 text-sm text-zinc-400">
+                Common reasons are a declined card, insufficient funds, or an expired payment method. Your existing account remains intact.
+              </p>
+            </div>
+
+            {sessionId && (
+              <p className="mt-4 text-xs text-zinc-500">Session ID: {sessionId}</p>
+            )}
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link href="/subscription" className="btn-primary inline-flex flex-1 items-center justify-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Try Again
+              </Link>
+              <Link href="/dashboard" className="btn-secondary inline-flex flex-1 items-center justify-center gap-2">
+                Back to Dashboard
+              </Link>
+            </div>
+
+            <p className="mt-6 border-t border-white/10 pt-6 text-sm text-zinc-400">
+              Need help?{' '}
+              <a href="mailto:hello@heka.app" className="inline-flex items-center gap-1 font-semibold text-teal-300 hover:text-teal-200">
+                <LifeBuoy className="h-4 w-4" />
+                hello@heka.app
+              </a>
             </p>
           </div>
-
-          {sessionId && (
-            <p className="mt-4 text-xs text-neutral-400">Session ID: {sessionId}</p>
-          )}
-
-          <div className="mt-8 flex flex-col gap-3">
-            <Link
-              href="/subscription"
-              className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-indigo-500 hover:-translate-y-0.5"
-            >
-              Try Again
-            </Link>
-            <Link
-              href="/dashboard"
-              className="rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 transition-all hover:border-gray-400 hover:bg-gray-50"
-            >
-              Back to Dashboard
-            </Link>
-          </div>
-
-          <p className="mt-6 border-t border-red-200 pt-6 text-xs text-neutral-500">
-            Need help? Contact <a href="mailto:hello@heka.app" className="font-semibold text-indigo-600">hello@heka.app</a>
-          </p>
         </div>
       </div>
     </div>
@@ -72,8 +67,8 @@ export default function PaymentFailedPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-neutral-25">
-          <p className="text-sm text-neutral-500">Loading…</p>
+        <div className="flex min-h-screen items-center justify-center bg-black text-zinc-400">
+          <p className="text-sm">Loading…</p>
         </div>
       }
     >
@@ -81,5 +76,3 @@ export default function PaymentFailedPage() {
     </Suspense>
   );
 }
-
-

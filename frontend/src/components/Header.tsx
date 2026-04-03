@@ -122,43 +122,45 @@ export function Header() {
 
               {/* Desktop Dropdown Menu */}
               {accountMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 transform opacity-100 scale-100 transition-all origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-                  <div className="p-2 space-y-1">
-                    <div className="px-3 py-2 border-b border-neutral-100 mb-2">
-                      <p className="text-sm font-semibold text-neutral-900 truncate">
+                <div className="absolute right-0 top-full z-50 mt-2 w-60 origin-top-right rounded-2xl border border-white/10 bg-zinc-950/94 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+                  <div className="space-y-1">
+                    <div className="mb-2 border-b border-white/10 px-3 py-2">
+                      <p className="truncate text-sm font-semibold text-white">
                         {user.name || 'User Account'}
                       </p>
-                      <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+                      <p className="truncate text-xs text-zinc-500">{user.email}</p>
                     </div>
                     
                     <Link
                       href="/settings"
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                      className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white"
                       onClick={() => setAccountMenuOpen(false)}
                     >
-                      <SettingsIcon className="h-4 w-4 text-neutral-400" />
+                      <SettingsIcon className="h-4 w-4 text-zinc-500" />
                       Account Settings
                     </Link>
                     
                     <Link
                       href="/subscription"
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+                      className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white"
                       onClick={() => setAccountMenuOpen(false)}
                     >
-                      <CreditCard className="h-4 w-4 text-neutral-400" />
+                      <CreditCard className="h-4 w-4 text-zinc-500" />
                       Plan & Billing
                     </Link>
                     
-                    <div className="h-px bg-neutral-100 my-1 mx-2" />
+                    <div className="mx-2 my-1 h-px bg-white/10" />
                     
                     <button
+                      type="button"
+                      aria-label="Log out"
                       onClick={() => {
                         setAccountMenuOpen(false);
                         handleLogout();
                       }}
-                      className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-danger-600 hover:bg-danger-50 transition-colors text-left"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-rose-300 transition-colors hover:bg-rose-500/10 hover:text-rose-200"
                     >
-                      <LogOut className="h-4 w-4 text-danger-500" />
+                      <LogOut className="h-4 w-4 text-rose-400" />
                       Log out
                     </button>
                   </div>

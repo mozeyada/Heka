@@ -5,14 +5,20 @@ import { PageHeading } from '@/components/PageHeading';
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="bg-neutral-25 pb-20">
+    <div className="min-h-screen pb-20 text-zinc-300">
+      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div className="absolute left-[-12%] top-[10%] h-[42vh] w-[42vh] rounded-full bg-teal-900/14 blur-[140px]" />
+        <div className="absolute right-[-10%] top-[22%] h-[46vh] w-[46vh] rounded-full bg-indigo-900/14 blur-[155px]" />
+        <div className="absolute bottom-[-12%] left-[24%] h-[34vh] w-[34vh] rounded-full bg-rose-900/10 blur-[130px]" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+      </div>
       <PageHeading
         title="Privacy Policy"
         description="How we collect, use, and protect your personal information."
         actions={
           <Link
             href="/dashboard"
-            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-all hover:border-gray-400 hover:bg-gray-50"
+            className="btn-secondary"
           >
             Back to Dashboard
           </Link>
@@ -20,19 +26,19 @@ export default function PrivacyPolicyPage() {
       />
 
       <div className="app-container max-w-4xl">
-        <div className="section-shell p-8">
-          <div className="mb-8 rounded-xl border border-yellow-200 bg-yellow-50 p-5">
-            <p className="text-sm font-semibold text-yellow-800">
+        <div className="section-shell border border-white/10 bg-black/25 p-8">
+          <div className="mb-8 rounded-xl border border-amber-500/20 bg-amber-500/[0.08] p-5">
+            <p className="text-sm font-semibold text-amber-200">
               ⚠️ Legal Review Required: This document is a draft and must be reviewed by qualified Australian legal counsel before final implementation.
             </p>
           </div>
 
-          <div className="mb-8 border-b border-gray-200 pb-6">
-            <p className="text-sm text-neutral-500">Last Updated: November 8, 2025</p>
-            <p className="mt-1 text-xs text-neutral-400">Version: 1.0 (Draft - Awaiting Legal Review)</p>
+          <div className="mb-8 border-b border-white/10 pb-6">
+            <p className="text-sm text-zinc-400">Last Updated: November 8, 2025</p>
+            <p className="mt-1 text-xs text-zinc-500">Version: 1.0 (Draft - Awaiting Legal Review)</p>
           </div>
 
-          <div className="prose prose-sm prose-neutral max-w-none space-y-8">
+          <div className="prose prose-sm max-w-none space-y-8 [&_a]:text-teal-300 [&_a]:no-underline hover:[&_a]:text-teal-200 [&_h2]:text-white [&_h3]:text-zinc-100 [&_li]:text-zinc-300 [&_ol]:text-zinc-300 [&_p]:text-zinc-300 [&_strong]:text-white [&_ul]:text-zinc-300">
             
             <section>
               <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">1. Introduction</h2>
