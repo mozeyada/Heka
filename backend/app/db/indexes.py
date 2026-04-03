@@ -209,5 +209,10 @@ async def create_indexes(db: AsyncIOMotorDatabase):
     # AI Suggestion Cache collection indexes
     await _safe_create_index(db.ai_suggestion_cache, [("couple_id", ASCENDING), ("suggestion_type", ASCENDING)], unique=True)
     await _safe_create_index(db.ai_suggestion_cache, "expires_at")
+
+    # In-app notifications collection indexes
+    await _safe_create_index(db.in_app_notifications, "user_id")
+    await _safe_create_index(db.in_app_notifications, [("user_id", ASCENDING), ("created_at", DESCENDING)])
+    await _safe_create_index(db.in_app_notifications, [("user_id", ASCENDING), ("read_at", ASCENDING)])
     
     logger.info("Database indexes and validators refreshed successfully")

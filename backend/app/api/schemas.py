@@ -175,6 +175,30 @@ class NotificationPreferencesUpdate(BaseModel):
     relationship_notifications: RelationshipNotificationPreferences
 
 
+class InAppNotificationResponse(BaseModel):
+    """Stored in-app notification."""
+
+    id: str
+    category: str
+    title: str
+    body: str
+    resource_type: Optional[str] = None
+    resource_id: Optional[str] = None
+    action_path: Optional[str] = None
+    actor_user_id: Optional[str] = None
+    metadata: dict = Field(default_factory=dict)
+    is_read: bool = False
+    read_at: Optional[datetime] = None
+    created_at: datetime
+
+
+class InAppNotificationListResponse(BaseModel):
+    """Paginated notification feed."""
+
+    items: List[InAppNotificationResponse]
+    unread_count: int
+
+
 class UserResponse(BaseModel):
     """User response (public info only)."""
     id: str
@@ -236,6 +260,7 @@ class ArgumentResponse(BaseModel):
     partner_has_perspective: bool = False
     awaiting_response_from_user_id: Optional[str] = None
     needs_user_response: bool = False
+    archived_for_current_user: bool = False
     insight_status: str = "not_ready"
     can_generate_insight: bool = False
     insight_generated_at: Optional[datetime] = None
@@ -338,6 +363,7 @@ class GoalResponse(BaseModel):
     latest_progress_value: Optional[float] = None
     latest_progress_acknowledged_by_current_user: bool = True
     needs_user_progress: bool = False
+    archived_for_current_user: bool = False
     next_action_type: str = "review"
     next_action_title: str
     next_action_description: str

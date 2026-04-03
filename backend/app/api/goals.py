@@ -19,10 +19,19 @@ from app.db.database import get_database
 from app.models.couple import CoupleInDB, CoupleStatus
 from app.models.relationship_goal import GoalProgress, GoalStatus, RelationshipGoalInDB
 from app.models.user import UserInDB
+from app.services.in_app_notification_service import create_in_app_notification
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/goals", tags=["Relationship Goals"])
+
+
+def _is_goal_hidden_for_user(goal: RelationshipGoalInDB, user_id: str) -> bool:
+    return user_id in (goal.hidden_for_user_ids or [])
+
+
+def _is_goal_archived_for_user(goal: RelationshipGoalInDB, user_id: str) -> bool:
+    return user_id in (goal.archived_for_user_ids or [])
 
 
 def _serialize_goal_progress(goal: RelationshipGoalInDB) -> list[dict]:
@@ -63,7 +72,15 @@ def _build_goal_response(
                 for reaction in (latest_progress.reactions or [])
             )
 
-    if goal.status == GoalStatus.COMPLETED:
+    if goal.status == GoalStatus.ARCHIVED:
+        momentum_state = "archived"
+        needs_user_progress = False
+        next_action_type = "archive"
+        next_action_title = "This goal has moved into archive."
+        next_action_description = (
+            "Your partner stepped away from this goal, so it now lives as reference rather than an active shared track."
+        )
+    elif goal.status == GoalStatus.COMPLETED:
         momentum_state = "completed"
         needs_user_progress = False
         next_action_type = "review"
@@ -102,12 +119,19 @@ def _build_goal_response(
             "Close the loop with your own step, reflection, or encouragement so the momentum stays shared."
         )
 
+    archived_for_current_user = _is_goal_archived_for_user(goal, current_user.id)
+    effective_status = (
+        GoalStatus.ARCHIVED.value
+        if archived_for_current_user
+        else goal.status.value
+    )
+
     return GoalResponse(
         id=goal.id,
         couple_id=goal.couple_id,
         title=goal.title,
         description=goal.description,
-        status=goal.status.value,
+        status=effective_status,
         target_date=goal.target_date.isoformat() if goal.target_date else None,
         progress=_serialize_goal_progress(goal),
         created_by_user_id=goal.created_by_user_id,
@@ -120,6 +144,7 @@ def _build_goal_response(
         latest_progress_value=latest_progress_value,
         latest_progress_acknowledged_by_current_user=latest_progress_acknowledged_by_current_user,
         needs_user_progress=needs_user_progress,
+        archived_for_current_user=archived_for_current_user,
         next_action_type=next_action_type,
         next_action_title=next_action_title,
         next_action_description=next_action_description,
@@ -267,7 +292,10 @@ async def get_goals(
             detail="offset must be >= 0"
         )
 
-    query = {"couple_id": ObjectId(couple.id)}
+    query = {
+        "couple_id": ObjectId(couple.id),
+        "hidden_for_user_ids": {"$ne": current_user.id},
+    }
     if status_filter:
         query["status"] = status_filter
     
@@ -311,7 +339,8 @@ async def get_goal(
     # Get goal
     goal_doc = await db.relationship_goals.find_one({
         "_id": ObjectId(goal_id),
-        "couple_id": ObjectId(couple.id)
+        "couple_id": ObjectId(couple.id),
+        "hidden_for_user_ids": {"$ne": current_user.id},
     })
     
     if not goal_doc:
@@ -354,7 +383,8 @@ async def update_goal_progress(
     # Get goal
     goal_doc = await db.relationship_goals.find_one({
         "_id": ObjectId(goal_id),
-        "couple_id": ObjectId(couple.id)
+        "couple_id": ObjectId(couple.id),
+        "hidden_for_user_ids": {"$ne": current_user.id},
     })
     
     if not goal_doc:
@@ -364,6 +394,11 @@ async def update_goal_progress(
         )
     
     goal = RelationshipGoalInDB.from_mongo(goal_doc)
+    if _is_goal_archived_for_user(goal, current_user.id) or goal.status == GoalStatus.ARCHIVED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This goal is archived. Create a new shared goal if you want to restart it."
+        )
     
     if goal.status != GoalStatus.ACTIVE.value:
         raise HTTPException(
@@ -462,7 +497,8 @@ async def complete_goal(
     # Get goal
     goal_doc = await db.relationship_goals.find_one({
         "_id": ObjectId(goal_id),
-        "couple_id": ObjectId(couple.id)
+        "couple_id": ObjectId(couple.id),
+        "hidden_for_user_ids": {"$ne": current_user.id},
     })
     
     if not goal_doc:
@@ -471,6 +507,13 @@ async def complete_goal(
             detail="Goal not found"
         )
     
+    goal = RelationshipGoalInDB.from_mongo(goal_doc)
+    if _is_goal_archived_for_user(goal, current_user.id) or goal.status == GoalStatus.ARCHIVED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This goal is archived. Create a new shared goal if you want to restart it."
+        )
+
     # Update goal
     await db.relationship_goals.update_one(
         {"_id": ObjectId(goal_id)},
@@ -496,6 +539,99 @@ async def complete_goal(
     updated_goal = RelationshipGoalInDB.from_mongo(updated_doc)
     
     return _build_goal_response(goal=updated_goal, current_user=current_user, couple=couple)
+
+
+@router.delete("/{goal_id}")
+async def delete_goal(
+    goal_id: str,
+    current_user: UserInDB = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Remove a goal from the actor's space and archive it for the partner."""
+
+    couple_doc = await db.couples.find_one({
+        "$or": [
+            {"user1_id": ObjectId(current_user.id)},
+            {"user2_id": ObjectId(current_user.id)}
+        ],
+        "status": CoupleStatus.ACTIVE.value
+    })
+
+    if not couple_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active couple profile found"
+        )
+
+    couple = CoupleInDB.from_mongo(couple_doc)
+
+    goal_doc = await db.relationship_goals.find_one({
+        "_id": ObjectId(goal_id),
+        "couple_id": ObjectId(couple.id)
+    })
+
+    if not goal_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Goal not found"
+        )
+
+    goal = RelationshipGoalInDB.from_mongo(goal_doc)
+    if _is_goal_hidden_for_user(goal, current_user.id):
+        return {
+            "message": "Goal already removed from your space.",
+            "goal_id": goal_id,
+            "status": goal.status.value,
+        }
+
+    partner_id = couple.user1_id if current_user.id == couple.user2_id else couple.user2_id
+    hidden_for_user_ids = set(goal.hidden_for_user_ids or [])
+    archived_for_user_ids = set(goal.archived_for_user_ids or [])
+    hidden_for_user_ids.add(current_user.id)
+    archived_for_user_ids.discard(current_user.id)
+    if partner_id not in hidden_for_user_ids:
+        archived_for_user_ids.add(partner_id)
+
+    await db.relationship_goals.update_one(
+        {"_id": ObjectId(goal_id)},
+        {
+            "$set": {
+                "status": GoalStatus.ARCHIVED.value,
+                "hidden_for_user_ids": list(hidden_for_user_ids),
+                "archived_for_user_ids": list(archived_for_user_ids),
+                "updated_at": datetime.utcnow(),
+            }
+        }
+    )
+
+    from app.services.ai_suggestion_cache import ai_suggestion_cache_service
+
+    await ai_suggestion_cache_service.invalidate_cache(
+        couple.id,
+        suggestion_type="goals",
+        db=db,
+    )
+
+    if partner_id not in hidden_for_user_ids:
+        await create_in_app_notification(
+            db=db,
+            recipient_user_id=partner_id,
+            preference_key="goal_updates",
+            category="partner_stepped_away",
+            title="Your partner stepped away from a goal",
+            body=f"{goal.title} is now archived in your space. New shared updates will no longer be sent to your partner.",
+            resource_type="goal",
+            resource_id=goal.id,
+            action_path=f"/goals/{goal.id}",
+            actor_user_id=current_user.id,
+            metadata={"goal_title": goal.title},
+        )
+
+    return {
+        "message": "Goal removed from your space and archived for your partner.",
+        "goal_id": goal_id,
+        "status": GoalStatus.ARCHIVED.value,
+    }
 
 
 @router.post("/{goal_id}/progress/{progress_id}/react")
@@ -528,7 +664,8 @@ async def react_to_goal_progress(
     # Get goal
     goal_doc = await db.relationship_goals.find_one({
         "_id": ObjectId(goal_id),
-        "couple_id": ObjectId(couple.id)
+        "couple_id": ObjectId(couple.id),
+        "hidden_for_user_ids": {"$ne": current_user.id},
     })
     
     if not goal_doc:
@@ -538,6 +675,11 @@ async def react_to_goal_progress(
         )
     
     goal = RelationshipGoalInDB.from_mongo(goal_doc)
+    if _is_goal_archived_for_user(goal, current_user.id) or goal.status == GoalStatus.ARCHIVED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This goal is archived. Reactions are closed on archived goals."
+        )
     
     # Find the specific progress entry
     target_progress = None

@@ -160,6 +160,21 @@ export interface NotificationPreferences {
   can_edit_account_emails: boolean;
 }
 
+export interface InAppNotification {
+  id: string;
+  category: string;
+  title: string;
+  body: string;
+  resource_type?: string | null;
+  resource_id?: string | null;
+  action_path?: string | null;
+  actor_user_id?: string | null;
+  metadata: Record<string, any>;
+  is_read: boolean;
+  read_at?: string | null;
+  created_at: string;
+}
+
 export const notificationsAPI = {
   getPreferences: async (): Promise<NotificationPreferences> => {
     const response = await apiClient.get('/api/notifications/preferences');
@@ -173,6 +188,24 @@ export const notificationsAPI = {
       relationship_notifications: relationshipNotifications,
     });
     return response.data;
+  },
+
+  getFeed: async (limit: number = 20, offset: number = 0): Promise<{ items: InAppNotification[]; unread_count: number }> => {
+    const response = await apiClient.get(`/api/notifications/feed?limit=${limit}&offset=${offset}`);
+    return response.data;
+  },
+
+  getUnreadCount: async (): Promise<{ unread_count: number }> => {
+    const response = await apiClient.get('/api/notifications/unread-count');
+    return response.data;
+  },
+
+  markRead: async (notificationId: string) => {
+    await apiClient.post(`/api/notifications/${notificationId}/read`);
+  },
+
+  markAllRead: async () => {
+    await apiClient.post('/api/notifications/read-all');
   },
 };
 
@@ -294,6 +327,11 @@ export const goalsAPI = {
 
   complete: async (goalId: string) => {
     const response = await apiClient.post(`/api/goals/${goalId}/complete`);
+    return response.data;
+  },
+
+  delete: async (goalId: string) => {
+    const response = await apiClient.delete(`/api/goals/${goalId}`);
     return response.data;
   },
 

@@ -19,8 +19,17 @@ from app.models.argument import (
 )
 from app.models.couple import CoupleStatus
 from app.models.user import UserInDB
+from app.services.in_app_notification_service import create_in_app_notification
 
 router = APIRouter(prefix="/api/arguments", tags=["Arguments"])
+
+
+def _is_hidden_for_user(argument: ArgumentInDB, user_id: str) -> bool:
+    return user_id in (argument.hidden_for_user_ids or [])
+
+
+def _is_archived_for_user(argument: ArgumentInDB, user_id: str) -> bool:
+    return user_id in (argument.archived_for_user_ids or [])
 
 
 async def _build_argument_response(
@@ -75,19 +84,27 @@ async def _build_argument_response(
     else:
         insight_status = "current"
 
+    archived_for_current_user = _is_archived_for_user(argument, str(current_user.id))
+    effective_status = (
+        ArgumentStatus.ARCHIVED.value
+        if archived_for_current_user
+        else argument.status.value
+    )
+
     return ArgumentResponse(
         id=argument.id,
         couple_id=argument.couple_id,
         title=argument.title,
         category=argument.category.value,
         priority=argument.priority.value,
-        status=argument.status.value,
+        status=effective_status,
         created_by_user_id=argument.created_by_user_id,
         perspective_count=perspective_count,
         current_user_has_perspective=current_user_has_perspective,
         partner_has_perspective=partner_has_perspective,
         awaiting_response_from_user_id=awaiting_response_from_user_id,
         needs_user_response=awaiting_response_from_user_id == str(current_user.id),
+        archived_for_current_user=archived_for_current_user,
         insight_status=insight_status,
         can_generate_insight=insight_status in {"ready", "stale"},
         insight_generated_at=insight_generated_at,
@@ -255,7 +272,10 @@ async def get_arguments(
             detail="offset must be >= 0"
         )
 
-    query: Dict[str, Any] = {"couple_id": ObjectId(couple.id)}
+    query: Dict[str, Any] = {
+        "couple_id": ObjectId(couple.id),
+        "hidden_for_user_ids": {"$ne": current_user.id},
+    }
     if status_filter:
         query["status"] = status_filter
     if category_filter:
@@ -304,6 +324,11 @@ async def get_argument(
     
     # Verify user has access to this argument (through couple)
     argument = ArgumentInDB.from_mongo(arg_doc)
+    if _is_hidden_for_user(argument, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Argument not found"
+        )
     
     couple_doc = await db.couples.find_one({
         "_id": ObjectId(argument.couple_id),
@@ -352,6 +377,11 @@ async def update_argument_status(
     
     # Verify user has access to this argument (through couple)
     argument = ArgumentInDB.from_mongo(arg_doc)
+    if _is_hidden_for_user(argument, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Argument not found"
+        )
     
     couple_doc = await db.couples.find_one({
         "_id": ObjectId(argument.couple_id),
@@ -406,7 +436,7 @@ async def delete_argument(
     current_user: UserInDB = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Delete an argument and all associated data."""
+    """Remove an argument from the actor's space and archive it for the partner."""
     
     # Validate ObjectId
     try:
@@ -429,6 +459,8 @@ async def delete_argument(
     
     # Verify user has access to this argument (through couple)
     argument = ArgumentInDB.from_mongo(arg_doc)
+    if _is_hidden_for_user(argument, current_user.id):
+        return None
     
     couple_doc = await db.couples.find_one({
         "_id": ObjectId(argument.couple_id),
@@ -443,11 +475,49 @@ async def delete_argument(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied to this argument"
         )
-    
-    # Delete associated data: perspectives
-    await db.perspectives.delete_many({"argument_id": argument_oid})
-    
-    # Delete the argument itself
-    await db.arguments.delete_one({"_id": argument_oid})
+
+    user1_id = str(couple_doc["user1_id"])
+    user2_id = str(couple_doc["user2_id"])
+    partner_id = user2_id if str(current_user.id) == user1_id else user1_id
+
+    hidden_for_user_ids = set(argument.hidden_for_user_ids or [])
+    archived_for_user_ids = set(argument.archived_for_user_ids or [])
+    hidden_for_user_ids.add(current_user.id)
+    archived_for_user_ids.discard(current_user.id)
+
+    if partner_id not in hidden_for_user_ids:
+        archived_for_user_ids.add(partner_id)
+
+    await db.arguments.update_one(
+        {"_id": argument_oid},
+        {
+            "$set": {
+                "status": ArgumentStatus.ARCHIVED.value,
+                "hidden_for_user_ids": list(hidden_for_user_ids),
+                "archived_for_user_ids": list(archived_for_user_ids),
+                "updated_at": datetime.utcnow(),
+            }
+        }
+    )
+
+    if partner_id not in hidden_for_user_ids:
+        await create_in_app_notification(
+            db=db,
+            recipient_user_id=partner_id,
+            preference_key="partner_activity",
+            category="partner_stepped_away",
+            title="Your partner stepped away from an issue",
+            body=f"{argument.title} is now archived in your space. New shared updates will no longer be sent to your partner.",
+            resource_type="argument",
+            resource_id=argument.id,
+            action_path=f"/arguments/{argument.id}",
+            actor_user_id=current_user.id,
+            metadata={"argument_title": argument.title},
+        )
     
     return None
+    if _is_archived_for_user(argument, current_user.id) or argument.status == ArgumentStatus.ARCHIVED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This issue is archived. Create a new issue if you want to reopen the conversation."
+        )

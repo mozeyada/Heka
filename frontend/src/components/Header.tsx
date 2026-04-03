@@ -3,8 +3,9 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
-import { ChevronDown, Settings as SettingsIcon, CreditCard, LogOut, User as UserIcon } from 'lucide-react';
+import { ChevronDown, Settings as SettingsIcon, CreditCard, LogOut, Bell } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { notificationsAPI } from '@/lib/api';
 
 interface NavLink {
   label: string;
@@ -35,6 +36,7 @@ export function Header() {
   const { user, isAuthenticated, logout, fetchCurrentUser } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,6 +45,32 @@ export function Header() {
       fetchCurrentUser();
     }
   }, [isAuthenticated, user, fetchCurrentUser]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadUnreadCount = async () => {
+      if (!isAuthenticated) {
+        setUnreadCount(0);
+        return;
+      }
+      try {
+        const data = await notificationsAPI.getUnreadCount();
+        if (!cancelled) {
+          setUnreadCount(data.unread_count || 0);
+        }
+      } catch {
+        if (!cancelled) {
+          setUnreadCount(0);
+        }
+      }
+    };
+
+    loadUnreadCount();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, pathname]);
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -104,6 +132,18 @@ export function Header() {
         <div className="hidden items-center gap-4 lg:flex">
           {isAuthenticated && user ? (
             <div className="flex items-center gap-3 relative" ref={dropdownRef}>
+              <Link
+                href="/notifications"
+                className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-zinc-300 transition hover:bg-white/[0.12] hover:text-white"
+                aria-label="Notifications"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
               <button
                 onClick={() => setAccountMenuOpen(!accountMenuOpen)}
                 className="flex select-none items-center gap-2 rounded-full border border-neutral-200 bg-white py-1.5 pl-2 pr-3 shadow-sm hover:bg-neutral-50 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-200"
@@ -131,7 +171,16 @@ export function Header() {
                       <p className="truncate text-xs text-zinc-500">{user.email}</p>
                     </div>
                     
-                    <Link
+                  <Link
+                    href="/notifications"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white"
+                    onClick={() => setAccountMenuOpen(false)}
+                  >
+                    <Bell className="h-4 w-4 text-zinc-500" />
+                    Notifications
+                  </Link>
+
+                  <Link
                       href="/settings"
                       className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white"
                       onClick={() => setAccountMenuOpen(false)}
@@ -236,6 +285,18 @@ export function Header() {
             <div className="mt-4 border-t border-neutral-100 pt-4">
               {isAuthenticated && user ? (
                 <div className="flex flex-col gap-3">
+                  <Link
+                    href="/notifications"
+                    className="rounded-xl px-4 py-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Notifications
+                    {unreadCount > 0 && (
+                      <span className="ml-2 rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </Link>
                   <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-soft">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
                       {(() => {
