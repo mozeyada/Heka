@@ -25,11 +25,11 @@ router = APIRouter(prefix="/api/arguments", tags=["Arguments"])
 
 
 def _is_hidden_for_user(argument: ArgumentInDB, user_id: str) -> bool:
-    return user_id in (argument.hidden_for_user_ids or [])
+    return user_id in (getattr(argument, "hidden_for_user_ids", None) or [])
 
 
 def _is_archived_for_user(argument: ArgumentInDB, user_id: str) -> bool:
-    return user_id in (argument.archived_for_user_ids or [])
+    return user_id in (getattr(argument, "archived_for_user_ids", None) or [])
 
 
 async def _build_argument_response(
