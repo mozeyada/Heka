@@ -42,7 +42,7 @@ async def create_in_app_notification(
     if not in_app_enabled:
         return None
 
-    notification = InAppNotification(
+    notification = InAppNotificationInDB(
         user_id=recipient_user_id,
         category=category,
         title=title,
