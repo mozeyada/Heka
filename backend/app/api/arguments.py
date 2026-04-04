@@ -480,8 +480,8 @@ async def delete_argument(
     user2_id = str(couple_doc["user2_id"])
     partner_id = user2_id if str(current_user.id) == user1_id else user1_id
 
-    hidden_for_user_ids = set(argument.hidden_for_user_ids or [])
-    archived_for_user_ids = set(argument.archived_for_user_ids or [])
+    hidden_for_user_ids = set(getattr(argument, "hidden_for_user_ids", None) or [])
+    archived_for_user_ids = set(getattr(argument, "archived_for_user_ids", None) or [])
     hidden_for_user_ids.add(current_user.id)
     archived_for_user_ids.discard(current_user.id)
 
@@ -514,10 +514,4 @@ async def delete_argument(
             actor_user_id=current_user.id,
             metadata={"argument_title": argument.title},
         )
-    
     return None
-    if _is_archived_for_user(argument, current_user.id) or argument.status == ArgumentStatus.ARCHIVED:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="This issue is archived. Create a new issue if you want to reopen the conversation."
-        )
