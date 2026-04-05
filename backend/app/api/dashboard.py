@@ -1,6 +1,7 @@
 """Dashboard overview endpoint for mobile/web clients."""
 
 import logging
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, Optional
 
@@ -8,10 +9,10 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.api.arguments import _build_argument_response
 from app.api.checkins import _build_checkin_response
 from app.api.dependencies import get_current_user
 from app.api.goals import _build_goal_response, _parse_goal_doc
+from app.api.schemas import ArgumentResponse
 from app.db.database import get_database
 from app.models.argument import ArgumentInDB
 from app.models.couple import CoupleInDB, CoupleStatus
@@ -45,6 +46,71 @@ async def _get_couple(
     return CoupleInDB.from_mongo(couple_doc)
 
 
+def _build_dashboard_argument_response(
+    argument: ArgumentInDB,
+    current_user: UserInDB,
+    partner_id: str,
+    perspective_docs: list[dict],
+    insight_doc: Optional[dict],
+) -> ArgumentResponse:
+    """Build argument journey state using already-fetched dashboard data."""
+
+    perspective_map = {str(doc["user_id"]): doc for doc in perspective_docs}
+    current_user_has_perspective = str(current_user.id) in perspective_map
+    partner_has_perspective = partner_id in perspective_map
+    perspective_count = len(perspective_map)
+
+    awaiting_response_from_user_id = None
+    if not current_user_has_perspective:
+        awaiting_response_from_user_id = str(current_user.id)
+    elif not partner_has_perspective:
+        awaiting_response_from_user_id = partner_id
+
+    latest_context_at = argument.latest_context_at or argument.updated_at
+    for doc in perspective_docs:
+        updated_at = doc.get("updated_at") or doc.get("created_at")
+        if updated_at and (latest_context_at is None or updated_at > latest_context_at):
+            latest_context_at = updated_at
+
+    insight_generated_at = insight_doc.get("generated_at") if insight_doc else None
+
+    if perspective_count < 2:
+        insight_status = "not_ready"
+    elif insight_generated_at is None:
+        insight_status = "ready"
+    elif latest_context_at and latest_context_at > insight_generated_at:
+        insight_status = "stale"
+    else:
+        insight_status = "current"
+
+    archived_for_current_user = str(current_user.id) in (
+        getattr(argument, "archived_for_user_ids", None) or []
+    )
+    effective_status = "archived" if archived_for_current_user else argument.status.value
+
+    return ArgumentResponse(
+        id=argument.id,
+        couple_id=argument.couple_id,
+        title=argument.title,
+        category=argument.category.value,
+        priority=argument.priority.value,
+        status=effective_status,
+        created_by_user_id=argument.created_by_user_id,
+        perspective_count=perspective_count,
+        current_user_has_perspective=current_user_has_perspective,
+        partner_has_perspective=partner_has_perspective,
+        awaiting_response_from_user_id=awaiting_response_from_user_id,
+        needs_user_response=awaiting_response_from_user_id == str(current_user.id),
+        archived_for_current_user=archived_for_current_user,
+        insight_status=insight_status,
+        can_generate_insight=insight_status in {"ready", "stale"},
+        insight_generated_at=insight_generated_at,
+        latest_context_at=latest_context_at,
+        created_at=argument.created_at,
+        updated_at=argument.updated_at,
+    )
+
+
 @router.get("/overview")
 async def get_dashboard_overview(
     current_user: UserInDB = Depends(get_current_user),
@@ -67,7 +133,7 @@ async def get_dashboard_overview(
     period_start, period_end = usage_service.get_period_dates(subscription)
 
     # Recent arguments
-    arguments_cursor = (
+    argument_docs = await (
         db.arguments.find(
             {
                 "couple_id": ObjectId(couple.id),
@@ -77,14 +143,38 @@ async def get_dashboard_overview(
         )
         .sort("created_at", -1)
         .limit(MAX_RECENT_ARGUMENTS)
+        .to_list(length=MAX_RECENT_ARGUMENTS)
     )
+
+    argument_ids = [doc["_id"] for doc in argument_docs if doc.get("_id")]
+    perspectives_by_argument_id: dict[str, list[dict]] = defaultdict(list)
+    if argument_ids:
+        perspective_docs = await db.perspectives.find(
+            {"argument_id": {"$in": argument_ids}}
+        ).to_list(length=MAX_RECENT_ARGUMENTS * 4)
+        for doc in perspective_docs:
+            perspectives_by_argument_id[str(doc["argument_id"])].append(doc)
+
+    insights_by_argument_id: dict[str, dict] = {}
+    if argument_ids:
+        insight_docs = await db.ai_insights.find(
+            {"argument_id": {"$in": argument_ids}}
+        ).to_list(length=MAX_RECENT_ARGUMENTS)
+        insights_by_argument_id = {
+            str(doc["argument_id"]): doc for doc in insight_docs if doc.get("argument_id")
+        }
+
+    partner_id = couple.user1_id if current_user.id == couple.user2_id else couple.user2_id
     arguments = []
-    async for arg_doc in arguments_cursor:
+    for arg_doc in argument_docs:
         try:
-            enriched_argument = await _build_argument_response(
-                argument=ArgumentInDB.from_mongo(arg_doc),
+            argument = ArgumentInDB.from_mongo(arg_doc)
+            enriched_argument = _build_dashboard_argument_response(
+                argument=argument,
                 current_user=current_user,
-                db=db,
+                partner_id=partner_id,
+                perspective_docs=perspectives_by_argument_id.get(argument.id, []),
+                insight_doc=insights_by_argument_id.get(argument.id),
             )
         except Exception:
             logger.exception(
