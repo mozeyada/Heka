@@ -40,6 +40,11 @@ export async function updateGoalStatus(goalId: string, status: string) {
   return response.data;
 }
 
+export async function deleteGoal(goalId: string) {
+  const response = await api.delete(`/api/goals/${goalId}`);
+  return response.data;
+}
+
 export async function addGoalProgress(
   goalId: string,
   notes?: string,

@@ -30,9 +30,10 @@ export async function revokeDeviceToken(deviceId: string) {
 }
 
 export async function fetchNotifications(limit = 20, offset = 0) {
-  const response = await api.get<{ items: InAppNotification[]; unread_count: number }>(
-    `/api/notifications/feed?limit=${limit}&offset=${offset}`,
-  );
+  const response = await api.get<{
+    items: InAppNotification[];
+    unread_count: number;
+  }>(`/api/notifications/feed?limit=${limit}&offset=${offset}`);
   return response.data;
 }
 

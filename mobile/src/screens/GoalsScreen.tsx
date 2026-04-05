@@ -36,7 +36,9 @@ function getApiErrorMessage(error: any, fallback: string): string {
   }
 
   if (Array.isArray(detail) && detail.length > 0) {
-    const firstMessage = detail.find((item) => typeof item?.msg === "string")?.msg;
+    const firstMessage = detail.find(
+      (item) => typeof item?.msg === "string",
+    )?.msg;
     if (firstMessage) {
       return firstMessage;
     }
@@ -175,41 +177,44 @@ export default function GoalsScreen() {
     }
   };
 
-  const handleRemoveGoal = useCallback((goal: Goal) => {
-    Alert.alert(
-      goal.status === "archived"
-        ? "Remove archived goal?"
-        : "Remove this goal?",
-      goal.status === "archived"
-        ? "This archived goal will disappear from your space."
-        : "This goal will disappear from your space and stay archived for your partner.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setGoalActionState((current) => ({
-                ...current,
-                [goal.id]: "removing",
-              }));
-              setError(null);
-              await deleteGoal(goal.id);
-              await loadGoals();
-            } catch (err: any) {
-              setError(getApiErrorMessage(err, "Failed to remove goal."));
-            } finally {
-              setGoalActionState((current) => ({
-                ...current,
-                [goal.id]: undefined,
-              }));
-            }
+  const handleRemoveGoal = useCallback(
+    (goal: Goal) => {
+      Alert.alert(
+        goal.status === "archived"
+          ? "Remove archived goal?"
+          : "Remove this goal?",
+        goal.status === "archived"
+          ? "This archived goal will disappear from your space."
+          : "This goal will disappear from your space and stay archived for your partner.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                setGoalActionState((current) => ({
+                  ...current,
+                  [goal.id]: "removing",
+                }));
+                setError(null);
+                await deleteGoal(goal.id);
+                await loadGoals();
+              } catch (err: any) {
+                setError(getApiErrorMessage(err, "Failed to remove goal."));
+              } finally {
+                setGoalActionState((current) => ({
+                  ...current,
+                  [goal.id]: undefined,
+                }));
+              }
+            },
           },
-        },
-      ],
-    );
-  }, [loadGoals]);
+        ],
+      );
+    },
+    [loadGoals],
+  );
 
   const activeGoals = useMemo(
     () => goals.filter((g) => g.status === "active"),

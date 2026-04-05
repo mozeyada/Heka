@@ -417,29 +417,31 @@ const ErrorCard = ({ message }: { message: string }) => (
 );
 
 const JourneySection = ({ argument }: { argument: any }) => {
-  const label = argument.status === "archived"
-    ? "Archived in your space"
-    : argument.needs_user_response
-    ? "Your response is needed"
-    : argument.can_generate_insight
-      ? argument.insight_status === "stale"
-        ? "Context changed"
-        : "Ready for insight"
-      : argument.insight_status === "current"
-        ? "Insight is current"
-        : "Waiting on partner";
+  const label =
+    argument.status === "archived"
+      ? "Archived in your space"
+      : argument.needs_user_response
+        ? "Your response is needed"
+        : argument.can_generate_insight
+          ? argument.insight_status === "stale"
+            ? "Context changed"
+            : "Ready for insight"
+          : argument.insight_status === "current"
+            ? "Insight is current"
+            : "Waiting on partner";
 
-  const copy = argument.status === "archived"
-    ? "Your partner stepped away from this issue. It stays here only as archived context unless you remove it from your side too."
-    : argument.needs_user_response
-    ? "Your partner has already left their side. Add your perspective now so the issue becomes shared, not one-sided."
-    : argument.can_generate_insight
-      ? argument.insight_status === "stale"
-        ? "New context was added after the last insight. Refresh the analysis so it reflects what is true now."
-        : "Both perspectives are in. Generate the synthesis once instead of making each person guess what the other meant."
-      : argument.current_user_has_perspective
-        ? "Your side is recorded. The next move belongs to your partner."
-        : "Start by adding your side clearly so your partner can respond to something concrete.";
+  const copy =
+    argument.status === "archived"
+      ? "Your partner stepped away from this issue. It stays here only as archived context unless you remove it from your side too."
+      : argument.needs_user_response
+        ? "Your partner has already left their side. Add your perspective now so the issue becomes shared, not one-sided."
+        : argument.can_generate_insight
+          ? argument.insight_status === "stale"
+            ? "New context was added after the last insight. Refresh the analysis so it reflects what is true now."
+            : "Both perspectives are in. Generate the synthesis once instead of making each person guess what the other meant."
+          : argument.current_user_has_perspective
+            ? "Your side is recorded. The next move belongs to your partner."
+            : "Start by adding your side clearly so your partner can respond to something concrete.";
 
   return (
     <Card style={styles.journeyCard}>
@@ -639,9 +641,9 @@ const AIInsightsSection = ({
               ? "Both sides are in. Generate the shared synthesis when you are ready."
               : isArchived
                 ? "This issue is archived. Review the last insight or start a new issue if the conversation needs to continue."
-              : argument?.needs_user_response
-                ? "Your partner is waiting on your side before insight can become shared."
-                : "Wait until both perspectives are present before generating insight."
+                : argument?.needs_user_response
+                  ? "Your partner is waiting on your side before insight can become shared."
+                  : "Wait until both perspectives are present before generating insight."
           }
         />
       ) : aiInsights.safety_check?.blocked ? (
