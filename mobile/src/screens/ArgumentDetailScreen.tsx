@@ -62,11 +62,17 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const [arg, pers, ins] = await Promise.all([
+      const [arg, pers] = await Promise.all([
         fetchArgument(argumentId),
         getPerspectivesForArgument(argumentId),
-        getAIInsights(argumentId).catch(() => null), // Gracefully fail if no insights exist
       ]);
+      const shouldFetchInsights =
+        arg.insight_status === "current" ||
+        arg.insight_status === "stale" ||
+        arg.status === "analyzed";
+      const ins = shouldFetchInsights
+        ? await getAIInsights(argumentId).catch(() => null)
+        : null;
       setArgument(arg);
       setPerspectives(pers);
       setAIInsights(ins);
@@ -90,6 +96,12 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
 
   const handleAnalyze = async () => {
     if (!argumentId) return;
+    if (argument?.status === "archived") {
+      setError(
+        "This issue is archived. Create a new issue if you want fresh mediation.",
+      );
+      return;
+    }
     setAnalyzing(true);
     setError(null);
     try {
@@ -107,6 +119,12 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
 
   const handleStatusUpdate = async (newStatus: string) => {
     if (!argumentId) return;
+    if (argument?.status === "archived") {
+      setError(
+        "Archived issues are read-only. Create a new issue if you want to reopen the conversation.",
+      );
+      return;
+    }
     setUpdating(true);
     setError(null);
     try {
@@ -130,8 +148,10 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
     if (!argumentId) return;
 
     Alert.alert(
-      "Delete Argument",
-      "Are you sure you want to delete this argument? This action cannot be undone and will also delete all associated perspectives and insights.",
+      "Remove Argument",
+      argument?.status === "archived"
+        ? "Remove this archived issue from your space?"
+        : "Remove this issue from your space? Your partner will still keep it in archive.",
       [
         {
           text: "Cancel",
@@ -150,7 +170,7 @@ export default function ArgumentDetailScreen({ argumentId }: Props) {
               const errorMessage =
                 error.response?.data?.detail ||
                 error.message ||
-                "Failed to delete argument";
+                "Failed to remove argument";
               setError(errorMessage);
               setDeleting(false);
             }
@@ -328,7 +348,7 @@ const ArgumentHeader = ({
 
     {/* Actions Row */}
     <View style={styles.actionRow}>
-      {argument.status !== "resolved" ? (
+      {argument.status !== "resolved" && argument.status !== "archived" ? (
         <TouchableOpacity
           style={[styles.resolveButton, isUpdating && styles.buttonDisabled]}
           onPress={onResolve}
@@ -348,7 +368,7 @@ const ArgumentHeader = ({
             </>
           )}
         </TouchableOpacity>
-      ) : (
+      ) : argument.status === "resolved" ? (
         <TouchableOpacity
           style={[styles.reopenButton, isUpdating && styles.buttonDisabled]}
           onPress={onReopen}
@@ -368,7 +388,7 @@ const ArgumentHeader = ({
             </>
           )}
         </TouchableOpacity>
-      )}
+      ) : null}
 
       {/* Always Visible Action Plan Button */}
       <TouchableOpacity
@@ -397,7 +417,9 @@ const ErrorCard = ({ message }: { message: string }) => (
 );
 
 const JourneySection = ({ argument }: { argument: any }) => {
-  const label = argument.needs_user_response
+  const label = argument.status === "archived"
+    ? "Archived in your space"
+    : argument.needs_user_response
     ? "Your response is needed"
     : argument.can_generate_insight
       ? argument.insight_status === "stale"
@@ -407,7 +429,9 @@ const JourneySection = ({ argument }: { argument: any }) => {
         ? "Insight is current"
         : "Waiting on partner";
 
-  const copy = argument.needs_user_response
+  const copy = argument.status === "archived"
+    ? "Your partner stepped away from this issue. It stays here only as archived context unless you remove it from your side too."
+    : argument.needs_user_response
     ? "Your partner has already left their side. Add your perspective now so the issue becomes shared, not one-sided."
     : argument.can_generate_insight
       ? argument.insight_status === "stale"
@@ -442,12 +466,19 @@ const PerspectivesSection = ({
     (p: Perspective) => p.user_id === userId,
   );
   const hasUserSubmitted = Boolean(currentUserPerspective);
+  const isArchived = argument?.status === "archived";
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
     setIsSubmitting(true);
     setError(null);
     try {
+      if (isArchived) {
+        setError(
+          "This issue is archived. Create a new issue if you want to continue the conversation.",
+        );
+        return;
+      }
       if (currentUserPerspective) {
         await updateMyPerspective(argumentId, content.trim());
       } else {
@@ -478,7 +509,7 @@ const PerspectivesSection = ({
 
       {error && <Text style={styles.inlineErrorText}>{error}</Text>}
 
-      {!showForm && (
+      {!showForm && !isArchived && (
         <TouchableOpacity
           style={styles.button}
           onPress={() => {
@@ -492,7 +523,7 @@ const PerspectivesSection = ({
         </TouchableOpacity>
       )}
 
-      {showForm && (
+      {showForm && !isArchived && (
         <View style={styles.formContainer}>
           <TextInput
             style={styles.textArea}
@@ -538,6 +569,13 @@ const PerspectivesSection = ({
           <Text style={styles.submittedText}>✓ Your side is recorded.</Text>
         </View>
       )}
+      {isArchived && (
+        <View style={styles.submittedMessage}>
+          <Text style={styles.submittedText}>
+            This issue is archived. New shared updates are closed.
+          </Text>
+        </View>
+      )}
     </Section>
   );
 };
@@ -567,6 +605,7 @@ const AIInsightsSection = ({
   onAnalyze,
 }: any) => {
   const canAnalyze = Boolean(argument?.can_generate_insight);
+  const isArchived = argument?.status === "archived";
   const generateLabel =
     argument?.insight_status === "stale"
       ? "Refresh Insights"
@@ -579,7 +618,7 @@ const AIInsightsSection = ({
       title="AI Insights"
       subtitle="Get personalized mediation insights based on both perspectives."
     >
-      {canAnalyze && argument?.insight_status !== "current" && (
+      {canAnalyze && argument?.insight_status !== "current" && !isArchived && (
         <TouchableOpacity
           style={[styles.button, isAnalyzing && styles.buttonDisabled]}
           onPress={onAnalyze}
@@ -598,6 +637,8 @@ const AIInsightsSection = ({
           message={
             canAnalyze
               ? "Both sides are in. Generate the shared synthesis when you are ready."
+              : isArchived
+                ? "This issue is archived. Review the last insight or start a new issue if the conversation needs to continue."
               : argument?.needs_user_response
                 ? "Your partner is waiting on your side before insight can become shared."
                 : "Wait until both perspectives are present before generating insight."

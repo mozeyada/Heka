@@ -49,6 +49,19 @@ export default function ArgumentDetailPage() {
   }, [argumentId]);
 
   const loadAIInsights = useCallback(async () => {
+    if (!currentArgument) return;
+
+    const shouldFetchInsights =
+      currentArgument.insight_status === 'current' ||
+      currentArgument.insight_status === 'stale' ||
+      currentArgument.status === 'analyzed';
+
+    if (!shouldFetchInsights) {
+      setAIInsights(null);
+      setSafetyConcern(null);
+      return;
+    }
+
     try {
       const data = await aiSuggestionsAPI.getInsightsForArgument(argumentId);
       setAIInsights(data);
@@ -56,13 +69,26 @@ export default function ArgumentDetailPage() {
     } catch (err: any) {
       if (err.response?.status !== 404) setError('Failed to load AI insights');
     }
-  }, [argumentId]);
+  }, [argumentId, currentArgument]);
 
   useEffect(() => {
-    if (argumentId) { fetchArgumentById(argumentId); loadPerspectives(); loadAIInsights(); }
-  }, [argumentId, fetchArgumentById, loadAIInsights, loadPerspectives]);
+    if (argumentId) {
+      fetchArgumentById(argumentId);
+      loadPerspectives();
+    }
+  }, [argumentId, fetchArgumentById, loadPerspectives]);
+
+  useEffect(() => {
+    if (argumentId && currentArgument) {
+      loadAIInsights();
+    }
+  }, [argumentId, currentArgument, loadAIInsights]);
 
   const handleAddPerspective = async () => {
+    if (currentArgument?.status === 'archived') {
+      setError('This issue is archived. Create a new issue if you want to continue the conversation.');
+      return;
+    }
     if (!perspectiveContent.trim()) { setError('Perspective cannot be empty'); return; }
     try {
       setIsSubmitting(true); setError(null);
@@ -75,7 +101,6 @@ export default function ArgumentDetailPage() {
       setPerspectiveContent(''); setShowPerspectiveForm(false);
       await Promise.all([
         loadPerspectives(),
-        loadAIInsights(),
         fetchArgumentById(argumentId),
       ]);
     } catch (err: any) { setError(err.response?.data?.detail || 'Failed to add perspective'); }
@@ -83,6 +108,10 @@ export default function ArgumentDetailPage() {
   };
 
   const handleAnalyze = async () => {
+    if (currentArgument?.status === 'archived') {
+      setError('This issue is archived. Create a new issue if you want fresh mediation.');
+      return;
+    }
     try {
       setIsAnalyzing(true); setError(null);
       const data = await aiSuggestionsAPI.analyzeArgument(argumentId);
@@ -100,6 +129,10 @@ export default function ArgumentDetailPage() {
   };
 
   const handleStatusUpdate = async (newStatus: string) => {
+    if (currentArgument?.status === 'archived') {
+      setError('Archived issues are read-only. Create a new issue if you want to reopen the conversation.');
+      return;
+    }
     try {
       setIsUpdatingStatus(true); setError(null);
       await argumentsAPI.updateStatus(argumentId, newStatus);
@@ -110,7 +143,11 @@ export default function ArgumentDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Permanently delete this argument and all its perspectives? This cannot be undone.')) return;
+    if (!window.confirm(
+      currentArgument?.status === 'archived'
+        ? 'Remove this archived issue from your space?'
+        : 'Remove this issue from your space? Your partner will still keep it in archive.'
+    )) return;
     try {
       setIsDeleting(true); setError(null);
       await argumentsAPI.delete(argumentId);
@@ -153,6 +190,8 @@ export default function ArgumentDetailPage() {
   const partnerPerspective = perspectives.find((p) => p.user_id !== user?.id);
   const journeyHeadline = currentArgument.needs_user_response
     ? 'Your partner is waiting on your side of the story.'
+    : currentArgument.status === 'archived'
+      ? 'This issue is archived in your space.'
     : currentArgument.can_generate_insight
       ? 'Both perspectives are in. Heka can generate the mediation insight now.'
       : currentArgument.insight_status === 'current'
@@ -162,6 +201,8 @@ export default function ArgumentDetailPage() {
           : 'Your side is in. The next move belongs to your partner.';
   const journeyCopy = currentArgument.needs_user_response
     ? 'Add your perspective so the conflict moves out of limbo and into a full two-sided mediation.'
+    : currentArgument.status === 'archived'
+      ? 'Your partner stepped away from this issue. It remains here only as archived context unless you remove it from your side too.'
     : currentArgument.can_generate_insight
       ? 'There is enough context to analyze without asking either partner to repeat themselves.'
       : currentArgument.insight_status === 'current'
@@ -204,23 +245,23 @@ export default function ArgumentDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-3 shrink-0">
-              {currentArgument.status !== 'resolved' ? (
+              {currentArgument.status !== 'resolved' && currentArgument.status !== 'archived' ? (
                 <button onClick={() => handleStatusUpdate('resolved')} disabled={isUpdatingStatus} className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(16,185,129,0.2)] transition hover:scale-[1.02] disabled:opacity-50">
                   <CheckCheck className="h-4 w-4" />
                   {isUpdatingStatus ? 'Updating…' : 'Mark Resolved'}
                 </button>
-              ) : (
+              ) : currentArgument.status === 'resolved' ? (
                 <button onClick={() => handleStatusUpdate('active')} disabled={isUpdatingStatus} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-white/10 disabled:opacity-50">
                   <RotateCcw className="h-4 w-4" />
                   {isUpdatingStatus ? 'Updating…' : 'Reopen'}
                 </button>
-              )}
+              ) : null}
               <button onClick={() => setShowCementModal(true)} className="inline-flex items-center gap-2 rounded-xl border border-teal-500/30 bg-teal-500/10 px-4 py-2.5 text-xs font-bold text-teal-300 transition hover:bg-teal-500/20">
                 🌱 Action Plan
               </button>
               <button onClick={handleDelete} disabled={isDeleting} className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2.5 text-xs font-bold text-red-400 transition hover:bg-red-500/10 disabled:opacity-50">
                 <Trash2 className="h-4 w-4" />
-                {isDeleting ? 'Deleting…' : ''}
+                {isDeleting ? 'Removing…' : 'Remove From My Space'}
               </button>
             </div>
           </div>
@@ -293,7 +334,13 @@ export default function ArgumentDetailPage() {
               </div>
             )}
 
-            {!showPerspectiveForm ? (
+            {currentArgument.status === 'archived' ? (
+              <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-sm text-zinc-400">
+                  This issue is archived. New shared context is closed unless you start a fresh issue.
+                </p>
+              </div>
+            ) : !showPerspectiveForm ? (
               <button
                 onClick={() => {
                   setPerspectiveContent(currentUserPerspective?.content ?? '');
@@ -367,7 +414,7 @@ export default function ArgumentDetailPage() {
               </h2>
               <p className="text-xs text-zinc-500 mt-1">Personalized guidance generated from both perspectives.</p>
             </div>
-            <button onClick={handleAnalyze} disabled={isAnalyzing || !currentArgument.can_generate_insight}
+            <button onClick={handleAnalyze} disabled={isAnalyzing || !currentArgument.can_generate_insight || currentArgument.status === 'archived'}
               className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.1)] transition hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
               <Sparkles className="h-4 w-4" />
               {isAnalyzing

@@ -132,6 +132,11 @@ async def analyze_argument(
         )
     
     argument = ArgumentInDB.from_mongo(arg_doc)
+    if current_user.id in (getattr(argument, "hidden_for_user_ids", None) or []):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Argument not found"
+        )
     
     # Verify user has access
     couple_doc = await db.couples.find_one({
@@ -146,6 +151,15 @@ async def analyze_argument(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
+        )
+
+    if (
+        current_user.id in (argument.archived_for_user_ids or [])
+        or argument.status == ArgumentStatus.ARCHIVED
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This issue is archived. Create a new issue if you want fresh mediation."
         )
     
     # Check if both perspectives exist
@@ -275,6 +289,11 @@ async def get_ai_insights(
         )
     
     argument = ArgumentInDB.from_mongo(arg_doc)
+    if current_user.id in (getattr(argument, "hidden_for_user_ids", None) or []):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Argument not found"
+        )
     
     # Verify user has access
     couple_doc = await db.couples.find_one({
@@ -297,11 +316,8 @@ async def get_ai_insights(
     })
     
     if not insight_doc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="AI insights not found. Run analysis first."
-        )
-    
+        return None
+
     return _serialize_insight(insight_doc)
 
 
@@ -487,6 +503,8 @@ async def generate_argument_goals(
         raise HTTPException(status_code=404, detail="Argument not found")
         
     argument = ArgumentInDB.from_mongo(arg_doc)
+    if current_user.id in (argument.hidden_for_user_ids or []):
+        raise HTTPException(status_code=404, detail="Argument not found")
     
     # Verify access
     couple_doc = await db.couples.find_one({
@@ -495,6 +513,15 @@ async def generate_argument_goals(
     })
     if not couple_doc:
         raise HTTPException(status_code=403, detail="Access denied")
+
+    if (
+        current_user.id in (argument.archived_for_user_ids or [])
+        or argument.status == ArgumentStatus.ARCHIVED
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="This issue is archived. Create a new issue if you want fresh goals."
+        )
         
     # Reuse existing AI service logic with single argument
     suggestions, _ = await ai_service.generate_goal_suggestions([arg_doc], db)
@@ -524,6 +551,8 @@ async def generate_argument_checkins(
         raise HTTPException(status_code=404, detail="Argument not found")
         
     argument = ArgumentInDB.from_mongo(arg_doc)
+    if current_user.id in (argument.hidden_for_user_ids or []):
+        raise HTTPException(status_code=404, detail="Argument not found")
     
     # Verify access
     couple_doc = await db.couples.find_one({
@@ -532,6 +561,15 @@ async def generate_argument_checkins(
     })
     if not couple_doc:
         raise HTTPException(status_code=403, detail="Access denied")
+
+    if (
+        current_user.id in (argument.archived_for_user_ids or [])
+        or argument.status == ArgumentStatus.ARCHIVED
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="This issue is archived. Create a new issue if you want fresh check-in prompts."
+        )
         
     # Reuse existing AI service logic with single argument
     suggestions, _ = await ai_service.generate_checkin_questions([arg_doc], db)
