@@ -119,7 +119,7 @@ function LoginForm() {
               {errors.email && <p className="mt-2 text-xs font-semibold text-red-400">{errors.email.message}</p>}
             </div>
 
-            <div>
+            <div className="relative">
               <div className="flex items-center justify-between">
                 <label htmlFor="password" className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                   Password
