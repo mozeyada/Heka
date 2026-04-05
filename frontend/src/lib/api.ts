@@ -175,6 +175,31 @@ export interface InAppNotification {
   created_at: string;
 }
 
+export interface DashboardSubscriptionOverview {
+  tier: string;
+  status: string;
+  trial_end?: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
+}
+
+export interface DashboardUsageOverview {
+  count: number;
+  limit: number;
+  is_unlimited: boolean;
+  period_start?: string | null;
+  period_end?: string | null;
+}
+
+export interface DashboardOverview {
+  subscription: DashboardSubscriptionOverview;
+  usage: DashboardUsageOverview;
+  arguments: any[];
+  goals: any[];
+  current_checkin: any;
+  week_start_date: string;
+}
+
 export const notificationsAPI = {
   getPreferences: async (): Promise<NotificationPreferences> => {
     const response = await apiClient.get('/api/notifications/preferences');
@@ -206,6 +231,13 @@ export const notificationsAPI = {
 
   markAllRead: async () => {
     await apiClient.post('/api/notifications/read-all');
+  },
+};
+
+export const dashboardAPI = {
+  getOverview: async (): Promise<DashboardOverview> => {
+    const response = await apiClient.get('/api/dashboard/overview');
+    return response.data;
   },
 };
 

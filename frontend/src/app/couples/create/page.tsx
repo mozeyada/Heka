@@ -142,7 +142,7 @@ export default function CreateCouplePage() {
         <div className="absolute left-[-12%] top-[10%] h-[42vh] w-[42vh] rounded-full bg-teal-900/18 blur-[140px]" />
         <div className="absolute right-[-10%] top-[20%] h-[46vh] w-[46vh] rounded-full bg-indigo-900/16 blur-[150px]" />
         <div className="absolute bottom-[-10%] left-[26%] h-[34vh] w-[34vh] rounded-full bg-cyan-900/10 blur-[125px]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay" />
       </div>
 
       <PageHeading

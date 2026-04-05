@@ -9,7 +9,7 @@ export default function PricingPage() {
       <div className="fixed inset-0 z-[-1] bg-[#050505] overflow-hidden pointer-events-none">
         <div className="absolute top-[10%] left-[-10%] h-[50vh] w-[50vh] rounded-full bg-teal-900/20 blur-[150px]" />
         <div className="absolute top-[40%] right-[-10%] h-[60vh] w-[60vh] rounded-full bg-indigo-900/20 blur-[150px]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay"></div>
       </div>
 
       <main className="relative z-10 pt-40 pb-24 lg:pt-48">

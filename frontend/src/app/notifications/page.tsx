@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, ChevronRight } from "lucide-react";
 
 import { InAppNotification, notificationsAPI } from "@/lib/api";
+import { useNotificationsStore } from "@/store/notificationsStore";
 
 function formatTimestamp(value: string) {
   return new Date(value).toLocaleString(undefined, {
@@ -17,27 +18,29 @@ function formatTimestamp(value: string) {
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const { syncFromFeed, markNotificationRead, markAllNotificationsRead } = useNotificationsStore();
   const [items, setItems] = useState<InAppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await notificationsAPI.getFeed(50, 0);
       setItems(data.items || []);
+      syncFromFeed(data.items || []);
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || "Failed to load notifications.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [syncFromFeed]);
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [loadNotifications]);
 
   const handleOpen = async (item: InAppNotification) => {
     try {
@@ -48,6 +51,7 @@ export default function NotificationsPage() {
             entry.id === item.id ? { ...entry, is_read: true, read_at: new Date().toISOString() } : entry,
           ),
         );
+        markNotificationRead();
       }
     } catch {
       // Do not block navigation on read failures.
@@ -65,6 +69,7 @@ export default function NotificationsPage() {
       setItems((current) =>
         current.map((entry) => ({ ...entry, is_read: true, read_at: entry.read_at || new Date().toISOString() })),
       );
+      markAllNotificationsRead();
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || "Failed to mark notifications as read.");
     } finally {

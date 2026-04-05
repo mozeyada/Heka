@@ -268,7 +268,7 @@ export default function SettingsPage() {
         <div className="absolute left-[-12%] top-[12%] h-[40vh] w-[40vh] rounded-full bg-teal-900/18 blur-[135px]" />
         <div className="absolute right-[-10%] top-[22%] h-[45vh] w-[45vh] rounded-full bg-indigo-900/16 blur-[150px]" />
         <div className="absolute bottom-[-10%] left-[25%] h-[34vh] w-[34vh] rounded-full bg-rose-900/8 blur-[120px]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay" />
       </div>
 
       <PageHeading

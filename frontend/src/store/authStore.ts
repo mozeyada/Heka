@@ -28,6 +28,35 @@ interface AuthState {
   checkAuth: () => void;
 }
 
+let currentUserRequest: Promise<void> | null = null;
+
+function readCachedUser(): User | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const raw = localStorage.getItem('user');
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (
+      typeof parsed?.id === 'string' &&
+      typeof parsed?.email === 'string' &&
+      typeof parsed?.name === 'string' &&
+      typeof parsed?.age === 'number'
+    ) {
+      return parsed as User;
+    }
+  } catch {
+    // Ignore invalid cached user payloads.
+  }
+
+  return null;
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
@@ -91,22 +120,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return;
     }
 
-    try {
-      set({ isLoading: true });
-      const user = await authAPI.getCurrentUser();
-      set({ user, isAuthenticated: true, isLoading: false });
-    } catch (error) {
-      set({ user: null, isAuthenticated: false, isLoading: false });
-      authAPI.logout();
+    if (currentUserRequest) {
+      return currentUserRequest;
     }
+
+    set({ isLoading: true });
+
+    currentUserRequest = authAPI
+      .getCurrentUser()
+      .then((user) => {
+        localStorage.setItem('user', JSON.stringify(user));
+        set({ user, isAuthenticated: true, isLoading: false });
+      })
+      .catch(() => {
+        set({ user: null, isAuthenticated: false, isLoading: false });
+        authAPI.logout();
+      })
+      .finally(() => {
+        currentUserRequest = null;
+      });
+
+    return currentUserRequest;
   },
 
   checkAuth: () => {
     const isAuth = authAPI.isAuthenticated();
-    set({ isAuthenticated: isAuth });
-    if (isAuth) {
+    if (!isAuth) {
+      set({ user: null, isAuthenticated: false, isLoading: false });
+      return;
+    }
+
+    const cachedUser = readCachedUser();
+    set((state) => ({
+      isAuthenticated: true,
+      user: cachedUser ?? state.user,
+    }));
+
+    if (!cachedUser && !get().user) {
       get().fetchCurrentUser();
     }
   },
 }));
-

@@ -7,14 +7,18 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function Home() {
   const router = useRouter();
-  const { checkAuth, isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    checkAuth();
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.replace('/dashboard');
+      return;
     }
-  }, [checkAuth, isAuthenticated, router]);
+
+    if (typeof window !== 'undefined' && localStorage.getItem('access_token')) {
+      router.replace('/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
   if (isAuthenticated) {
     return null;
@@ -27,7 +31,7 @@ export default function Home() {
         <div className="absolute top-[-10%] left-[-10%] h-[50vh] w-[50vh] rounded-full bg-teal-900/30 blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] h-[60vh] w-[60vh] rounded-full bg-indigo-900/30 blur-[150px]" />
         <div className="absolute top-[40%] left-[60%] h-[30vh] w-[30vh] rounded-full bg-purple-900/20 blur-[100px]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay"></div>
       </div>
 
 

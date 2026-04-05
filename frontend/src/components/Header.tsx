@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { ChevronDown, Settings as SettingsIcon, CreditCard, LogOut, Bell } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import { notificationsAPI } from '@/lib/api';
+import { useNotificationsStore } from '@/store/notificationsStore';
 
 interface NavLink {
   label: string;
@@ -34,9 +34,9 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, logout, fetchCurrentUser } = useAuthStore();
+  const { unreadCount, fetchUnreadCount, clearNotifications } = useNotificationsStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,30 +47,26 @@ export function Header() {
   }, [isAuthenticated, user, fetchCurrentUser]);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!isAuthenticated) {
+      clearNotifications();
+      return;
+    }
 
-    const loadUnreadCount = async () => {
-      if (!isAuthenticated) {
-        setUnreadCount(0);
-        return;
-      }
-      try {
-        const data = await notificationsAPI.getUnreadCount();
-        if (!cancelled) {
-          setUnreadCount(data.unread_count || 0);
-        }
-      } catch {
-        if (!cancelled) {
-          setUnreadCount(0);
-        }
+    const refreshUnreadCount = () => {
+      if (document.visibilityState === 'visible') {
+        fetchUnreadCount(true);
       }
     };
 
-    loadUnreadCount();
+    fetchUnreadCount();
+    window.addEventListener('focus', refreshUnreadCount);
+    document.addEventListener('visibilitychange', refreshUnreadCount);
+
     return () => {
-      cancelled = true;
+      window.removeEventListener('focus', refreshUnreadCount);
+      document.removeEventListener('visibilitychange', refreshUnreadCount);
     };
-  }, [isAuthenticated, pathname]);
+  }, [isAuthenticated, fetchUnreadCount, clearNotifications]);
 
   // Handle click outside to close dropdown
   useEffect(() => {

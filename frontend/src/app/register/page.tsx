@@ -53,7 +53,7 @@ function RegisterForm() {
       <div className="fixed inset-0 z-[-1] bg-[#050505] overflow-hidden pointer-events-none">
         <div className="absolute top-[20%] left-[10%] h-[40vh] w-[40vh] rounded-full bg-teal-900/20 blur-[130px]" />
         <div className="absolute bottom-[10%] right-[10%] h-[50vh] w-[50vh] rounded-full bg-indigo-900/20 blur-[150px]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.15] mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.15] mix-blend-overlay"></div>
       </div>
 
       <div className="w-full max-w-[480px] relative z-10 animate-in fade-in zoom-in-95 duration-500">

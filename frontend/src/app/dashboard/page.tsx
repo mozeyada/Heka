@@ -19,18 +19,16 @@ import {
   Zap,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import { useCouplesStore } from '@/store/couplesStore';
-import { useArgumentsStore } from '@/store/argumentsStore';
-import { checkinsAPI, getApiErrorMessage, goalsAPI, subscriptionsAPI } from '@/lib/api';
+import { dashboardAPI, getApiErrorMessage } from '@/lib/api';
 import { LoadingPage } from '@/components/LoadingSpinner';
 import { ErrorAlert } from '@/components/ErrorAlert';
 
 export default function DashboardPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, fetchCurrentUser } = useAuthStore();
-  const { couple, fetchMyCouple } = useCouplesStore();
-  const { arguments: args, fetchArguments } = useArgumentsStore();
+  const { user, isAuthenticated } = useAuthStore();
+  const [hasCouple, setHasCouple] = useState(false);
+  const [args, setArgs] = useState<any[]>([]);
   const [currentCheckin, setCurrentCheckin] = useState<any>(null);
   const [goals, setGoals] = useState<any[]>([]);
   const [subscription, setSubscription] = useState<any>(null);
@@ -41,45 +39,30 @@ export default function DashboardPage() {
   const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      const fetchedCouple = await fetchMyCouple();
-      await fetchArguments();
-
-      if (fetchedCouple) {
-        try {
-          const checkin = await checkinsAPI.getCurrent();
-          setCurrentCheckin(checkin);
-        } catch (error) {
-          console.error('Failed to fetch check-in:', error);
-        }
-
-        try {
-          const goalsData = await goalsAPI.getAll();
-          const activeGoals = goalsData.filter((g: any) => g.status === 'active');
-          setGoals(activeGoals);
-        } catch (error) {
-          console.error('Failed to fetch goals:', error);
-        }
-
-        try {
-          const subData = await subscriptionsAPI.getMySubscription();
-          setSubscription(subData);
-        } catch (error) {
-          console.error('Failed to fetch subscription:', error);
-        }
-
-        try {
-          const usageData = await subscriptionsAPI.getUsage();
-          setUsage(usageData);
-        } catch (error) {
-          console.error('Failed to fetch usage:', error);
-        }
-      }
+      setError(null);
+      const overview = await dashboardAPI.getOverview();
+      setHasCouple(true);
+      setArgs(Array.isArray(overview.arguments) ? overview.arguments : []);
+      setCurrentCheckin(overview.current_checkin ?? null);
+      setGoals(Array.isArray(overview.goals) ? overview.goals : []);
+      setSubscription(overview.subscription ?? null);
+      setUsage(overview.usage ?? null);
     } catch (error: any) {
+      if (error.response?.status === 404) {
+        setHasCouple(false);
+        setArgs([]);
+        setCurrentCheckin(null);
+        setGoals([]);
+        setSubscription(null);
+        setUsage(null);
+        setError(null);
+        return;
+      }
       setError(getApiErrorMessage(error, 'Failed to load dashboard data. Please try again.'));
     } finally {
       setLoading(false);
     }
-  }, [fetchArguments, fetchMyCouple]);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -89,14 +72,13 @@ export default function DashboardPage() {
     }
 
     if (!isAuthenticated || !user) {
-      fetchCurrentUser();
       return;
     }
 
     loadDashboardData();
-  }, [isAuthenticated, user, router, fetchCurrentUser, loadDashboardData]);
+  }, [isAuthenticated, user, router, loadDashboardData]);
 
-  const usageCount = usage?.usage_count ?? 0;
+  const usageCount = usage?.count ?? 0;
   const usageLimit = usage?.limit ?? 0;
   const usagePercentage = usage?.is_unlimited
     ? 0
@@ -156,7 +138,7 @@ export default function DashboardPage() {
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
         <div className="absolute top-[10%] left-[-10%] h-[50vh] w-[50vh] rounded-full bg-teal-900/20 blur-[150px]" />
         <div className="absolute top-[40%] right-[-10%] h-[60vh] w-[60vh] rounded-full bg-indigo-900/20 blur-[150px]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay"></div>
       </div>
 
       <div className="app-container py-8 space-y-8 pb-28">
@@ -209,13 +191,13 @@ export default function DashboardPage() {
             <div className="w-full sm:w-auto shrink-0 flex flex-col items-center">
               <button 
                 onClick={() => router.push('/arguments/create')} 
-                disabled={!couple}
+                disabled={!hasCouple}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-bold text-black shadow-[0_0_20px_rgba(255,255,255,0.15)] transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <MessageCircle className="h-5 w-5" />
                 Start Protocol
               </button>
-              {!couple && <span className="mt-3 text-[10px] uppercase tracking-widest text-orange-400">Link Partner Required</span>}
+              {!hasCouple && <span className="mt-3 text-[10px] uppercase tracking-widest text-orange-400">Link Partner Required</span>}
             </div>
           </div>
         </div>
@@ -341,7 +323,7 @@ export default function DashboardPage() {
         <div className={`${glassCardClasses} animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300`}>
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">Active Mediation Logs</h3>
-            {couple && activeIssuesCount > 0 && (
+            {hasCouple && activeIssuesCount > 0 && (
               <Link href="/arguments" className="text-xs font-semibold text-teal-400 hover:text-teal-300 transition">View Archive</Link>
             )}
           </div>
@@ -394,7 +376,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Coupling CTA */}
-        {!couple && (
+        {!hasCouple && (
           <div className="relative rounded-3xl border border-orange-500/30 bg-orange-500/10 p-8 backdrop-blur-2xl">
             <h3 className="text-sm font-semibold text-white mb-2">Initialize Partner Sync</h3>
             <p className="text-xs text-orange-200/70 mb-5 max-w-sm">
