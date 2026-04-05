@@ -1,5 +1,6 @@
 """Dashboard overview endpoint for mobile/web clients."""
 
+import logging
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, Optional
 
@@ -10,17 +11,18 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.api.arguments import _build_argument_response
 from app.api.checkins import _build_checkin_response
 from app.api.dependencies import get_current_user
-from app.api.goals import _build_goal_response
+from app.api.goals import _build_goal_response, _parse_goal_doc
 from app.db.database import get_database
+from app.models.argument import ArgumentInDB
 from app.models.couple import CoupleInDB, CoupleStatus
 from app.models.relationship_checkin import CheckInStatus, RelationshipCheckInInDB
-from app.models.relationship_goal import RelationshipGoalInDB
 from app.models.usage import UsageType
 from app.models.user import UserInDB
 from app.services.subscription_service import subscription_service
 from app.services.usage_service import usage_service
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
+logger = logging.getLogger(__name__)
 
 MAX_RECENT_ARGUMENTS = 5
 
@@ -66,17 +68,30 @@ async def get_dashboard_overview(
 
     # Recent arguments
     arguments_cursor = (
-        db.arguments.find({"couple_id": ObjectId(couple.id)})
+        db.arguments.find(
+            {
+                "couple_id": ObjectId(couple.id),
+                "hidden_for_user_ids": {"$ne": current_user.id},
+                "status": {"$ne": "archived"},
+            }
+        )
         .sort("created_at", -1)
         .limit(MAX_RECENT_ARGUMENTS)
     )
     arguments = []
     async for arg_doc in arguments_cursor:
-        enriched_argument = await _build_argument_response(
-            argument=arg_doc,
-            current_user=current_user,
-            db=db,
-        )
+        try:
+            enriched_argument = await _build_argument_response(
+                argument=ArgumentInDB.from_mongo(arg_doc),
+                current_user=current_user,
+                db=db,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to build dashboard argument response argument_id=%s",
+                arg_doc.get("_id"),
+            )
+            continue
         arguments.append(enriched_argument.model_dump())
 
     # Active goals
@@ -85,6 +100,7 @@ async def get_dashboard_overview(
             {
                 "couple_id": ObjectId(couple.id),
                 "status": "active",
+                "hidden_for_user_ids": {"$ne": current_user.id},
             }
         )
         .sort("created_at", -1)
@@ -92,11 +108,18 @@ async def get_dashboard_overview(
     )
     goals = []
     async for goal_doc in goals_cursor:
-        enriched_goal = _build_goal_response(
-            goal=RelationshipGoalInDB.from_mongo(goal_doc),
-            current_user=current_user,
-            couple=couple,
-        )
+        try:
+            enriched_goal = _build_goal_response(
+                goal=_parse_goal_doc(goal_doc),
+                current_user=current_user,
+                couple=couple,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to build dashboard goal response goal_id=%s",
+                goal_doc.get("_id"),
+            )
+            continue
         goals.append(enriched_goal.model_dump())
 
     # Current check-in status
