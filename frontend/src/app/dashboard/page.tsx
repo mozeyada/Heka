@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import type { LucideIcon } from 'lucide-react';
 import {
   MessageCircle,
@@ -10,10 +10,8 @@ import {
   ChevronRight,
   Heart,
   Shield,
-  Home,
   FileText,
   Target,
-  Settings as SettingsIcon,
   Activity,
   AlertCircle,
   Zap,
@@ -25,7 +23,6 @@ import { ErrorAlert } from '@/components/ErrorAlert';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const pathname = usePathname();
   const { user, isAuthenticated } = useAuthStore();
   const [hasCouple, setHasCouple] = useState(false);
   const [args, setArgs] = useState<any[]>([]);
@@ -117,13 +114,6 @@ export default function DashboardPage() {
     const key = (category ?? '').toLowerCase() as keyof typeof categoryIconMap;
     return categoryIconMap[key] ?? defaultCategoryIcon;
   };
-
-  const navItems = [
-    { label: 'Home', href: '/dashboard', icon: Home },
-    { label: 'Issues', href: '/arguments', icon: FileText },
-    { label: 'Goals', href: '/goals', icon: Target },
-    { label: 'Settings', href: '/settings', icon: SettingsIcon },
-  ];
 
   // Relationship Pulse Math (Smart UI)
   const activeIssuesCount = args.filter(a => a.status !== 'resolved').length;
@@ -389,22 +379,6 @@ export default function DashboardPage() {
         )}
 
       </div>
-
-      {/* Floating Dark Glass Mobile Navigation */}
-      <nav className="fixed md:hidden bottom-0 left-0 right-0 z-50 p-4 pb-6 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none">
-        <div className="mx-auto flex max-w-sm items-center justify-between rounded-2xl border border-white/10 bg-[#0a0a0a]/80 px-6 py-4 shadow-2xl backdrop-blur-3xl pointer-events-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link key={item.href} href={item.href} className="flex flex-col items-center gap-1.5 transition-transform hover:scale-110">
-                <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-teal-400' : 'text-zinc-600'}`} />
-                <span className={`text-[9px] font-bold uppercase tracking-wider ${isActive ? 'text-teal-400' : 'text-zinc-600'}`}>{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
     </div>
   );
 }

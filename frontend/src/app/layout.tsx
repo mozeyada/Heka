@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthInitializer } from '@/components/AuthInitializer';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-display' });
@@ -26,9 +27,9 @@ export default function RootLayout({
         <main className="flex-grow">
           {children}
         </main>
+        <MobileBottomNav />
         <Footer />
       </body>
     </html>
   );
 }
-
