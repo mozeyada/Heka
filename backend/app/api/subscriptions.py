@@ -31,6 +31,32 @@ if settings.STRIPE_SECRET_KEY:
     stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
+def _is_missing_customer_error(exc: Exception) -> bool:
+    """Return True when Stripe says the stored customer does not exist in this mode."""
+    message = str(exc)
+    return "No such customer" in message
+
+
+async def _create_or_replace_customer(
+    subscription_id: str,
+    current_user: UserInDB,
+    couple_id: str,
+    db: AsyncIOMotorDatabase,
+) -> str:
+    """Create a Stripe customer and persist its ID on the subscription."""
+    customer = stripe.Customer.create(
+        email=current_user.email,
+        metadata={"couple_id": couple_id, "user_id": current_user.id},
+    )
+    customer_id = customer.id
+    await subscription_service.update_subscription(
+        subscription_id,
+        {"stripe_customer_id": customer_id},
+        db,
+    )
+    return customer_id
+
+
 @router.get("/me", response_model=SubscriptionResponse)
 async def get_my_subscription(
     current_user: UserInDB = Depends(get_current_user),
@@ -168,50 +194,86 @@ async def create_checkout_session(
         # Create or get Stripe customer
         customer_id = subscription.stripe_customer_id
         if not customer_id:
-            customer = stripe.Customer.create(
-                email=current_user.email,
-                metadata={"couple_id": couple.id, "user_id": current_user.id}
-            )
-            customer_id = customer.id
-            
-            # Update subscription with customer ID
-            await subscription_service.update_subscription(
+            customer_id = await _create_or_replace_customer(
                 subscription.id,
-                {"stripe_customer_id": customer_id},
-                db
+                current_user,
+                couple.id,
+                db,
             )
         
         # Create checkout session
         # Industry standard: include payment failure handling
-        checkout_session = stripe.checkout.Session.create(
-            customer=customer_id,
-            payment_method_types=["card"],
-            line_items=[{
-                "price_data": {
-                    "currency": "aud",
-                    "product_data": {
-                        "name": f"Heka {checkout_data.tier.capitalize()} Subscription",
-                        "description": f"Monthly subscription for {checkout_data.tier} tier"
+        try:
+            checkout_session = stripe.checkout.Session.create(
+                customer=customer_id,
+                payment_method_types=["card"],
+                line_items=[{
+                    "price_data": {
+                        "currency": "aud",
+                        "product_data": {
+                            "name": f"Heka {checkout_data.tier.capitalize()} Subscription",
+                            "description": f"Monthly subscription for {checkout_data.tier} tier"
+                        },
+                        "recurring": {
+                            "interval": "month"
+                        },
+                        "unit_amount": tier_prices["amount"]
                     },
-                    "recurring": {
-                        "interval": "month"
+                    "quantity": 1
+                }],
+                mode="subscription",
+                success_url=checkout_data.success_url,
+                cancel_url=checkout_data.cancel_url,
+                # Industry standard: redirect to failure page if payment fails
+                # Stripe will append ?session_id={CHECKOUT_SESSION_ID} automatically
+                payment_method_collection="always",  # Always collect payment method
+                metadata={
+                    "couple_id": couple.id,
+                    "user_id": current_user.id,
+                    "tier": checkout_data.tier
+                }
+            )
+        except stripe.InvalidRequestError as exc:
+            if not customer_id or not _is_missing_customer_error(exc):
+                raise
+
+            logger.warning(
+                "Stored Stripe customer %s is invalid for the current mode; creating replacement",
+                customer_id,
+            )
+            customer_id = await _create_or_replace_customer(
+                subscription.id,
+                current_user,
+                couple.id,
+                db,
+            )
+            checkout_session = stripe.checkout.Session.create(
+                customer=customer_id,
+                payment_method_types=["card"],
+                line_items=[{
+                    "price_data": {
+                        "currency": "aud",
+                        "product_data": {
+                            "name": f"Heka {checkout_data.tier.capitalize()} Subscription",
+                            "description": f"Monthly subscription for {checkout_data.tier} tier"
+                        },
+                        "recurring": {
+                            "interval": "month"
+                        },
+                        "unit_amount": tier_prices["amount"]
                     },
-                    "unit_amount": tier_prices["amount"]
-                },
-                "quantity": 1
-            }],
-            mode="subscription",
-            success_url=checkout_data.success_url,
-            cancel_url=checkout_data.cancel_url,
-            # Industry standard: redirect to failure page if payment fails
-            # Stripe will append ?session_id={CHECKOUT_SESSION_ID} automatically
-            payment_method_collection="always",  # Always collect payment method
-            metadata={
-                "couple_id": couple.id,
-                "user_id": current_user.id,
-                "tier": checkout_data.tier
-            }
-        )
+                    "quantity": 1
+                }],
+                mode="subscription",
+                success_url=checkout_data.success_url,
+                cancel_url=checkout_data.cancel_url,
+                payment_method_collection="always",
+                metadata={
+                    "couple_id": couple.id,
+                    "user_id": current_user.id,
+                    "tier": checkout_data.tier
+                }
+            )
         
         logger.info(
             f"Checkout session created - Session: {checkout_session.id}, "
@@ -224,7 +286,7 @@ async def create_checkout_session(
             "session_id": checkout_session.id
         }
         
-    except stripe.error.StripeError as e:
+    except stripe.StripeError as e:
         logger.error(f"Stripe error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -257,7 +319,7 @@ async def stripe_webhook(request: Request):
         )
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError:
+    except stripe.SignatureVerificationError:
         raise HTTPException(status_code=400, detail="Invalid signature")
     
     # Handle the event
