@@ -154,7 +154,7 @@ async def analyze_argument(
         )
 
     if (
-        current_user.id in (argument.archived_for_user_ids or [])
+        current_user.id in (getattr(argument, "archived_for_user_ids", None) or [])
         or argument.status == ArgumentStatus.ARCHIVED
     ):
         raise HTTPException(
@@ -503,7 +503,7 @@ async def generate_argument_goals(
         raise HTTPException(status_code=404, detail="Argument not found")
         
     argument = ArgumentInDB.from_mongo(arg_doc)
-    if current_user.id in (argument.hidden_for_user_ids or []):
+    if current_user.id in (getattr(argument, "hidden_for_user_ids", None) or []):
         raise HTTPException(status_code=404, detail="Argument not found")
     
     # Verify access
@@ -515,7 +515,7 @@ async def generate_argument_goals(
         raise HTTPException(status_code=403, detail="Access denied")
 
     if (
-        current_user.id in (argument.archived_for_user_ids or [])
+        current_user.id in (getattr(argument, "archived_for_user_ids", None) or [])
         or argument.status == ArgumentStatus.ARCHIVED
     ):
         raise HTTPException(
@@ -551,7 +551,7 @@ async def generate_argument_checkins(
         raise HTTPException(status_code=404, detail="Argument not found")
         
     argument = ArgumentInDB.from_mongo(arg_doc)
-    if current_user.id in (argument.hidden_for_user_ids or []):
+    if current_user.id in (getattr(argument, "hidden_for_user_ids", None) or []):
         raise HTTPException(status_code=404, detail="Argument not found")
     
     # Verify access
@@ -563,7 +563,7 @@ async def generate_argument_checkins(
         raise HTTPException(status_code=403, detail="Access denied")
 
     if (
-        current_user.id in (argument.archived_for_user_ids or [])
+        current_user.id in (getattr(argument, "archived_for_user_ids", None) or [])
         or argument.status == ArgumentStatus.ARCHIVED
     ):
         raise HTTPException(
