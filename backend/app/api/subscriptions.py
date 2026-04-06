@@ -326,7 +326,7 @@ async def handle_subscription_updated(subscription: dict):
             "active": SubscriptionStatus.ACTIVE,
             "trialing": SubscriptionStatus.TRIAL,
             "canceled": SubscriptionStatus.CANCELLED,
-            "past_due": SubscriptionStatus.EXPIRED,
+            "past_due": SubscriptionStatus.PAST_DUE,
             "unpaid": SubscriptionStatus.EXPIRED,
             "incomplete_expired": SubscriptionStatus.EXPIRED,
         }
@@ -408,8 +408,8 @@ async def handle_invoice_payment_failed(invoice: dict):
         sub_doc = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id})
         if sub_doc:
             from app.models.subscription import SubscriptionStatus
-            # Update status to past_due or expired based on attempt count
-            new_status = SubscriptionStatus.EXPIRED if attempt_count >= 3 else SubscriptionStatus.EXPIRED
+            # Keep early failures in a grace-period state before expiring access.
+            new_status = SubscriptionStatus.EXPIRED if attempt_count >= 3 else SubscriptionStatus.PAST_DUE
             
             await subscription_service.update_subscription(
                 str(sub_doc["_id"]),
@@ -418,7 +418,11 @@ async def handle_invoice_payment_failed(invoice: dict):
                 },
                 db
             )
-            logger.warning(f"Subscription marked as expired due to payment failure: {subscription_id}")
+            logger.warning(
+                "Subscription marked as %s due to payment failure: %s",
+                new_status.value,
+                subscription_id,
+            )
 
 
 async def handle_checkout_payment_failed(session: dict):

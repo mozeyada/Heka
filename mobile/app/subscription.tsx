@@ -75,6 +75,12 @@ function formatDate(value?: string | null) {
   });
 }
 
+function formatStatus(status?: string | null) {
+  if (!status) return "UNKNOWN";
+  if (status === "past_due") return "PAST DUE";
+  return status.replace(/_/g, " ").toUpperCase();
+}
+
 export default function SubscriptionScreen() {
   const insets = useSafeAreaInsets();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -205,7 +211,7 @@ export default function SubscriptionScreen() {
                 <Text style={styles.heroEyebrow}>Your plan</Text>
                 <Text style={styles.heroTitle}>{planCopy.headline}</Text>
                 <Text style={styles.heroSubtitle}>
-                  Status: {subscription.status.toUpperCase()}
+                  Status: {formatStatus(subscription.status)}
                 </Text>
               </View>
               <View style={styles.heroBadge}>

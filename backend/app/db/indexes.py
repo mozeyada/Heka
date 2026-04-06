@@ -51,7 +51,7 @@ async def create_validators(db: AsyncIOMotorDatabase):
             "properties": {
                 "couple_id": {"bsonType": "objectId"},
                 "tier": {"enum": ["free", "basic", "premium"]},
-                "status": {"enum": ["trial", "active", "cancelled", "expired"]},
+                "status": {"enum": ["trial", "active", "past_due", "cancelled", "expired"]},
                 "stripe_subscription_id": {"bsonType": ["string", "null"]},
                 "stripe_customer_id": {"bsonType": ["string", "null"]},
                 "trial_start": {"bsonType": ["date", "null"]},

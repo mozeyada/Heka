@@ -32,7 +32,7 @@ class SubscriptionService:
         now = datetime.utcnow()
 
         if (
-            subscription.status == SubscriptionStatus.ACTIVE
+            subscription.status in {SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE}
             and subscription.tier in {SubscriptionTier.BASIC, SubscriptionTier.PREMIUM}
         ):
             if subscription.trial_start is not None:
@@ -42,7 +42,11 @@ class SubscriptionService:
                 subscription.trial_end = None
                 changed = True
 
-        if subscription.status in {SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL}:
+        if subscription.status in {
+            SubscriptionStatus.ACTIVE,
+            SubscriptionStatus.PAST_DUE,
+            SubscriptionStatus.TRIAL,
+        }:
             if subscription.current_period_start is None:
                 subscription.current_period_start = now
                 changed = True
@@ -55,7 +59,10 @@ class SubscriptionService:
                 subscription.current_period_end = subscription.current_period_start + timedelta(days=default_days)
                 changed = True
 
-        if subscription.status == SubscriptionStatus.ACTIVE and subscription.cancelled_at is not None:
+        if (
+            subscription.status in {SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE}
+            and subscription.cancelled_at is not None
+        ):
             subscription.cancelled_at = None
             changed = True
 
@@ -162,8 +169,8 @@ class SubscriptionService:
     
     @staticmethod
     def is_subscription_active(subscription: SubscriptionInDB) -> bool:
-        """Check if subscription is active (paid or trial)."""
-        if subscription.status == SubscriptionStatus.ACTIVE:
+        """Check if subscription grants access (paid, grace-period, or trial)."""
+        if subscription.status in {SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE}:
             return True
         if subscription.status == SubscriptionStatus.TRIAL:
             return SubscriptionService.is_trial_active(subscription)
@@ -178,7 +185,7 @@ class SubscriptionService:
             if subscription.tier == SubscriptionTier.PREMIUM:
                 return UsageLimit.PREMIUM_MONTHLY_ARGS  # Unlimited
             return UsageLimit.FREE_TRIAL_ARGS
-        if subscription.status == SubscriptionStatus.ACTIVE:
+        if subscription.status in {SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE}:
             if subscription.tier == SubscriptionTier.BASIC:
                 return UsageLimit.BASIC_MONTHLY_ARGS  # Unlimited
             if subscription.tier == SubscriptionTier.PREMIUM:

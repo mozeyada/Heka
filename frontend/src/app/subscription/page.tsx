@@ -121,8 +121,10 @@ export default function SubscriptionPage() {
   const isPaidTier = subscription?.tier === 'basic' || subscription?.tier === 'premium';
   const isFreeTrial = subscription?.status === 'trial' && subscription?.tier === 'free';
   const isPaidTrial = subscription?.status === 'trial' && isPaidTier;
-  const isActivePaid = subscription?.status === 'active' && isPaidTier;
-  const isInactivePaid = (subscription?.status === 'cancelled' || subscription?.status === 'expired') && isPaidTier;
+  const isActivePaid =
+    (subscription?.status === 'active' || subscription?.status === 'past_due') && isPaidTier;
+  const isInactivePaid =
+    (subscription?.status === 'cancelled' || subscription?.status === 'expired') && isPaidTier;
   const planTitle = subscription
     ? isFreeTrial
       ? 'Free trial'
@@ -144,6 +146,12 @@ export default function SubscriptionPage() {
           label: 'Trial',
           className: 'border-teal-500/20 bg-teal-500/10 text-teal-300',
           helper: 'You are currently in the full-access trial window.',
+        };
+      case 'past_due':
+        return {
+          label: 'Past Due',
+          className: 'border-amber-500/20 bg-amber-500/10 text-amber-300',
+          helper: 'Payment needs attention, but access remains available during the grace period.',
         };
       case 'cancelled':
         return {

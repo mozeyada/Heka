@@ -18,6 +18,7 @@ class SubscriptionTier(str, Enum):
 class SubscriptionStatus(str, Enum):
     """Subscription status."""
     ACTIVE = "active"
+    PAST_DUE = "past_due"
     CANCELLED = "cancelled"
     EXPIRED = "expired"
     TRIAL = "trial"
@@ -87,4 +88,3 @@ class UsageLimit(BaseModel):
     
     BASIC_MONTHLY_ARGS: ClassVar[int] = -1  # Unlimited
     PREMIUM_MONTHLY_ARGS: ClassVar[int] = -1  # Unlimited
-
