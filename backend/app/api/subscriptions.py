@@ -203,25 +203,30 @@ async def create_checkout_session(
     couple = CoupleInDB.from_mongo(couple_doc)
     subscription = await subscription_service.get_or_create_subscription(couple.id, db)
     
-    # Define prices (in AUD cents)
+    # Define prices (in USD cents)
     prices = {
-        "basic": {
-            "monthly": "price_basic_monthly",  # Replace with actual Stripe Price ID
-            "amount": 999  # $9.99 AUD
+        "starter": {
+            "monthly": 499,
+            "annual": 3999
         },
         "premium": {
-            "monthly": "price_premium_monthly",  # Replace with actual Stripe Price ID
-            "amount": 1999  # $19.99 AUD
+            "monthly": 999,
+            "annual": 7999
         }
     }
     
     if checkout_data.tier not in prices:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid tier. Must be 'basic' or 'premium'"
+            detail="Invalid tier. Must be 'starter' or 'premium'"
         )
-    
-    tier_prices = prices[checkout_data.tier]
+        
+    interval = checkout_data.interval if hasattr(checkout_data, "interval") else "monthly"
+    if interval not in ["monthly", "annual"]:
+        interval = "monthly"
+        
+    tier_amount = prices[checkout_data.tier][interval]
+    stripe_interval = "year" if interval == "annual" else "month"
     
     try:
         # Create or get Stripe customer
@@ -242,15 +247,15 @@ async def create_checkout_session(
                 payment_method_types=["card"],
                 line_items=[{
                     "price_data": {
-                        "currency": "aud",
+                        "currency": "usd",
                         "product_data": {
-                            "name": f"Heka {checkout_data.tier.capitalize()} Subscription",
-                            "description": f"Monthly subscription for {checkout_data.tier} tier"
+                            "name": f"Heka {checkout_data.tier.capitalize()} {interval.capitalize()}",
+                            "description": f"{interval.capitalize()} subscription for {checkout_data.tier} tier"
                         },
                         "recurring": {
-                            "interval": "month"
+                            "interval": stripe_interval
                         },
-                        "unit_amount": tier_prices["amount"]
+                        "unit_amount": tier_amount
                     },
                     "quantity": 1
                 }],
@@ -285,15 +290,15 @@ async def create_checkout_session(
                 payment_method_types=["card"],
                 line_items=[{
                     "price_data": {
-                        "currency": "aud",
+                        "currency": "usd",
                         "product_data": {
-                            "name": f"Heka {checkout_data.tier.capitalize()} Subscription",
-                            "description": f"Monthly subscription for {checkout_data.tier} tier"
+                            "name": f"Heka {checkout_data.tier.capitalize()} {interval.capitalize()}",
+                            "description": f"{interval.capitalize()} subscription for {checkout_data.tier} tier"
                         },
                         "recurring": {
-                            "interval": "month"
+                            "interval": stripe_interval
                         },
-                        "unit_amount": tier_prices["amount"]
+                        "unit_amount": tier_amount
                     },
                     "quantity": 1
                 }],
@@ -311,7 +316,7 @@ async def create_checkout_session(
         logger.info(
             f"Checkout session created - Session: {checkout_session.id}, "
             f"Customer: {customer_id}, Tier: {checkout_data.tier}, "
-            f"Amount: ${tier_prices['amount'] / 100:.2f}"
+            f"Interval: {interval}, Amount: ${tier_amount / 100:.2f}"
         )
         
         return {

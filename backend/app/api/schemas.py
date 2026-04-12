@@ -400,7 +400,8 @@ class UsageResponse(BaseModel):
 
 class CreateCheckoutSessionRequest(BaseModel):
     """Create Stripe checkout session request."""
-    tier: str  # "basic" or "premium"
+    tier: str  # "starter" or "premium"
+    interval: str = "monthly"  # "monthly" or "annual"
     success_url: str
     cancel_url: str
 

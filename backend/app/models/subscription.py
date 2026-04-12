@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 class SubscriptionTier(str, Enum):
     """Subscription tier levels."""
     FREE = "free"
-    BASIC = "basic"
+    STARTER = "starter"
     PREMIUM = "premium"
 
 
@@ -83,8 +83,8 @@ class SubscriptionInDB(Subscription):
 
 class UsageLimit(BaseModel):
     """Usage limits per tier."""
-    FREE_TRIAL_ARGS: ClassVar[int] = 5  # 5 arguments during 7-day trial
-    FREE_TRIAL_DAYS: ClassVar[int] = 7
+    FREE_TRIAL_ARGS: ClassVar[int] = 3  # 3 arguments for free
+    FREE_TRIAL_DAYS: ClassVar[int] = 30
     
-    BASIC_MONTHLY_ARGS: ClassVar[int] = -1  # Unlimited
+    STARTER_MONTHLY_ARGS: ClassVar[int] = 10
     PREMIUM_MONTHLY_ARGS: ClassVar[int] = -1  # Unlimited

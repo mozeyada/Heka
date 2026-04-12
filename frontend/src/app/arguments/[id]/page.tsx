@@ -219,11 +219,19 @@ export default function ArgumentDetailPage() {
       </div>
 
       <div className="app-container py-10 space-y-8 pb-28">
-        {/* Breadcrumb */}
-        <button onClick={() => router.push('/arguments')} className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-500 hover:text-white transition animate-in fade-in duration-500">
-          <ChevronLeft className="h-4 w-4" />
-          Back to Mediation Logs
-        </button>
+        {/* Breadcrumb & Privacy Badge */}
+        <div className="flex items-center justify-between animate-in fade-in duration-500">
+          <button onClick={() => router.push('/arguments')} className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-500 hover:text-white transition">
+            <ChevronLeft className="h-4 w-4" />
+            Back to Mediation Logs
+          </button>
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-teal-500/10 bg-teal-500/5 px-3 py-1 text-[10px] font-medium text-teal-400 backdrop-blur-md shadow-[0_0_15px_rgba(45,212,191,0.05)]">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            End-to-end encrypted
+          </div>
+        </div>
 
         {error && (
           <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4">

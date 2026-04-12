@@ -33,7 +33,7 @@ class SubscriptionService:
 
         if (
             subscription.status in {SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE}
-            and subscription.tier in {SubscriptionTier.BASIC, SubscriptionTier.PREMIUM}
+            and subscription.tier in {SubscriptionTier.STARTER, SubscriptionTier.PREMIUM}
         ):
             if subscription.trial_start is not None:
                 subscription.trial_start = None
@@ -180,14 +180,14 @@ class SubscriptionService:
     def get_argument_limit(subscription: SubscriptionInDB) -> int:
         """Get argument limit for subscription tier."""
         if subscription.status == SubscriptionStatus.TRIAL:
-            if subscription.tier == SubscriptionTier.BASIC:
-                return UsageLimit.BASIC_MONTHLY_ARGS  # Unlimited
+            if subscription.tier == SubscriptionTier.STARTER:
+                return UsageLimit.STARTER_MONTHLY_ARGS
             if subscription.tier == SubscriptionTier.PREMIUM:
                 return UsageLimit.PREMIUM_MONTHLY_ARGS  # Unlimited
             return UsageLimit.FREE_TRIAL_ARGS
         if subscription.status in {SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE}:
-            if subscription.tier == SubscriptionTier.BASIC:
-                return UsageLimit.BASIC_MONTHLY_ARGS  # Unlimited
+            if subscription.tier == SubscriptionTier.STARTER:
+                return UsageLimit.STARTER_MONTHLY_ARGS
             if subscription.tier == SubscriptionTier.PREMIUM:
                 return UsageLimit.PREMIUM_MONTHLY_ARGS  # Unlimited
         return 0  # No subscription
