@@ -278,12 +278,12 @@ export function Header() {
               </Link>
             ))}
 
-            <div className="mt-4 border-t border-neutral-100 pt-4">
+            <div className="mt-4 border-t border-white/10 pt-4">
               {isAuthenticated && user ? (
                 <div className="flex flex-col gap-3">
                   <Link
                     href="/notifications"
-                    className="rounded-xl px-4 py-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                    className="rounded-xl px-4 py-3 text-sm font-semibold text-zinc-300 transition-colors hover:bg-white/[0.06] hover:text-white"
                     onClick={() => setMobileOpen(false)}
                   >
                     Notifications
@@ -293,7 +293,7 @@ export function Header() {
                       </span>
                     )}
                   </Link>
-                  <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-soft">
+                  <div className="flex items-center gap-3 rounded-xl bg-white/[0.06] border border-white/10 px-4 py-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
                       {(() => {
                         const rawName = user.name?.split(' ')[0] ?? user.email?.split('@')[0] ?? '?';
@@ -308,11 +308,11 @@ export function Header() {
                           : null;
                         return (
                           <>
-                            <p className="text-sm font-semibold text-neutral-900 truncate">
+                            <p className="text-sm font-semibold text-white truncate">
                               {displayName || user.email}
                             </p>
                             {displayName && (
-                              <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+                              <p className="text-xs text-zinc-400 truncate">{user.email}</p>
                             )}
                           </>
                         );
@@ -321,7 +321,7 @@ export function Header() {
                   </div>
                   <Link
                       href="/settings"
-                      className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:bg-neutral-100 hover:text-neutral-900"
+                      className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-zinc-300 transition-colors ease-soft-spring hover:bg-white/[0.08] hover:text-white"
                       onClick={() => setMobileOpen(false)}
                     >
                       <SettingsIcon className="h-4 w-4" />
@@ -329,7 +329,7 @@ export function Header() {
                   </Link>
                   <Link
                       href="/subscription"
-                      className="flex items-center justify-center gap-2 rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:bg-neutral-100 hover:text-neutral-900"
+                      className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-zinc-300 transition-colors ease-soft-spring hover:bg-white/[0.08] hover:text-white"
                       onClick={() => setMobileOpen(false)}
                     >
                       <CreditCard className="h-4 w-4" />

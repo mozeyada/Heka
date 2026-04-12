@@ -12,6 +12,11 @@ const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-displa
 export const metadata: Metadata = {
   title: 'Heka - AI-Powered Couple Argument Resolution',
   description: 'Resolve arguments and build a stronger relationship with AI mediation',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({
