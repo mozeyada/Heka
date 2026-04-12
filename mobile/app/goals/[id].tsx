@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -19,6 +19,7 @@ import {
   fetchGoal,
   addGoalProgress,
   updateGoalStatus,
+  deleteGoal,
   GoalDetail,
 } from "../../src/api/goals";
 import { PageHeading } from "../../src/components/PageHeading";
@@ -35,6 +36,7 @@ const STATUS_COPY: Record<string, { label: string; tone: string }> = {
   active: { label: "In progress", tone: colors.brand[500] },
   completed: { label: "Completed", tone: colors.success },
   paused: { label: "Paused", tone: colors.warning },
+  cancelled: { label: "Removed", tone: colors.danger },
 };
 
 function formatDate(value?: string | null) {
@@ -49,6 +51,7 @@ function formatDate(value?: string | null) {
 
 export default function GoalDetailScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [goal, setGoal] = useState<GoalDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +60,7 @@ export default function GoalDetailScreen() {
   const [addingProgress, setAddingProgress] = useState(false);
   const [progressNote, setProgressNote] = useState("");
   const [markingComplete, setMarkingComplete] = useState(false);
+  const [deletingGoal, setDeletingGoal] = useState(false);
 
   const loadGoal = useCallback(async () => {
     if (!id) return;
@@ -138,6 +142,38 @@ export default function GoalDetailScreen() {
     );
   };
 
+  const handleDeleteGoal = () => {
+    if (!id) return;
+    Alert.alert(
+      "Remove goal",
+      goal?.archived_for_current_user
+        ? "Remove this archived goal from your space?"
+        : "Remove this shared goal from your space? Your partner will still keep it in archive.",
+      [
+        { text: "Keep it", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setDeletingGoal(true);
+              await deleteGoal(id);
+              router.replace("/goals");
+            } catch (err: any) {
+              const detail =
+                err.response?.data?.detail ||
+                err.message ||
+                "Failed to delete goal.";
+              Alert.alert("Delete failed", detail);
+            } finally {
+              setDeletingGoal(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   if (loading && !goal) {
     return (
       <View
@@ -199,22 +235,42 @@ export default function GoalDetailScreen() {
             "Keep momentum with focused actions and shared reflections."
           }
           actions={
-            goal.status !== "completed" ? (
-              <TouchableOpacity
-                style={[
-                  styles.primaryAction,
-                  markingComplete && styles.primaryActionDisabled,
-                ]}
-                onPress={handleCompleteGoal}
-                disabled={markingComplete}
-              >
-                {markingComplete ? (
-                  <ActivityIndicator color={colors.surface} />
-                ) : (
-                  <Text style={styles.primaryActionText}>Mark complete</Text>
-                )}
-              </TouchableOpacity>
-            ) : undefined
+            <View style={styles.headerActions}>
+              {goal.status !== "cancelled" ? (
+                <TouchableOpacity
+                  style={[
+                    styles.deleteAction,
+                    deletingGoal && styles.primaryActionDisabled,
+                  ]}
+                  onPress={handleDeleteGoal}
+                  disabled={deletingGoal}
+                >
+                  {deletingGoal ? (
+                    <ActivityIndicator color={colors.danger} />
+                  ) : (
+                    <Text style={styles.deleteActionText}>Remove</Text>
+                  )}
+                </TouchableOpacity>
+              ) : null}
+              {goal.status !== "completed" &&
+              goal.status !== "cancelled" &&
+              goal.status !== "archived" ? (
+                <TouchableOpacity
+                  style={[
+                    styles.primaryAction,
+                    markingComplete && styles.primaryActionDisabled,
+                  ]}
+                  onPress={handleCompleteGoal}
+                  disabled={markingComplete}
+                >
+                  {markingComplete ? (
+                    <ActivityIndicator color={colors.surface} />
+                  ) : (
+                    <Text style={styles.primaryActionText}>Mark complete</Text>
+                  )}
+                </TouchableOpacity>
+              ) : null}
+            </View>
           }
         />
 
@@ -260,6 +316,22 @@ export default function GoalDetailScreen() {
         </LinearGradient>
 
         {goal.next_action_title ? (
+          goal.archived_for_current_user ? (
+            <Section
+              title="Archived"
+              subtitle="This goal is now read-only in your space."
+            >
+              <Card style={styles.journeyCard}>
+                <Text style={styles.journeyTitle}>
+                  Your partner stepped away from this goal.
+                </Text>
+                <Text style={styles.journeyDescription}>
+                  It stays here as archived context unless you remove it from
+                  your space too.
+                </Text>
+              </Card>
+            </Section>
+          ) : (
           <Section
             title="Shared Journey"
             subtitle="Keep this goal collaborative, not solo."
@@ -276,6 +348,7 @@ export default function GoalDetailScreen() {
               ) : null}
             </Card>
           </Section>
+          )
         ) : null}
 
         {(goal.latest_progress_note ||
@@ -328,46 +401,48 @@ export default function GoalDetailScreen() {
           </Card>
         </Section>
 
-        <Section
-          title="Quick reflection"
-          subtitle="Log a note to keep progress visible for both of you."
-        >
-          <Card style={styles.addProgressCard}>
-            <TextInput
-              style={styles.input}
-              placeholder={
-                goal.needs_user_progress
-                  ? "What is your next concrete move on this goal?"
-                  : "Capture what moved this goal forward today…"
-              }
-              placeholderTextColor={colors.neutral[500]}
-              multiline
-              value={progressNote}
-              onChangeText={setProgressNote}
-            />
-            <TouchableOpacity
-              style={[
-                styles.secondaryAction,
-                addingProgress && styles.secondaryActionDisabled,
-              ]}
-              onPress={handleAddProgress}
-              disabled={addingProgress}
-            >
-              {addingProgress ? (
-                <ActivityIndicator color={colors.surface} />
-              ) : (
-                <>
-                  <Ionicons name="send" size={16} color={colors.surface} />
-                  <Text style={styles.secondaryActionText}>
-                    {goal.needs_user_progress
-                      ? "Add your next step"
-                      : "Log update"}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </Card>
-        </Section>
+        {!goal.archived_for_current_user && (
+          <Section
+            title="Quick reflection"
+            subtitle="Log a note to keep progress visible for both of you."
+          >
+            <Card style={styles.addProgressCard}>
+              <TextInput
+                style={styles.input}
+                placeholder={
+                  goal.needs_user_progress
+                    ? "What is your next concrete move on this goal?"
+                    : "Capture what moved this goal forward today…"
+                }
+                placeholderTextColor={colors.neutral[500]}
+                multiline
+                value={progressNote}
+                onChangeText={setProgressNote}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.secondaryAction,
+                  addingProgress && styles.secondaryActionDisabled,
+                ]}
+                onPress={handleAddProgress}
+                disabled={addingProgress}
+              >
+                {addingProgress ? (
+                  <ActivityIndicator color={colors.surface} />
+                ) : (
+                  <>
+                    <Ionicons name="send" size={16} color={colors.surface} />
+                    <Text style={styles.secondaryActionText}>
+                      {goal.needs_user_progress
+                        ? "Add your next step"
+                        : "Log update"}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </Card>
+          </Section>
+        )}
 
         <Section
           title="Timeline"
@@ -486,14 +561,31 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.surface,
   },
+  headerActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginLeft: spacing.md,
+  },
   primaryAction: {
     backgroundColor: colors.brand[600],
     paddingHorizontal: spacing["2xl"],
     paddingVertical: spacing.md,
     borderRadius: radii.md,
   },
+  deleteAction: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+  },
   primaryActionDisabled: {
     opacity: 0.6,
+  },
+  deleteActionText: {
+    ...typography.label,
+    color: colors.danger,
   },
   primaryActionText: {
     ...typography.label,

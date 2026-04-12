@@ -54,6 +54,7 @@ const journeyPillMap: Record<string, { label: string; cls: string }> = {
   ready: { label: 'Ready for Insight', cls: 'bg-teal-500/10 text-teal-300 border border-teal-500/20' },
   stale: { label: 'New Context Added', cls: 'bg-amber-500/10 text-amber-300 border border-amber-500/20' },
   current: { label: 'Insight Current', cls: 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' },
+  archived: { label: 'Archived', cls: 'bg-zinc-500/10 text-zinc-300 border border-zinc-500/20' },
 };
 
 export default function ArgumentsPage() {
@@ -93,8 +94,8 @@ export default function ArgumentsPage() {
 
   if (!hasInitialized || isLoading || (!user && isAuthenticated)) return <LoadingPage />;
 
-  const activeArguments = args.filter((a) => a.status !== 'resolved');
-  const resolvedArguments = args.filter((a) => a.status === 'resolved');
+  const activeArguments = args.filter((a) => a.status !== 'resolved' && a.status !== 'archived');
+  const resolvedArguments = args.filter((a) => a.status === 'resolved' || a.status === 'archived');
   const currentList = activeTab === 'active' ? activeArguments : resolvedArguments;
 
   return (
@@ -134,7 +135,7 @@ export default function ArgumentsPage() {
           {[
             { label: 'Total Logged', value: args.length, color: 'text-white' },
             { label: 'Active', value: activeArguments.length, color: 'text-orange-400' },
-            { label: 'Resolved', value: resolvedArguments.length, color: 'text-emerald-400' },
+            { label: 'History', value: resolvedArguments.length, color: 'text-emerald-400' },
           ].map((stat) => (
             <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl text-center">
               <p className={`text-2xl font-medium ${stat.color}`}>{stat.value}</p>
@@ -148,7 +149,7 @@ export default function ArgumentsPage() {
           {(['active', 'history'] as const).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-5 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${activeTab === tab ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-white'}`}>
-              {tab === 'active' ? `Active (${activeArguments.length})` : `Resolved (${resolvedArguments.length})`}
+              {tab === 'active' ? `Active (${activeArguments.length})` : `History (${resolvedArguments.length})`}
             </button>
           ))}
         </div>
@@ -161,12 +162,12 @@ export default function ArgumentsPage() {
                 {activeTab === 'active' ? <Sparkles className="h-7 w-7 text-teal-400 animate-pulse" /> : <CheckCircle2 className="h-7 w-7 text-emerald-400" />}
               </div>
               <h3 className="text-lg font-medium text-white mb-2">
-                {activeTab === 'active' ? 'No active conflicts' : 'No resolved history yet'}
+                {activeTab === 'active' ? 'No active conflicts' : 'No history yet'}
               </h3>
               <p className="text-sm text-zinc-500 max-w-md mx-auto mb-8">
                 {activeTab === 'active'
                   ? "You're in a great place. Use this time proactively to build alignment on key topics."
-                  : 'Your resolved arguments and mediation history will appear here.'}
+                  : 'Resolved and archived issues will appear here.'}
               </p>
               {activeTab === 'active' && (
                 <div className="space-y-4">
@@ -195,7 +196,9 @@ export default function ArgumentsPage() {
             <div className="space-y-4">
               {currentList.map((arg) => {
                 const { icon: CategoryIcon, bg, color, label } = categoryIconMap[arg.category?.toLowerCase() ?? ''] ?? defaultCategory;
-                const journey = arg.needs_user_response
+                const journey = arg.status === 'archived'
+                  ? journeyPillMap.archived
+                  : arg.needs_user_response
                   ? journeyPillMap.needs_reply
                   : arg.insight_status === 'stale'
                     ? journeyPillMap.stale
@@ -228,8 +231,10 @@ export default function ArgumentsPage() {
                         <p className="mt-2 text-xs text-zinc-500 line-clamp-2">
                           {arg.needs_user_response
                             ? 'Your partner logged this issue. Add your perspective so Heka can move the conversation forward.'
-                            : arg.can_generate_insight
-                              ? 'Both sides are in. Open this issue and generate the mediation insight.'
+                            : arg.status === 'archived'
+                              ? 'Your partner stepped away from this issue. It stays here as archived context unless you remove it too.'
+                              : arg.can_generate_insight
+                                ? 'Both sides are in. Open this issue and generate the mediation insight.'
                               : arg.insight_status === 'current'
                                 ? 'This issue already has a current insight. Add more context only if the situation changed.'
                                 : 'Your side is logged. The next move belongs to your partner.'}

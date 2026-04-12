@@ -16,6 +16,7 @@ interface Argument {
   partner_has_perspective: boolean;
   awaiting_response_from_user_id?: string | null;
   needs_user_response: boolean;
+  archived_for_current_user?: boolean;
   insight_status: string;
   can_generate_insight: boolean;
   insight_generated_at?: string | null;

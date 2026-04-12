@@ -26,6 +26,7 @@ export type Goal = {
   latest_progress_value?: number | null;
   latest_progress_acknowledged_by_current_user?: boolean;
   needs_user_progress?: boolean;
+  archived_for_current_user?: boolean;
   next_action_type?: string;
   next_action_title?: string;
   next_action_description?: string;

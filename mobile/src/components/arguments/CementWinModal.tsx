@@ -86,6 +86,12 @@ export function CementWinModal({ visible, onClose, argumentId }: Props) {
     }
   };
 
+  const getCheckinTimingLabel = (index: number) => {
+    if (index === 0) return "Use next week";
+    if (index === 1) return "Use the week after";
+    return "Keep in reserve";
+  };
+
   return (
     <Modal
       visible={visible}
@@ -188,19 +194,40 @@ export function CementWinModal({ visible, onClose, argumentId }: Props) {
               {checkins.length > 0 && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>
-                    Weekly Check-in Question
+                    Weekly Check-in Rituals
                   </Text>
-                  <View style={styles.infoCard}>
-                    <Ionicons
-                      name="chatbubbles-outline"
-                      size={20}
-                      color={colors.brand[600]}
-                      style={styles.infoIcon}
-                    />
-                    <Text style={styles.infoText}>
-                      Ask this next week: "{checkins[0].question}"
-                    </Text>
-                  </View>
+                  {checkins.slice(0, 3).map((checkin, index) => (
+                    <View
+                      key={`${checkin.question}-${index}`}
+                      style={styles.checkinCard}
+                    >
+                      <View style={styles.checkinHeader}>
+                        <View style={styles.checkinBadge}>
+                          <Text style={styles.checkinBadgeText}>
+                            {getCheckinTimingLabel(index)}
+                          </Text>
+                        </View>
+                        {checkin.category ? (
+                          <View style={styles.checkinCategory}>
+                            <Text style={styles.checkinCategoryText}>
+                              {checkin.category}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      <View style={styles.checkinBody}>
+                        <Ionicons
+                          name="chatbubbles-outline"
+                          size={20}
+                          color={colors.brand[600]}
+                          style={styles.infoIcon}
+                        />
+                        <Text style={styles.infoText}>
+                          "{checkin.question}"
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
                 </View>
               )}
 
@@ -317,6 +344,50 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     flexDirection: "row",
     alignItems: "center",
+    gap: spacing.md,
+  },
+  checkinCard: {
+    backgroundColor: colors.brand[50],
+    padding: spacing.md,
+    borderRadius: radii.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.brand[100],
+  },
+  checkinHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+    flexWrap: "wrap",
+  },
+  checkinBadge: {
+    backgroundColor: colors.neutral[25],
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  checkinBadgeText: {
+    ...typography.label,
+    fontSize: 10,
+    color: colors.brand[700],
+    textTransform: "uppercase",
+  },
+  checkinCategory: {
+    backgroundColor: colors.brand[100],
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  checkinCategoryText: {
+    ...typography.label,
+    fontSize: 10,
+    color: colors.brand[800],
+    textTransform: "uppercase",
+  },
+  checkinBody: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: spacing.md,
   },
   infoIcon: {

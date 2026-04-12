@@ -85,6 +85,22 @@ export default function Home() {
                   <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mt-1">Score Uplift</p>
                 </div>
               </div>
+
+              {/* Trust micro-signals — directly below CTAs */}
+              <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+                {[
+                  { icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', label: 'Encrypted & private' },
+                  { icon: 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', label: 'No ads, ever' },
+                  { icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16', label: 'Delete your data anytime' },
+                ].map(({ icon, label }) => (
+                  <div key={label} className="flex items-center gap-1.5 text-xs text-zinc-500">
+                    <svg className="h-3.5 w-3.5 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
+                    </svg>
+                    {label}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Right Content: Premium Glass Card */}
@@ -212,6 +228,97 @@ export default function Home() {
                 <p className="mt-3 text-sm leading-relaxed text-zinc-400">{f.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Privacy & Trust Section */}
+      <section className="relative z-10 py-32 border-t border-white/5">
+        <div className="app-container">
+          <div className="mx-auto max-w-2xl text-center mb-16">
+            <div className="inline-flex items-center gap-2 rounded-full border border-teal-500/20 bg-teal-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-teal-400 mb-6">
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Privacy by Design
+            </div>
+            <h2 className="text-3xl font-medium tracking-tight text-white sm:text-4xl">
+              Your relationship stays <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-indigo-400">between the two of you.</span>
+            </h2>
+            <p className="mt-4 text-zinc-400 leading-relaxed">
+              Heka handles the most personal data imaginable. We built our privacy model the same way Signal, Apple, and ProtonMail built theirs — transparent commitments you can hold us to.
+            </p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2 max-w-5xl mx-auto">
+            {/* Never */}
+            <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-8 backdrop-blur-xl">
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-rose-400 mb-5">What we will never do</p>
+              <ul className="space-y-4">
+                {[
+                  'Sell or share your relationship data with advertisers or data brokers',
+                  'Use your conversations to train AI models',
+                  'Give your content to your partner\'s family, employers, or lawyers',
+                  'Allow any employee to casually browse your relationship conversations',
+                  'Store your data longer than necessary',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm text-zinc-300 leading-relaxed">
+                    <svg className="h-4 w-4 text-rose-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Right column: How it works + emergency door */}
+            <div className="flex flex-col gap-6">
+              {/* Encryption */}
+              <div className="rounded-3xl border border-teal-500/15 bg-teal-500/[0.04] p-7 backdrop-blur-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-teal-500/20 bg-teal-500/10">
+                    <svg className="h-4 w-4 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  </div>
+                  <p className="font-semibold text-white">Encrypted at Rest</p>
+                </div>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  All data is encrypted on disk. Your content is stored in Australia and Singapore. Even in a breach, your conversations are ciphertext — not readable.
+                </p>
+              </div>
+
+              {/* AI Disclosure */}
+              <div className="rounded-3xl border border-indigo-500/15 bg-indigo-500/[0.04] p-7 backdrop-blur-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-indigo-500/20 bg-indigo-500/10">
+                    <svg className="h-4 w-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="font-semibold text-white">Honest About AI</p>
+                </div>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  When AI mediates, your text is sent to OpenAI to generate a response. It is not stored beyond 30 days and is not used to train their models — per OpenAI's API terms.
+                </p>
+              </div>
+
+              {/* Emergency door — transparent */}
+              <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-7 backdrop-blur-xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5">
+                    <svg className="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                    </svg>
+                  </div>
+                  <p className="font-semibold text-white">When We Can Access Data</p>
+                </div>
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  We reserve access only for lawful Australian court orders, or credible imminent risk to life — exactly the same conditions Signal, Apple, and ProtonMail disclose.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

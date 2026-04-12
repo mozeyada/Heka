@@ -92,8 +92,8 @@ async def register(
             is_verified=False,
             terms_accepted_at=datetime.utcnow(),
             privacy_accepted_at=datetime.utcnow(),
-            terms_version="1.0",  # Update when terms change
-            privacy_version="1.0",  # Update when privacy policy changes
+            terms_version="2026-04-05",
+            privacy_version="2026-04-05",
         )
         
         # Insert into database

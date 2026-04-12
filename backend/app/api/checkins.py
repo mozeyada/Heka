@@ -49,12 +49,14 @@ async def _build_checkin_response(
                 ArgumentStatus.ACTIVE.value,
                 ArgumentStatus.ANALYZED.value,
             ]},
+            "hidden_for_user_ids": {"$ne": current_user.id},
         }
     )
     active_goal_count = await db.relationship_goals.count_documents(
         {
             "couple_id": ObjectId(couple.id),
             "status": "active",
+            "hidden_for_user_ids": {"$ne": current_user.id},
         }
     )
 

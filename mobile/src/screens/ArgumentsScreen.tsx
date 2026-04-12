@@ -36,7 +36,7 @@ export default function ArgumentsScreen() {
         const key = arg.status?.toLowerCase() ?? "draft";
         if (key === "draft") acc.draft += 1;
         else if (key === "analyzed") acc.analyzed += 1;
-        else if (key === "resolved") acc.resolved += 1;
+        else if (key === "resolved" || key === "archived") acc.resolved += 1;
         else acc.active += 1;
         return acc;
       },
@@ -46,14 +46,22 @@ export default function ArgumentsScreen() {
 
   const replyNeededCount = useMemo(
     () =>
-      args.filter((arg) => arg.status !== "resolved" && arg.needs_user_response)
+      args.filter(
+        (arg) =>
+          arg.status !== "resolved" &&
+          arg.status !== "archived" &&
+          arg.needs_user_response,
+      )
         .length,
     [args],
   );
   const readyForInsightCount = useMemo(
     () =>
       args.filter(
-        (arg) => arg.status !== "resolved" && arg.can_generate_insight,
+        (arg) =>
+          arg.status !== "resolved" &&
+          arg.status !== "archived" &&
+          arg.can_generate_insight,
       ).length,
     [args],
   );
@@ -124,9 +132,9 @@ export default function ArgumentsScreen() {
 
   const filteredArgs = args.filter((arg) => {
     if (activeTab === "active") {
-      return arg.status !== "resolved";
+      return arg.status !== "resolved" && arg.status !== "archived";
     }
-    return arg.status === "resolved";
+    return arg.status === "resolved" || arg.status === "archived";
   });
 
   if (loading && !refreshing) {
@@ -261,7 +269,7 @@ export default function ArgumentsScreen() {
           <Text style={styles.sectionSubtitle}>
             {activeTab === "active"
               ? "Tap an issue to continue mediation."
-              : "Review past resolutions and insights."}
+              : "Review past resolutions, archived conflicts, and insights."}
           </Text>
         </View>
         {activeTab === "active" && (
@@ -289,7 +297,7 @@ export default function ArgumentsScreen() {
           <Text style={styles.emptyText}>
             {activeTab === "active"
               ? "No active conflicts. Great job!"
-              : "No resolved arguments yet."}
+              : "No history or archived conflicts yet."}
           </Text>
         </Card>
       ) : (

@@ -49,6 +49,8 @@ class Argument(BaseModel):
     status: ArgumentStatus = ArgumentStatus.DRAFT
     created_by_user_id: Optional[str] = None
     latest_context_at: Optional[datetime] = None
+    hidden_for_user_ids: list[str] = Field(default_factory=list)
+    archived_for_user_ids: list[str] = Field(default_factory=list)
     
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -72,6 +74,10 @@ class ArgumentInDB(Argument):
             data["couple_id"] = str(data["couple_id"])
         if "created_by_user_id" in data and isinstance(data["created_by_user_id"], ObjectId):
             data["created_by_user_id"] = str(data["created_by_user_id"])
+        if "hidden_for_user_ids" in data:
+            data["hidden_for_user_ids"] = [str(user_id) for user_id in data["hidden_for_user_ids"]]
+        if "archived_for_user_ids" in data:
+            data["archived_for_user_ids"] = [str(user_id) for user_id in data["archived_for_user_ids"]]
         return cls(**data)
     
     def to_mongo(self) -> dict:

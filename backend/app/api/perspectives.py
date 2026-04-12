@@ -48,6 +48,19 @@ async def create_perspective(
         )
     
     argument = ArgumentInDB.from_mongo(arg_doc)
+    if current_user.id in (argument.hidden_for_user_ids or []):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Argument not found"
+        )
+    if (
+        current_user.id in (argument.archived_for_user_ids or [])
+        or argument.status == ArgumentStatus.ARCHIVED
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This issue is archived. Create a new issue if you want to continue the conversation."
+        )
     
     # Verify user is in the couple that owns this argument
     couple_doc = await db.couples.find_one({
@@ -143,6 +156,19 @@ async def update_my_perspective(
         )
 
     argument = ArgumentInDB.from_mongo(arg_doc)
+    if current_user.id in (argument.hidden_for_user_ids or []):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Argument not found"
+        )
+    if (
+        current_user.id in (argument.archived_for_user_ids or [])
+        or argument.status == ArgumentStatus.ARCHIVED
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This issue is archived. Create a new issue if you want to continue the conversation."
+        )
     couple_doc = await db.couples.find_one({
         "_id": ObjectId(argument.couple_id),
         "$or": [
@@ -226,6 +252,11 @@ async def get_perspectives_for_argument(
         )
     
     argument = ArgumentInDB.from_mongo(arg_doc)
+    if current_user.id in (argument.hidden_for_user_ids or []):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Argument not found"
+        )
     
     # Verify user is in the couple
     couple_doc = await db.couples.find_one({

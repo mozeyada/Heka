@@ -1,9 +1,87 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, FileText, ArrowRight } from 'lucide-react';
 import { PageHeading } from '@/components/PageHeading';
+import { useAuthStore } from '@/store/authStore';
+
+const dataCategories = [
+  {
+    title: 'Account and identity data',
+    items: [
+      'Name, email address, age, password hash, account status, and the dates/versions of your terms and privacy acknowledgements.',
+      'Authentication and session data such as access tokens, refresh tokens where supported, and account recovery tokens.',
+      'Partner invitation details, including the invitee email address and invitation status.',
+    ],
+  },
+  {
+    title: 'Relationship workspace data',
+    items: [
+      'Couple profile data, arguments/issues, perspectives, AI-generated insights, weekly check-in responses, shared goals, progress updates, and in-app notifications.',
+      'Metadata needed to operate shared workflows, such as who created an item, whether it is archived for one partner, and timestamps for updates.',
+      'Highly personal relationship content that you and your partner choose to enter into Heka.',
+    ],
+  },
+  {
+    title: 'Billing and subscription data',
+    items: [
+      'Subscription tier, trial status, current billing period, usage counts, Stripe customer IDs, Stripe subscription IDs, and checkout/session metadata.',
+      'We do not store your full payment card number or card security code.',
+    ],
+  },
+  {
+    title: 'Device, diagnostics, and app activity data',
+    items: [
+      'Browser, operating system, app/device type, IP address, request logs, and basic service diagnostics generated when you use Heka.',
+      'Push-notification device IDs and push tokens if you enable notifications on mobile.',
+      'Crash diagnostics and product analytics if those tools are enabled in a production release.',
+    ],
+  },
+];
+
+const providerRows = [
+  {
+    name: 'OpenAI',
+    purpose: 'AI mediation, summaries, suggestions, and related model outputs.',
+  },
+  {
+    name: 'Stripe',
+    purpose: 'Subscription billing, checkout, renewals, receipts, and payment administration.',
+  },
+  {
+    name: 'MongoDB Atlas, Railway, and Vercel',
+    purpose: 'Database hosting, application hosting, infrastructure, logging, content delivery, and runtime operations.',
+  },
+  {
+    name: 'Resend or other transactional email providers',
+    purpose: 'Password reset, invitation, and account/service email delivery.',
+  },
+  {
+    name: 'Sentry and Mixpanel, if enabled in a released build',
+    purpose: 'Crash reporting, error diagnostics, and product analytics.',
+  },
+];
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-2xl font-semibold tracking-tight text-white">{title}</h2>
+      <div className="space-y-4 text-sm leading-7 text-zinc-300">{children}</div>
+    </section>
+  );
+}
 
 export default function PrivacyPolicyPage() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+
   return (
     <div className="min-h-screen pb-20 text-zinc-300">
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
@@ -12,344 +90,246 @@ export default function PrivacyPolicyPage() {
         <div className="absolute bottom-[-12%] left-[24%] h-[34vh] w-[34vh] rounded-full bg-rose-900/10 blur-[130px]" />
         <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay" />
       </div>
+
       <PageHeading
         title="Privacy Policy"
-        description="How we collect, use, and protect your personal information."
+        description="How Heka collects, uses, shares, stores, and protects personal information."
         actions={
-          <Link
-            href="/dashboard"
-            className="btn-secondary"
-          >
-            Back to Dashboard
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* Smart back button — context-aware */}
+            <button
+              onClick={() => router.push(isAuthenticated ? '/dashboard' : '/')}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {isAuthenticated ? 'Dashboard' : 'Home'}
+            </button>
+            {/* Cross-link to sibling legal doc */}
+            <Link
+              href="/legal/terms"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white"
+            >
+              <FileText className="h-4 w-4" />
+              Terms of Service
+            </Link>
+          </div>
         }
       />
 
-      <div className="app-container max-w-4xl">
-        <div className="section-shell border border-white/10 bg-black/25 p-8">
-          <div className="mb-8 rounded-xl border border-amber-500/20 bg-amber-500/[0.08] p-5">
-            <p className="text-sm font-semibold text-amber-200">
-              ⚠️ Legal Review Required: This document is a draft and must be reviewed by qualified Australian legal counsel before final implementation.
+      <div className="app-container max-w-4xl pb-8">
+        <div className="section-shell space-y-8 border border-white/10 bg-black/25 p-8 md:p-10">
+          <div className="rounded-2xl border border-teal-500/20 bg-teal-500/[0.08] p-5">
+            <p className="text-sm font-semibold text-teal-100">
+              Summary: Heka handles account data, shared relationship content, billing metadata, and optional mobile notification/diagnostic data to operate the service. We do not sell your personal information or run third-party advertising based on your relationship content.
             </p>
           </div>
 
-          <div className="mb-8 border-b border-white/10 pb-6">
-            <p className="text-sm text-zinc-400">Last Updated: November 8, 2025</p>
-            <p className="mt-1 text-xs text-zinc-500">Version: 1.0 (Draft - Awaiting Legal Review)</p>
+          <div className="border-b border-white/10 pb-6 text-sm text-zinc-400">
+            <p>Last updated: April 5, 2026</p>
+            <p className="mt-1">
+              This policy is designed for public publication and should be kept aligned with the app’s live data practices and App Store disclosures.
+            </p>
           </div>
 
-          <div className="prose prose-sm max-w-none space-y-8 [&_a]:text-teal-300 [&_a]:no-underline hover:[&_a]:text-teal-200 [&_h2]:text-white [&_h3]:text-zinc-100 [&_li]:text-zinc-300 [&_ol]:text-zinc-300 [&_p]:text-zinc-300 [&_strong]:text-white [&_ul]:text-zinc-300">
-            
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">1. Introduction</h2>
-              <p className="text-gray-700 mb-4">
-                Heka ("we", "us", "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI-powered couple argument resolution platform ("Service").
+          <div className="space-y-10">
+            <Section title="1. Who We Are and Scope">
+              <p>
+                Heka is a relationship communication and reflection platform. This Privacy Policy applies to the Heka website, mobile app, APIs, customer support interactions, and related services that link to or reference this policy.
               </p>
-              <p className="text-gray-700 mb-4">
-                This Privacy Policy complies with the Australian Privacy Act 1988 and the Australian Privacy Principles (APPs). By using our Service, you consent to the data practices described in this policy.
+              <p>
+                This policy is written to support compliance with the Australian Privacy Act 1988 (Cth) and the Australian Privacy Principles, while also describing how Heka handles data for users in other regions. If local law gives you additional rights, we will honor them where required.
               </p>
-              <p className="text-gray-700">
-                If you do not agree with this Privacy Policy, please do not use our Service.
+              <p>
+                Heka is not a crisis service, healthcare provider, law firm, or emergency response provider. Please do not use Heka to seek urgent medical, legal, or safety assistance.
               </p>
-            </section>
+            </Section>
 
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">2. Information We Collect</h2>
-              
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">2.1 Personal Information</h3>
-              <p className="text-gray-700 mb-4">We collect the following personal information:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li><strong>Account Information:</strong> Email address, name, age (for age verification)</li>
-                <li><strong>Profile Information:</strong> Relationship status, preferences</li>
-                <li><strong>Payment Information:</strong> Processed securely through Stripe (we do not store full credit card details)</li>
-                <li><strong>Contact Information:</strong> Email address for communications</li>
+            <Section title="2. What We Collect">
+              <p>
+                We collect and hold the following categories of information:
+              </p>
+              <div className="space-y-5">
+                {dataCategories.map((category) => (
+                  <div key={category.title} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                    <h3 className="text-base font-semibold text-white">{category.title}</h3>
+                    <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-zinc-300">
+                      {category.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <p>
+                Some of the content you provide to Heka may be deeply private or intimate. While not all of it is “sensitive information” as defined by Australian law, we treat relationship content as high-risk personal information because misuse or exposure could cause real harm.
+              </p>
+            </Section>
+
+            <Section title="3. How We Collect Information">
+              <ul className="list-disc space-y-2 pl-5">
+                <li>Directly from you when you register, log in, invite a partner, create an issue, submit a perspective, complete a check-in, create a goal, export data, request deletion, or contact us.</li>
+                <li>From your partner when they invite you to Heka or interact with shared couple content.</li>
+                <li>Automatically from your device, browser, app session, infrastructure logs, and mobile push registration where applicable.</li>
+                <li>From service providers involved in payments, email delivery, diagnostics, analytics, hosting, and AI processing.</li>
               </ul>
+            </Section>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">2.2 Relationship Data</h3>
-              <p className="text-gray-700 mb-4">We collect sensitive relationship information:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Arguments and disagreements you create</li>
-                <li>Perspectives and viewpoints you submit</li>
-                <li>AI-generated insights and suggestions</li>
-                <li>Relationship goals and check-in responses</li>
-                <li>Progress tracking data</li>
+            <Section title="4. Why We Use Information">
+              <ul className="list-disc space-y-2 pl-5">
+                <li>To create and maintain user accounts, authenticate sessions, and protect account access.</li>
+                <li>To operate the shared couple workspace, including invitations, issues, perspectives, goals, check-ins, notifications, and subscription features.</li>
+                <li>To generate AI-assisted summaries, suggestions, and mediation outputs you request.</li>
+                <li>To process billing, manage trials and subscriptions, and prevent misuse of paid features.</li>
+                <li>To send transactional emails such as password resets, account/security messages, billing notices, and invitation emails.</li>
+                <li>To monitor performance, troubleshoot errors, secure the service, detect abuse, and improve reliability.</li>
+                <li>To analyze product usage at an aggregated or de-identified level to improve the service.</li>
+                <li>To comply with legal obligations, enforce our terms, and protect users, Heka, and the public.</li>
               </ul>
-              <p className="text-gray-700 mb-4">
-                <strong>Note:</strong> This information is highly sensitive. We treat it with the highest level of security and confidentiality.
-              </p>
+            </Section>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">2.3 Usage Data</h3>
-              <p className="text-gray-700 mb-4">We automatically collect:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Device information (type, operating system, browser)</li>
-                <li>IP address and location data (country/region level)</li>
-                <li>Usage patterns and feature interactions</li>
-                <li>Error logs and performance data</li>
-                <li>Cookies and similar tracking technologies</li>
+            <Section title="5. AI Processing">
+              <p>
+                When you ask Heka to generate AI output, relevant relationship content and prompts are sent to OpenAI to process that request. This may include issue titles, perspectives, check-in context, or other text required to produce the requested output.
+              </p>
+              <p>
+                According to OpenAI’s current official API data controls documentation, data sent through the OpenAI API is not used to train OpenAI models by default unless a customer explicitly opts in, and abuse-monitoring logs are generally retained for up to 30 days by default. Heka’s current implementation uses the OpenAI API for these features.
+              </p>
+              <p>
+                AI outputs are generated assistance, not professional medical, legal, therapeutic, or emergency advice. You should not rely on Heka as a substitute for a licensed clinician, lawyer, or crisis service.
+              </p>
+            </Section>
+
+            <Section title="6. When We Share Information">
+              <p>We do not sell or rent your personal information. We share information only as needed to operate Heka or where required by law.</p>
+              <div className="overflow-hidden rounded-2xl border border-white/10">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-white/[0.04] text-zinc-300">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Provider or category</th>
+                      <th className="px-4 py-3 font-semibold">Why data may be shared</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/10 text-zinc-400">
+                    {providerRows.map((row) => (
+                      <tr key={row.name}>
+                        <td className="px-4 py-3 font-medium text-white">{row.name}</td>
+                        <td className="px-4 py-3">{row.purpose}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p>
+                We may also disclose information if required by law, court order, lawful regulatory request, or where necessary to establish, exercise, or defend legal claims, prevent fraud, or protect safety.
+              </p>
+            </Section>
+
+            <Section title="7. International Data Transfers">
+              <p>
+                Because Heka uses third-party infrastructure and processors, personal information may be stored in or disclosed to recipients outside Australia. Likely locations currently include Australia, Singapore, the United States, and other countries where our hosting, content delivery, payments, email, diagnostics, analytics, and AI providers operate.
+              </p>
+              <p>
+                Where Australian law applies, we take reasonable steps to ensure overseas recipients protect personal information in a way that is consistent with our obligations, including through vendor due diligence, contractual controls, and access restrictions.
+              </p>
+            </Section>
+
+            <Section title="8. Data Retention">
+              <ul className="list-disc space-y-2 pl-5">
+                <li>Account and shared workspace data are retained while the account and couple workspace remain active.</li>
+                <li>Password reset tokens, invitation tokens, and similar short-lived security artifacts expire automatically after limited periods.</li>
+                <li>Billing, transaction, tax, fraud, and audit records may be retained for as long as required by law or reasonably necessary to resolve disputes, enforce agreements, or maintain financial records.</li>
+                <li>Operational logs, diagnostics, and processor-held logs may be retained according to the relevant provider’s retention periods and our security needs.</li>
+                <li>When you delete your account, we may delete, de-identify, or anonymize certain records. Because Heka is a shared two-person product, some shared records may be retained in de-identified or partner-preserving form so the remaining user’s workspace is not corrupted or legally relevant records are not improperly destroyed.</li>
               </ul>
+            </Section>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">2.4 Third-Party Data</h3>
-              <p className="text-gray-700 mb-4">We may receive information from:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2">
-                <li>Payment processors (Stripe) - transaction data</li>
-                <li>AI service providers (OpenAI) - processed content (see Section 3.2)</li>
-                <li>Analytics providers - aggregated usage statistics</li>
+            <Section title="9. Security">
+              <p>
+                We use administrative, technical, and organizational measures designed to protect personal information, including access controls, encryption in transit, hosted infrastructure controls, authentication protections, and logging/monitoring.
+              </p>
+              <p>
+                No system is perfectly secure. If Heka becomes aware of an eligible data breach under applicable Australian law, we will take the steps required by the Notifiable Data Breaches scheme, including notifying affected individuals and the OAIC where required.
+              </p>
+            </Section>
+
+            <Section title="10. Your Choices and Rights">
+              <p>You can manage privacy-related choices in the app and by contacting us.</p>
+              <ul className="list-disc space-y-2 pl-5">
+                <li><strong>Access and export:</strong> Heka currently provides a data export function in account settings.</li>
+                <li><strong>Correction:</strong> You may request correction of inaccurate account data by contacting us. Some profile details may also be updated inside the product as those controls expand.</li>
+                <li><strong>Deletion:</strong> Heka currently provides an account deletion workflow. Deletion may result in deletion, de-identification, or anonymization rather than total historical erasure in every case, especially for shared or legally required records.</li>
+                <li><strong>Notifications:</strong> You can manage many relationship-notification preferences in settings, and you can disable push notifications through your device settings.</li>
+                <li><strong>Marketing:</strong> If we send optional marketing communications in the future, you will be able to unsubscribe. Account, security, billing, and legally required messages may still be sent.</li>
+                <li><strong>Other regional rights:</strong> Depending on where you live, you may have additional rights such as objection, restriction, portability, appeal, or complaint rights under local law.</li>
               </ul>
-            </section>
+            </Section>
 
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">3. How We Use Your Information</h2>
-              
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">3.1 Service Provision</h3>
-              <p className="text-gray-700 mb-4">We use your information to:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Provide and maintain the Service</li>
-                <li>Process your registration and authenticate your account</li>
-                <li>Generate AI-powered mediation insights</li>
-                <li>Track relationship goals and check-ins</li>
-                <li>Process payments and manage subscriptions</li>
-                <li>Send service-related communications</li>
-              </ul>
+            <Section title="11. Children and Age Limits">
+              <p>
+                Heka is not intended for children under 16. We require users to be at least 16 years old. If you believe a person under 16 has provided personal information to Heka, contact us and we will take appropriate steps.
+              </p>
+            </Section>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">3.2 AI Processing</h3>
-              <p className="text-gray-700 mb-4">
-                When you submit arguments and perspectives, we send this information to OpenAI (our AI service provider) to generate mediation insights. OpenAI processes your data according to their privacy policy. We do not use your relationship data to train AI models without your explicit consent.
+            <Section title="12. Complaints and Contact">
+              <p>
+                For privacy requests, corrections, complaints, or accessibility requests for a copy of this policy, contact us at{' '}
+                <a href="mailto:hello@heka.app?subject=Privacy%20Request" className="text-teal-300 hover:text-teal-200">
+                  hello@heka.app
+                </a>
+                {' '}with the subject line <span className="font-semibold text-white">Privacy Request</span>.
               </p>
-              <p className="text-gray-700">
-                <strong>Data Sharing with OpenAI:</strong> Your arguments and perspectives are shared with OpenAI solely for the purpose of generating AI insights. OpenAI is contractually obligated to protect your data and not use it for training purposes.
+              <p>
+                We aim to respond within a reasonable period and, for Australian privacy complaints, generally within 30 days where practical. If you are not satisfied with our response, you may contact the Office of the Australian Information Commissioner at{' '}
+                <a href="https://www.oaic.gov.au/" className="text-teal-300 hover:text-teal-200">
+                  oaic.gov.au
+                </a>
+                .
               </p>
+            </Section>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">3.3 Service Improvement</h3>
-              <p className="text-gray-700 mb-4">We use aggregated, anonymized data to:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Improve our AI models and suggestions</li>
-                <li>Enhance user experience and features</li>
-                <li>Identify and fix technical issues</li>
-                <li>Conduct research and analytics (only with anonymized data)</li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">3.4 Legal Compliance</h3>
-              <p className="text-gray-700 mb-4">We may use your information to:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2">
-                <li>Comply with legal obligations</li>
-                <li>Respond to legal requests and court orders</li>
-                <li>Protect our rights and prevent fraud</li>
-                <li>Enforce our Terms of Service</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">4. Data Storage and Security</h2>
-              
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">4.1 Storage Location</h3>
-              <p className="text-gray-700 mb-4">
-                Your data is stored in secure cloud infrastructure. Primary data storage is in Australia where possible, with backups potentially stored in secure international data centers. We ensure all data transfers comply with Australian privacy laws.
+            <Section title="13. Changes to This Policy">
+              <p>
+                We may update this Privacy Policy from time to time to reflect changes in Heka’s features, data practices, service providers, or legal obligations. When we do, we will update the “Last updated” date above and, where required, provide additional notice.
               </p>
-
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">4.2 Security Measures</h3>
-              <p className="text-gray-700 mb-4">We implement industry-standard security measures:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li><strong>Encryption:</strong> Data encrypted in transit (HTTPS/TLS) and at rest</li>
-                <li><strong>Authentication:</strong> Secure password hashing (bcrypt) and JWT tokens</li>
-                <li><strong>Access Controls:</strong> Limited access to personal data on a need-to-know basis</li>
-                <li><strong>Regular Audits:</strong> Security assessments and vulnerability testing</li>
-                <li><strong>Monitoring:</strong> 24/7 security monitoring and incident response</li>
-                <li><strong>Backups:</strong> Regular encrypted backups with secure retention policies</li>
-              </ul>
-              <p className="text-gray-700">
-                Despite these measures, no method of transmission over the Internet or electronic storage is 100% secure. We cannot guarantee absolute security.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">4.3 Data Retention</h3>
-              <p className="text-gray-700 mb-4">
-                We retain your personal information for as long as necessary to provide the Service and comply with legal obligations:
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li><strong>Active Accounts:</strong> Data retained while your account is active</li>
-                <li><strong>Deleted Accounts:</strong> Data deleted within 30 days of account deletion request</li>
-                <li><strong>Financial Records:</strong> Retained for 7 years as required by Australian law</li>
-                <li><strong>Backups:</strong> Deleted according to retention schedule (typically 90 days)</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">5. Your Privacy Rights (Australian Privacy Principles)</h2>
-              
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.1 Access to Your Data</h3>
-              <p className="text-gray-700 mb-4">
-                You have the right to access the personal information we hold about you. You can:
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Request a copy of your data through your account settings</li>
-                <li>Export your data in JSON format</li>
-                <li>Review what information we have collected</li>
-              </ul>
-              <p className="text-gray-700">
-                We will respond to access requests within 30 days as required by Australian Privacy Act 1988.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.2 Correction of Data</h3>
-              <p className="text-gray-700 mb-4">
-                You can correct inaccurate or incomplete personal information through your account settings or by contacting us. We will update your information promptly.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.3 Deletion of Data</h3>
-              <p className="text-gray-700 mb-4">
-                You have the right to request deletion of your personal information ("right to be forgotten"). You can:
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Delete your account through account settings</li>
-                <li>Request specific data deletion by contacting us</li>
-                <li>We will delete your data within 30 days, except where retention is required by law</li>
-              </ul>
-              <p className="text-gray-700">
-                <strong>Note:</strong> Financial records may be retained for 7 years for legal compliance. Deleted data will be anonymized or permanently removed from our systems.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.4 Opt-Out Rights</h3>
-              <p className="text-gray-700 mb-4">You can:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2">
-                <li>Opt out of marketing emails (service emails will still be sent)</li>
-                <li>Disable cookies through your browser settings</li>
-                <li>Cancel your subscription at any time</li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.5 Complaints</h3>
-              <p className="text-gray-700 mb-4">
-                If you believe we have breached the Australian Privacy Principles, you can:
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Contact us first to resolve the issue</li>
-                <li>File a complaint with the Office of the Australian Information Commissioner (OAIC)</li>
-                <li>OAIC contact: <a href="https://www.oaic.gov.au" className="text-blue-600 hover:underline">www.oaic.gov.au</a> or 1300 363 992</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">6. Information Sharing and Disclosure</h2>
-              
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.1 We Do NOT Sell Your Data</h3>
-              <p className="text-gray-700 mb-4">
-                We do not sell, rent, or trade your personal information to third parties for marketing purposes.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.2 Service Providers</h3>
-              <p className="text-gray-700 mb-4">We share information with trusted service providers who assist us:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li><strong>OpenAI:</strong> AI processing (contractually bound to protect your data)</li>
-                <li><strong>Stripe:</strong> Payment processing (PCI-DSS compliant)</li>
-                <li><strong>MongoDB Atlas:</strong> Database hosting (encrypted, secure)</li>
-                <li><strong>Email Providers:</strong> Transactional emails (Gmail SMTP or SendGrid)</li>
-                <li><strong>Analytics:</strong> Aggregated, anonymized usage data only</li>
-              </ul>
-              <p className="text-gray-700">
-                All service providers are contractually obligated to protect your data and use it only for specified purposes.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.3 Legal Requirements</h3>
-              <p className="text-gray-700 mb-4">We may disclose your information if required by law:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>To comply with court orders or legal processes</li>
-                <li>To respond to government requests</li>
-                <li>To protect our rights, property, or safety</li>
-                <li>To prevent fraud or illegal activity</li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">6.4 Business Transfers</h3>
-              <p className="text-gray-700">
-                In the event of a merger, acquisition, or sale of assets, your information may be transferred to the new entity, subject to the same privacy protections.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">7. Cookies and Tracking Technologies</h2>
-              <p className="text-gray-700 mb-4">We use cookies and similar technologies to:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Maintain your login session</li>
-                <li>Remember your preferences</li>
-                <li>Analyze usage patterns (anonymized)</li>
-                <li>Improve service performance</li>
-              </ul>
-              <p className="text-gray-700">
-                You can control cookies through your browser settings. Disabling cookies may affect Service functionality.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">8. Children's Privacy</h2>
-              <p className="text-gray-700 mb-4">
-                Heka is not intended for users under 16 years of age. We do not knowingly collect personal information from children under 16. If we become aware that we have collected information from a child under 16, we will delete that information immediately.
-              </p>
-              <p className="text-gray-700">
-                If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">9. Data Breach Notification</h2>
-              <p className="text-gray-700 mb-4">
-                In the event of a data breach that poses a risk of serious harm, we will:
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Notify affected users as soon as practicable</li>
-                <li>Notify the Office of the Australian Information Commissioner (OAIC) if required</li>
-                <li>Provide clear information about what happened</li>
-                <li>Explain steps being taken to address the breach</li>
-                <li>Offer support and resources</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">10. International Data Transfers</h2>
-              <p className="text-gray-700 mb-4">
-                Some of our service providers (e.g., OpenAI, cloud infrastructure) may be located outside Australia. When we transfer your data internationally, we ensure:
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Appropriate safeguards are in place</li>
-                <li>Recipients are bound by privacy protections equivalent to Australian Privacy Principles</li>
-                <li>Transfers comply with Australian Privacy Act 1988</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">11. Changes to This Privacy Policy</h2>
-              <p className="text-gray-700 mb-4">
-                We may update this Privacy Policy from time to time. We will notify you of material changes by:
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Posting the updated Privacy Policy on our website</li>
-                <li>Sending an email to your registered email address</li>
-                <li>Displaying a notice in the Service</li>
-              </ul>
-              <p className="text-gray-700">
-                Your continued use of the Service after changes become effective constitutes acceptance of the updated Privacy Policy. The "Last Updated" date at the top indicates when this policy was last revised.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">12. Contact Us</h2>
-              <p className="text-gray-700 mb-4">
-                If you have questions, concerns, or requests regarding this Privacy Policy or your personal information, please contact us:
-              </p>
-              <ul className="list-none text-gray-700 space-y-2">
-                <li><strong>Email:</strong> [To be filled - privacy@heka.app]</li>
-                <li><strong>Address:</strong> [To be filled - Australian business address]</li>
-                <li><strong>Phone:</strong> [To be filled]</li>
-              </ul>
-              <p className="text-gray-700 mt-4">
-                For data access, correction, or deletion requests, you can also use the tools available in your account settings.
-              </p>
-            </section>
-
-            <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Status:</strong> Draft Version 1.0 - Awaiting Legal Counsel Review<br />
-                <strong>Next Step:</strong> Engage qualified Australian legal counsel to review and finalize this Privacy Policy before public launch.
-              </p>
-            </div>
+            </Section>
           </div>
         </div>
       </div>
+
+      {/* Guest conversion CTA — shown only to unauthenticated visitors who just read the full policy */}
+      {!isAuthenticated && (
+        <div className="app-container max-w-4xl pb-12">
+          <div className="relative overflow-hidden rounded-3xl border border-teal-500/20 bg-gradient-to-br from-teal-950/60 via-black/40 to-indigo-950/60 p-8 backdrop-blur-xl md:p-10">
+            {/* Ambient glow */}
+            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-teal-500/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-indigo-500/10 blur-3xl" />
+
+            <div className="relative flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-teal-400">You're making an informed decision</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                  Ready to bring calm to your conversations?
+                </h2>
+                <p className="mt-2 max-w-md text-sm text-zinc-400">
+                  Your data is handled with care. Start your 7-day free trial — no payment required.
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col gap-3 sm:items-end">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-black shadow-[0_0_24px_rgba(255,255,255,0.12)] transition hover:scale-[1.03]"
+                >
+                  Start Free Trial
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/login" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+                  Already have an account? Sign in
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

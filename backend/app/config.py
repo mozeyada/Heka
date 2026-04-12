@@ -32,11 +32,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
-    # CORS — includes both localhost ports and production Vercel URL
+    # CORS — includes localhost ports. Production URLs should be set via env vars.
     ALLOWED_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",
         "http://localhost:3001",
-        "https://heka-nine.vercel.app",
     ]
 
     # OpenAI

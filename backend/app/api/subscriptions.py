@@ -37,6 +37,39 @@ def _is_missing_customer_error(exc: Exception) -> bool:
     return "No such customer" in message
 
 
+def _extract_invoice_subscription_id(invoice: dict) -> str | None:
+    """Extract a Stripe subscription id from invoice payload variants."""
+    direct = invoice.get("subscription")
+    if direct:
+        return direct
+
+    parent = invoice.get("parent")
+    if isinstance(parent, dict):
+        subscription_details = parent.get("subscription_details")
+        if isinstance(subscription_details, dict):
+            nested = subscription_details.get("subscription")
+            if nested:
+                return nested
+
+    lines = invoice.get("lines", {})
+    if isinstance(lines, dict):
+        for line in lines.get("data", []) or []:
+            if not isinstance(line, dict):
+                continue
+            line_subscription = line.get("subscription")
+            if line_subscription:
+                return line_subscription
+            parent = line.get("parent")
+            if isinstance(parent, dict):
+                subscription_item_details = parent.get("subscription_item_details")
+                if isinstance(subscription_item_details, dict):
+                    nested = subscription_item_details.get("subscription")
+                    if nested:
+                        return nested
+
+    return None
+
+
 async def _create_or_replace_customer(
     subscription_id: str,
     current_user: UserInDB,
@@ -330,6 +363,8 @@ async def stripe_webhook(request: Request):
     
     if event_type == "checkout.session.completed":
         await handle_checkout_session_completed(event_data)
+    elif event_type == "customer.subscription.created":
+        await handle_subscription_updated(event_data)
     elif event_type == "checkout.session.async_payment_failed":
         await handle_checkout_payment_failed(event_data)
     elif event_type == "customer.subscription.updated":
@@ -376,17 +411,21 @@ async def handle_checkout_session_completed(session: dict):
 
 
 async def handle_subscription_updated(subscription: dict):
-    """Handle subscription update."""
+    """Handle subscription create/update events."""
     db = get_database()
     stripe_sub_id = subscription.get("id")
+    customer_id = subscription.get("customer")
     
     # Find subscription by Stripe subscription ID
     sub_doc = await db.subscriptions.find_one({"stripe_subscription_id": stripe_sub_id})
+    if not sub_doc and customer_id:
+        sub_doc = await db.subscriptions.find_one({"stripe_customer_id": customer_id})
     if sub_doc:
         from app.models.subscription import SubscriptionStatus
         status_map = {
             "active": SubscriptionStatus.ACTIVE,
             "trialing": SubscriptionStatus.TRIAL,
+            "incomplete": SubscriptionStatus.PAST_DUE,
             "canceled": SubscriptionStatus.CANCELLED,
             "past_due": SubscriptionStatus.PAST_DUE,
             "unpaid": SubscriptionStatus.EXPIRED,
@@ -397,6 +436,8 @@ async def handle_subscription_updated(subscription: dict):
             str(sub_doc["_id"]),
             {
                 "status": status_map.get(subscription.get("status"), SubscriptionStatus.ACTIVE),
+                "stripe_subscription_id": stripe_sub_id,
+                "stripe_customer_id": customer_id,
                 "current_period_start": datetime.fromtimestamp(subscription.get("current_period_start", 0)),
                 "current_period_end": datetime.fromtimestamp(subscription.get("current_period_end", 0)),
                 "cancel_at_period_end": subscription.get("cancel_at_period_end", False)
@@ -428,27 +469,37 @@ async def handle_subscription_deleted(subscription: dict):
 async def handle_invoice_payment_succeeded(invoice: dict):
     """Handle successful invoice payment."""
     db = get_database()
-    subscription_id = invoice.get("subscription")
+    subscription_id = _extract_invoice_subscription_id(invoice)
     customer_id = invoice.get("customer")
     amount_paid = invoice.get("amount_paid", 0) / 100  # Convert from cents to dollars
     
     logger.info(f"Invoice payment succeeded - Subscription: {subscription_id}, Customer: {customer_id}, Amount: ${amount_paid:.2f}")
     
     # Find subscription by Stripe subscription ID
+    sub_doc = None
     if subscription_id:
         sub_doc = await db.subscriptions.find_one({"stripe_subscription_id": subscription_id})
-        if sub_doc:
-            from app.models.subscription import SubscriptionStatus
-            await subscription_service.update_subscription(
-                str(sub_doc["_id"]),
-                {
-                    "status": SubscriptionStatus.ACTIVE,
-                    "current_period_start": datetime.fromtimestamp(invoice.get("period_start", 0)),
-                    "current_period_end": datetime.fromtimestamp(invoice.get("period_end", 0))
-                },
-                db
-            )
-            logger.info(f"Subscription activated/renewed: {subscription_id}")
+    if not sub_doc and customer_id:
+        sub_doc = await db.subscriptions.find_one({"stripe_customer_id": customer_id})
+
+    if sub_doc:
+        from app.models.subscription import SubscriptionStatus
+        await subscription_service.update_subscription(
+            str(sub_doc["_id"]),
+            {
+                "status": SubscriptionStatus.ACTIVE,
+                "stripe_subscription_id": subscription_id or sub_doc.get("stripe_subscription_id"),
+                "stripe_customer_id": customer_id or sub_doc.get("stripe_customer_id"),
+                "current_period_start": datetime.fromtimestamp(invoice.get("period_start", 0)),
+                "current_period_end": datetime.fromtimestamp(invoice.get("period_end", 0))
+            },
+            db
+        )
+        logger.info(
+            "Subscription activated/renewed from invoice payment - Subscription: %s Customer: %s",
+            subscription_id or sub_doc.get("stripe_subscription_id"),
+            customer_id,
+        )
 
 
 async def handle_invoice_payment_failed(invoice: dict):

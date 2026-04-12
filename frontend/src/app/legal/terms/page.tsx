@@ -1,9 +1,39 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Shield, ArrowRight } from 'lucide-react';
 import { PageHeading } from '@/components/PageHeading';
+import { useAuthStore } from '@/store/authStore';
+
+const subscriptionPoints = [
+  'Heka currently supports a 7-day trial and paid subscription access for eligible couple accounts.',
+  'Pricing, plan features, and any introductory offers are shown in the product or checkout flow at the time of purchase.',
+  'Payments are processed by Stripe. We do not store your full payment card number or card security code.',
+  'Paid subscriptions renew automatically until cancelled, unless the applicable checkout flow states otherwise.',
+  'If you cancel, access usually continues until the end of the current paid period unless we state a different effect at checkout.',
+  'Nothing in these Terms limits any non-excludable rights or remedies you have under the Australian Consumer Law.',
+];
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-2xl font-semibold tracking-tight text-white">{title}</h2>
+      <div className="space-y-4 text-sm leading-7 text-zinc-300">{children}</div>
+    </section>
+  );
+}
 
 export default function TermsOfServicePage() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+
   return (
     <div className="min-h-screen pb-20 text-zinc-300">
       <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
@@ -12,283 +42,252 @@ export default function TermsOfServicePage() {
         <div className="absolute bottom-[-12%] left-[24%] h-[34vh] w-[34vh] rounded-full bg-rose-900/10 blur-[130px]" />
         <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay" />
       </div>
+
       <PageHeading
         title="Terms of Service"
-        description="Your rights and responsibilities when using Heka."
+        description="The rules, rights, and limits that apply when you use Heka."
         actions={
-          <Link
-            href="/dashboard"
-            className="btn-secondary"
-          >
-            Back to Dashboard
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* Smart back button — context-aware */}
+            <button
+              onClick={() => router.push(isAuthenticated ? '/dashboard' : '/')}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {isAuthenticated ? 'Dashboard' : 'Home'}
+            </button>
+            {/* Cross-link to sibling legal doc */}
+            <Link
+              href="/legal/privacy"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/[0.08] hover:text-white"
+            >
+              <Shield className="h-4 w-4" />
+              Privacy Policy
+            </Link>
+          </div>
         }
       />
 
-      <div className="app-container max-w-4xl">
-        <div className="section-shell border border-white/10 bg-black/25 p-8">
-          <div className="mb-8 rounded-xl border border-amber-500/20 bg-amber-500/[0.08] p-5">
-            <p className="text-sm font-semibold text-amber-200">
-              ⚠️ Legal Review Required: This document is a draft and must be reviewed by qualified Australian legal counsel before final implementation.
+      <div className="app-container max-w-4xl pb-8">
+        <div className="section-shell space-y-8 border border-white/10 bg-black/25 p-8 md:p-10">
+          <div className="rounded-2xl border border-teal-500/20 bg-teal-500/[0.08] p-5">
+            <p className="text-sm font-semibold text-teal-100">
+              Summary: Heka is a relationship communication platform, not a therapy, legal, or emergency service. These Terms govern account use, subscriptions, AI features, acceptable use, ownership, and the limits of our responsibility.
             </p>
           </div>
 
-          <div className="mb-8 border-b border-white/10 pb-6">
-            <p className="text-sm text-zinc-400">Last Updated: November 8, 2025</p>
-            <p className="mt-1 text-xs text-zinc-500">Version: 1.0 (Draft - Awaiting Legal Review)</p>
+          <div className="border-b border-white/10 pb-6 text-sm text-zinc-400">
+            <p>Last updated: April 5, 2026</p>
+            <p className="mt-1">Version: 2026-04-05</p>
           </div>
 
-          <div className="prose prose-sm max-w-none space-y-8 [&_a]:text-teal-300 [&_a]:no-underline hover:[&_a]:text-teal-200 [&_h2]:text-white [&_h3]:text-zinc-100 [&_li]:text-zinc-300 [&_ol]:text-zinc-300 [&_p]:text-zinc-300 [&_strong]:text-white [&_ul]:text-zinc-300">
-            
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">1. Acceptance of Terms</h2>
-              <p className="text-gray-700 mb-4">
-                By accessing or using Heka ("Service", "Platform", "we", "us", or "our"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you must not use our Service.
+          <div className="space-y-10">
+            <Section title="1. Agreement and Eligibility">
+              <p>
+                These Terms of Service govern your access to and use of Heka’s website, mobile app, APIs, and related services. By creating an account, accessing, or using Heka, you agree to these Terms and our{' '}
+                <Link href="/legal/privacy" className="text-teal-300 hover:text-teal-200">
+                  Privacy Policy
+                </Link>
+                .
               </p>
-              <p className="text-gray-700 mb-4">
-                <strong>Age Requirement:</strong> You must be at least 16 years old to use Heka. By registering, you confirm that you are 16 years of age or older. We reserve the right to verify your age and suspend accounts that violate this requirement.
+              <p>
+                You must be at least 16 years old to use Heka. By registering, you confirm that you meet that minimum age requirement and that the information you provide is accurate.
               </p>
-              <p className="text-gray-700">
-                These Terms constitute a legally binding agreement between you and Heka. If you are using Heka on behalf of an organization, you represent that you have authority to bind that organization to these Terms.
+              <p>
+                If you use Heka on behalf of a business or organisation, you represent that you have authority to bind that entity to these Terms.
               </p>
-            </section>
+            </Section>
 
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">2. Service Description</h2>
-              <p className="text-gray-700 mb-4">
-                Heka is an AI-powered platform designed to assist couples in resolving disagreements and arguments through neutral AI-mediated communication. Our Service includes:
+            <Section title="2. What Heka Is and Is Not">
+              <p>
+                Heka is a digital relationship communication tool that helps couples record issues, share perspectives, review AI-assisted insights, complete check-ins, manage shared goals, and receive account or relationship notifications.
               </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>AI-powered analysis of relationship arguments</li>
-                <li>Mediation insights and suggestions</li>
-                <li>Relationship check-ins and goal tracking</li>
-                <li>Subscription-based access to premium features</li>
+              <p>
+                Heka is not a healthcare provider, therapist, counsellor, law firm, domestic violence service, or emergency response provider. The service does not diagnose conditions, provide treatment, or replace professional advice.
+              </p>
+              <p>
+                If you or someone else may be in immediate danger, experiencing abuse, self-harm risk, suicidal thinking, or a mental health crisis, stop using Heka and seek help from emergency services, a qualified clinician, or a local support service immediately.
+              </p>
+            </Section>
+
+            <Section title="3. Accounts and Security">
+              <ul className="list-disc space-y-2 pl-5">
+                <li>You are responsible for keeping your login credentials secure and for activity that occurs under your account.</li>
+                <li>You must not impersonate another person, share credentials inappropriately, or create accounts using false or misleading identity information.</li>
+                <li>You must notify us promptly if you believe your account or device has been compromised.</li>
+                <li>We may suspend or restrict access where reasonably necessary to protect users, enforce these Terms, investigate abuse, or respond to security issues.</li>
               </ul>
-              
-              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <h3 className="text-lg font-semibold text-red-900 mb-2">⚠️ Important Medical/Therapy Disclaimer</h3>
-                <p className="text-red-800 text-sm mb-2">
-                  <strong>Heka is NOT a substitute for professional therapy, counseling, or mental health treatment.</strong>
-                </p>
-                <p className="text-red-800 text-sm mb-2">Heka does not provide:</p>
-                <ul className="list-disc list-inside text-red-800 text-sm space-y-1 mb-2">
-                  <li>Diagnosis of mental health conditions</li>
-                  <li>Treatment of mental health disorders</li>
-                  <li>Professional relationship counseling</li>
-                  <li>Crisis intervention services</li>
-                </ul>
-                <p className="text-red-800 text-sm mb-2">
-                  <strong>If you or your partner are experiencing:</strong>
-                </p>
-                <ul className="list-disc list-inside text-red-800 text-sm space-y-1 mb-2">
-                  <li>Domestic violence or abuse</li>
-                  <li>Severe mental health crises</li>
-                  <li>Suicidal thoughts or behaviors</li>
-                  <li>Substance abuse issues</li>
-                </ul>
-                <p className="text-red-800 text-sm mb-2">
-                  <strong>Please seek immediate professional help:</strong>
-                </p>
-                <ul className="list-none text-red-800 text-sm space-y-1">
-                  <li>Emergency Services: <strong>000</strong> (Australia)</li>
-                  <li>Lifeline: <strong>13 11 14</strong> (Australia)</li>
-                  <li>Beyond Blue: <strong>1300 22 4636</strong></li>
-                  <li>Relationships Australia: <strong>1300 364 277</strong></li>
-                </ul>
-                <p className="text-red-800 text-sm mt-2">
-                  We recommend consulting with a licensed therapist, counselor, or mental health professional for serious relationship issues or when Heka's suggestions indicate professional intervention may be beneficial.
-                </p>
-              </div>
-            </section>
+            </Section>
 
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">3. Acceptable Use Policy</h2>
-              <p className="text-gray-700 mb-4">You agree to use Heka only for lawful purposes and in accordance with these Terms. You agree NOT to:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Use Heka for abuse, harassment, threats, or any form of violence</li>
-                <li>Share your login credentials with others</li>
-                <li>Attempt to manipulate, reverse-engineer, or interfere with AI responses</li>
-                <li>Provide false, misleading, or fraudulent information</li>
-                <li>Use automated systems to access the Service without authorization</li>
-                <li>Violate any applicable laws or regulations</li>
-                <li>Infringe upon intellectual property rights</li>
-                <li>Transmit viruses, malware, or harmful code</li>
-                <li>Collect or harvest user information without consent</li>
-                <li>Use the Service for commercial purposes without authorization</li>
+            <Section title="4. Shared Couple Features">
+              <p>
+                Heka is designed as a shared two-person product. When you connect with a partner, certain content and activity states become part of a shared workspace, including issues, perspectives, goals, check-ins, invitations, and related notifications.
+              </p>
+              <p>
+                You are responsible for deciding what you share. Content entered into the shared workspace may be visible to your partner or remain associated with the shared relationship history, even if one partner later steps away from a specific item or deletes their account.
+              </p>
+              <p>
+                Some shared items may be archived, de-identified, or preserved to avoid corrupting the remaining partner’s workspace or to comply with legal, billing, security, and record-keeping obligations.
+              </p>
+            </Section>
+
+            <Section title="5. Acceptable Use">
+              <p>You must use Heka lawfully and responsibly. You must not:</p>
+              <ul className="list-disc space-y-2 pl-5">
+                <li>Use Heka to abuse, harass, threaten, stalk, exploit, or intimidate another person.</li>
+                <li>Upload unlawful, fraudulent, defamatory, infringing, or malicious content.</li>
+                <li>Use the service to facilitate violence, coercive control, self-harm encouragement, or criminal activity.</li>
+                <li>Interfere with the service, bypass usage limits, scrape data, probe vulnerabilities, reverse engineer the platform except where non-excludable law permits it, or deploy bots without authorization.</li>
+                <li>Attempt to access another user’s account or data without permission.</li>
+                <li>Use Heka in a way that could harm the service, other users, or our providers.</li>
               </ul>
-              <p className="text-gray-700">
-                Violation of this Acceptable Use Policy may result in immediate suspension or termination of your account without refund.
+              <p>
+                We may remove content, suspend features, or terminate access if we reasonably believe your use breaches these Terms, creates safety risk, or exposes Heka or other users to harm.
               </p>
-            </section>
+            </Section>
 
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">4. Service Limitations</h2>
-              <p className="text-gray-700 mb-4">You acknowledge and agree that:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li><strong>No Guarantee of Outcomes:</strong> Heka does not guarantee that arguments will be resolved or relationships will improve. Results vary based on individual circumstances.</li>
-                <li><strong>AI Limitations:</strong> AI-generated insights are advisory only and may contain errors, biases, or limitations. AI does not replace human judgment or professional advice.</li>
-                <li><strong>Service Availability:</strong> We do not guarantee uninterrupted, secure, or error-free service. The Service may be unavailable due to maintenance, updates, or technical issues.</li>
-                <li><strong>No Medical Advice:</strong> Heka does not provide medical, psychological, or therapeutic advice. Always consult qualified professionals for serious issues.</li>
-                <li><strong>User Responsibility:</strong> You are solely responsible for decisions made based on Heka's suggestions. We are not liable for any outcomes.</li>
+            <Section title="6. AI Features">
+              <p>
+                Heka may use third-party AI providers, including OpenAI, to generate summaries, insights, prompts, and other outputs you request. AI outputs are generated assistance only.
+              </p>
+              <p>
+                AI outputs may be incomplete, inaccurate, biased, or unsuitable for your situation. You are responsible for how you interpret and use them. Do not rely on Heka for medical, mental health, legal, crisis, safeguarding, or other high-stakes professional decision-making.
+              </p>
+              <p>
+                We may limit, rate-limit, suspend, or change AI features at any time, including where provider capacity, cost, safety, or abuse controls require it.
+              </p>
+            </Section>
+
+            <Section title="7. Subscriptions, Trials, and Billing">
+              <ul className="list-disc space-y-2 pl-5">
+                {subscriptionPoints.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
               </ul>
-            </section>
+              <p>
+                Free trial access and usage limits may change over time. If a paid plan is offered, the amount, currency, taxes, renewal terms, and plan inclusions displayed at checkout will control for that purchase.
+              </p>
+              <p>
+                Except where required by law or stated otherwise, fees are generally non-refundable for partial billing periods, unused time, or unused features after a paid period begins.
+              </p>
+            </Section>
 
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">5. Subscription Terms</h2>
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.1 Subscription Tiers</h3>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li><strong>Free Tier:</strong> 7-day trial with up to 5 argument resolutions</li>
-                <li><strong>Basic Tier:</strong> $9.99/month - Unlimited arguments</li>
-                <li><strong>Premium Tier:</strong> $19.99/month - Unlimited arguments + premium features</li>
-              </ul>
+            <Section title="8. Intellectual Property and Content Rights">
+              <p>
+                You retain ownership of the content you submit to Heka. You grant Heka a non-exclusive, worldwide, royalty-free licence to host, store, process, reproduce, adapt, and display that content only as reasonably necessary to operate, secure, improve, and support the service in accordance with our Privacy Policy.
+              </p>
+              <p>
+                Heka owns or licenses the platform, software, product design, branding, compilations, and service materials, excluding your content and third-party materials. These Terms do not transfer ownership of Heka’s intellectual property to you.
+              </p>
+              <p>
+                You may use the service output for your personal, non-commercial use in connection with Heka. You must not resell, systematically extract, or commercially exploit the platform or AI outputs without our written permission.
+              </p>
+              <p>
+                If you provide product feedback or suggestions, we may use them without restriction or compensation to you.
+              </p>
+            </Section>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.2 Billing and Payment</h3>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Subscriptions are billed monthly in advance</li>
-                <li>Payments are processed securely through Stripe</li>
-                <li>All prices are in Australian Dollars (AUD) unless otherwise stated</li>
-                <li>Prices may change with 30 days' notice to existing subscribers</li>
-              </ul>
+            <Section title="9. Service Availability and Changes">
+              <p>
+                We aim to keep Heka available and secure, but we do not promise uninterrupted, error-free, or permanently available service. Maintenance, upgrades, outages, security responses, third-party provider failures, or abuse controls may affect availability.
+              </p>
+              <p>
+                We may add, remove, or change features, pricing, AI models, limits, or workflows. If we make a material adverse change to a paid subscription offering, we will provide notice where required by law or reasonably practical.
+              </p>
+            </Section>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.3 Cancellation and Refunds</h3>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>You may cancel your subscription at any time through your account settings</li>
-                <li>Cancellation takes effect at the end of your current billing period</li>
-                <li>No refunds for partial billing periods</li>
-                <li>Refunds may be provided at our discretion for exceptional circumstances</li>
-                <li>Free tier users may cancel anytime without charge</li>
-              </ul>
+            <Section title="10. Suspension and Termination">
+              <p>
+                You may stop using Heka at any time. You may also use the account deletion tools available in the product, subject to the data-handling limits described in our Privacy Policy.
+              </p>
+              <p>
+                We may suspend or terminate your access immediately if you materially breach these Terms, fail to pay applicable fees, create legal or security risk, misuse the platform, or if continued access is no longer commercially or operationally feasible.
+              </p>
+              <p>
+                Clauses that by their nature should continue after termination, including payment obligations, intellectual property provisions, limitation of liability, consumer-law carve-outs, and dispute-related provisions, will survive termination.
+              </p>
+            </Section>
 
-              <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">5.4 Usage Limits</h3>
-              <p className="text-gray-700 mb-4">
-                Free tier users are limited to 5 argument resolutions during the 7-day trial period. Paid subscribers have unlimited access according to their tier. We reserve the right to implement fair usage policies to prevent abuse.
+            <Section title="11. Consumer Rights and Liability Limits">
+              <p>
+                Nothing in these Terms excludes, restricts, or modifies any consumer guarantee, statutory right, or remedy that cannot lawfully be excluded, including rights under the Australian Consumer Law.
               </p>
-            </section>
+              <p>
+                To the maximum extent permitted by law, Heka is provided on an “as is” and “as available” basis, and we exclude warranties not expressly stated in these Terms.
+              </p>
+              <p>
+                To the maximum extent permitted by law, we are not liable for indirect, incidental, special, exemplary, punitive, or consequential loss, or for loss of profits, revenue, goodwill, data, or opportunity arising from or in connection with Heka.
+              </p>
+              <p>
+                Where liability cannot be excluded but can be limited, our liability is limited, at our option, to resupplying the services or paying the cost of having the services supplied again. Subject to that, our aggregate liability for claims arising out of or connected with Heka is limited to the greater of the amount you paid to us for the service in the 12 months before the event giving rise to the claim, and any non-excludable minimum amount required by law.
+              </p>
+            </Section>
 
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">6. Intellectual Property</h2>
-              <p className="text-gray-700 mb-4">
-                <strong>Your Content:</strong> You retain ownership of all content you submit to Heka (arguments, perspectives, goals). By using the Service, you grant Heka a non-exclusive, worldwide, royalty-free license to use, store, and process your content solely for the purpose of providing the Service.
+            <Section title="12. Disputes and Governing Law">
+              <p>
+                If you have a complaint or dispute, please contact us first so we have a reasonable opportunity to resolve it directly.
               </p>
-              <p className="text-gray-700 mb-4">
-                <strong>Platform and AI Insights:</strong> Heka retains all rights, title, and interest in the Platform, including all software, AI models, insights generated, designs, and trademarks. AI-generated insights are owned by Heka but are provided to you for your personal use.
+              <p>
+                These Terms are governed by the laws applicable in Australia, and where a court must determine a dispute, the courts of Queensland, Australia will have non-exclusive jurisdiction, unless mandatory consumer law gives you the right to bring a claim elsewhere.
               </p>
-              <p className="text-gray-700">
-                You may not copy, reproduce, distribute, or resell AI-generated insights or any part of the Platform without written permission.
-              </p>
-            </section>
+            </Section>
 
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">7. Account Termination</h2>
-              <p className="text-gray-700 mb-4">We reserve the right to suspend or terminate your account if:</p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>You violate these Terms or our Acceptable Use Policy</li>
-                <li>You engage in fraudulent, abusive, or illegal activity</li>
-                <li>You fail to pay subscription fees</li>
-                <li>We determine, in our sole discretion, that your use poses a risk to other users</li>
-              </ul>
-              <p className="text-gray-700">
-                Upon termination, your right to use the Service immediately ceases. We may delete your account and data in accordance with our Privacy Policy. No refunds will be provided for terminated accounts.
+            <Section title="13. Changes to These Terms">
+              <p>
+                We may update these Terms from time to time to reflect product changes, legal requirements, pricing changes, safety practices, or provider changes. We will update the “Last updated” date above and, where required or reasonably appropriate, provide additional notice in the app, by email, or through the website.
               </p>
-            </section>
+              <p>
+                If you continue using Heka after updated Terms take effect, you agree to the revised Terms. If you do not agree, you must stop using Heka and cancel any paid subscription before the next renewal.
+              </p>
+            </Section>
 
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">8. Limitation of Liability</h2>
-              <p className="text-gray-700 mb-4">
-                <strong>To the maximum extent permitted by Australian Consumer Law:</strong>
+            <Section title="14. Contact">
+              <p>
+                For legal notices, subscription questions, complaints, or Terms-related requests, contact{' '}
+                <a href="mailto:hello@heka.app?subject=Terms%20Request" className="text-teal-300 hover:text-teal-200">
+                  hello@heka.app
+                </a>
+                .
               </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Heka is provided "as is" and "as available" without warranties of any kind</li>
-                <li>We disclaim all warranties, express or implied, including merchantability and fitness for a particular purpose</li>
-                <li>We are not liable for any indirect, incidental, special, consequential, or punitive damages</li>
-                <li>We are not liable for any relationship outcomes, decisions made based on AI suggestions, or emotional distress</li>
-                <li>Our total liability is limited to the amount you paid for the Service in the 12 months preceding the claim</li>
-              </ul>
-              <p className="text-gray-700">
-                Nothing in these Terms excludes or limits our liability for death or personal injury caused by negligence, fraud, or any liability that cannot be excluded by law.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">9. Indemnification</h2>
-              <p className="text-gray-700">
-                You agree to indemnify and hold harmless Heka, its officers, directors, employees, and agents from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from your use of the Service, violation of these Terms, or infringement of any rights of another party.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">10. Privacy</h2>
-              <p className="text-gray-700 mb-4">
-                Your use of Heka is also governed by our Privacy Policy, which explains how we collect, use, and protect your information. By using the Service, you consent to the collection and use of your information as described in the Privacy Policy.
-              </p>
-              <p className="text-gray-700">
-                Please review our Privacy Policy at <a href="/legal/privacy" className="text-blue-600 hover:underline">/legal/privacy</a>.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">11. Changes to Terms</h2>
-              <p className="text-gray-700 mb-4">
-                We reserve the right to modify these Terms at any time. We will notify you of material changes by:
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>Posting the updated Terms on our website</li>
-                <li>Sending an email to your registered email address</li>
-                <li>Displaying a notice in the Service</li>
-              </ul>
-              <p className="text-gray-700">
-                Your continued use of the Service after changes become effective constitutes acceptance of the modified Terms. If you do not agree to the changes, you must stop using the Service and cancel your subscription.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">12. Dispute Resolution</h2>
-              <p className="text-gray-700 mb-4">
-                <strong>Governing Law:</strong> These Terms are governed by the laws of Australia and the state/territory in which Heka operates.
-              </p>
-              <p className="text-gray-700 mb-4">
-                <strong>Dispute Resolution Process:</strong>
-              </p>
-              <ol className="list-decimal list-inside text-gray-700 space-y-2 mb-4">
-                <li>Contact us first to attempt to resolve the dispute informally</li>
-                <li>If informal resolution fails, disputes will be resolved through binding arbitration in Australia</li>
-                <li>You waive any right to participate in class-action lawsuits</li>
-              </ol>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">13. Australian Consumer Law</h2>
-              <p className="text-gray-700 mb-4">
-                Our services come with guarantees that cannot be excluded under the Australian Consumer Law. You are entitled to:
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 mb-4">
-                <li>A replacement or refund for a major failure</li>
-                <li>Compensation for any other reasonably foreseeable loss or damage</li>
-                <li>Services to be provided with due care and skill</li>
-                <li>Services to be fit for the disclosed purpose</li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">14. Contact Information</h2>
-              <p className="text-gray-700 mb-4">
-                If you have questions about these Terms, please contact us:
-              </p>
-              <ul className="list-none text-gray-700 space-y-1">
-                <li><strong>Email:</strong> [To be filled - legal@heka.app]</li>
-                <li><strong>Address:</strong> [To be filled - Australian business address]</li>
-              </ul>
-            </section>
-
-            <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Status:</strong> Draft Version 1.0 - Awaiting Legal Counsel Review<br />
-                <strong>Next Step:</strong> Engage qualified Australian legal counsel to review and finalize these Terms of Service before public launch.
-              </p>
-            </div>
+            </Section>
           </div>
         </div>
       </div>
+
+      {/* Guest conversion CTA — shown only to unauthenticated visitors who just read the full terms */}
+      {!isAuthenticated && (
+        <div className="app-container max-w-4xl pb-12">
+          <div className="relative overflow-hidden rounded-3xl border border-teal-500/20 bg-gradient-to-br from-teal-950/60 via-black/40 to-indigo-950/60 p-8 backdrop-blur-xl md:p-10">
+            {/* Ambient glow */}
+            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-teal-500/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-indigo-500/10 blur-3xl" />
+
+            <div className="relative flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-teal-400">You know the rules. Now experience the calm.</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                  Ready to transform how you communicate?
+                </h2>
+                <p className="mt-2 max-w-md text-sm text-zinc-400">
+                  Start your 7-day free trial — full access, no payment required.
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col gap-3 sm:items-end">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-black shadow-[0_0_24px_rgba(255,255,255,0.12)] transition hover:scale-[1.03]"
+                >
+                  Start Free Trial
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/login" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+                  Already have an account? Sign in
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

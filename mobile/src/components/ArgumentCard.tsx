@@ -14,7 +14,9 @@ export const ArgumentCard: React.FC<ArgumentCardProps> = ({
   argument,
   onPress,
 }) => {
-  const stateLabel = argument.needs_user_response
+  const stateLabel = argument.status === "archived"
+    ? "Archived"
+    : argument.needs_user_response
     ? "Reply needed"
     : argument.can_generate_insight
       ? "Ready for insight"
@@ -47,8 +49,10 @@ export const ArgumentCard: React.FC<ArgumentCardProps> = ({
           <View
             style={[
               styles.statePill,
-              argument.needs_user_response
-                ? styles.statePillWarning
+              argument.status === "archived"
+                ? styles.statePillArchived
+                : argument.needs_user_response
+                  ? styles.statePillWarning
                 : argument.can_generate_insight
                   ? styles.statePillReady
                   : argument.insight_status === "current"
@@ -61,6 +65,8 @@ export const ArgumentCard: React.FC<ArgumentCardProps> = ({
           <Text style={styles.metaHint}>
             {argument.needs_user_response
               ? "Your partner is waiting on you."
+              : argument.status === "archived"
+                ? "Your partner stepped away from this issue."
               : argument.can_generate_insight
                 ? "Both sides are in."
                 : "Open to continue."}
@@ -142,6 +148,9 @@ const styles = StyleSheet.create({
   },
   statePillWaiting: {
     backgroundColor: "#eff6ff",
+  },
+  statePillArchived: {
+    backgroundColor: "#f4f4f5",
   },
   statePillText: {
     ...typography.label,

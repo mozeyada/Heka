@@ -60,12 +60,6 @@ def _build_dashboard_argument_response(
     partner_has_perspective = partner_id in perspective_map
     perspective_count = len(perspective_map)
 
-    awaiting_response_from_user_id = None
-    if not current_user_has_perspective:
-        awaiting_response_from_user_id = str(current_user.id)
-    elif not partner_has_perspective:
-        awaiting_response_from_user_id = partner_id
-
     latest_context_at = argument.latest_context_at or argument.updated_at
     for doc in perspective_docs:
         updated_at = doc.get("updated_at") or doc.get("created_at")
@@ -87,6 +81,12 @@ def _build_dashboard_argument_response(
         getattr(argument, "archived_for_user_ids", None) or []
     )
     effective_status = "archived" if archived_for_current_user else argument.status.value
+    awaiting_response_from_user_id = None
+    if not archived_for_current_user:
+        if not current_user_has_perspective:
+            awaiting_response_from_user_id = str(current_user.id)
+        elif not partner_has_perspective:
+            awaiting_response_from_user_id = partner_id
 
     return ArgumentResponse(
         id=argument.id,

@@ -242,7 +242,7 @@ export function Header() {
         <button
           type="button"
           onClick={() => setMobileOpen((open) => !open)}
-          className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white px-3 py-2 text-neutral-600 shadow-soft transition-colors ease-soft-spring hover:bg-neutral-100 lg:hidden"
+          className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-zinc-300 backdrop-blur transition-colors ease-soft-spring hover:bg-white/[0.12] hover:text-white lg:hidden"
           aria-label="Toggle navigation"
         >
           <svg
@@ -262,15 +262,15 @@ export function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-white/20 bg-white/90 backdrop-blur-md lg:hidden">
-          <nav className="app-container flex flex-col gap-2 py-4 text-sm font-semibold text-neutral-600">
+        <div className="border-t border-white/10 bg-zinc-950/95 backdrop-blur-xl lg:hidden">
+          <nav className="app-container flex flex-col gap-2 py-4 text-sm font-semibold text-zinc-300">
             {links.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={classNames(
-                  'rounded-xl px-4 py-3 transition-colors ease-soft-spring hover:bg-neutral-100 hover:text-neutral-900',
-                  pathname === link.href ? 'bg-neutral-100 text-neutral-900' : undefined
+                  'rounded-xl px-4 py-3 transition-colors ease-soft-spring hover:bg-white/[0.06] hover:text-white',
+                  pathname === link.href ? 'bg-white/[0.08] text-white' : undefined
                 )}
                 onClick={() => setMobileOpen(false)}
               >
@@ -350,14 +350,14 @@ export function Header() {
                 <div className="flex flex-col gap-3">
                   <Link
                     href="/login"
-                    className="rounded-xl border border-neutral-200 px-4 py-2 text-center text-sm font-semibold text-neutral-600 transition-colors ease-soft-spring hover:bg-neutral-100 hover:text-neutral-900"
+                    className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-center text-sm font-semibold text-zinc-300 transition-colors ease-soft-spring hover:bg-white/[0.08] hover:text-white"
                     onClick={() => setMobileOpen(false)}
                   >
                     Log In
                   </Link>
                   <Link
                     href="/register"
-                    className="rounded-xl bg-brand-gradient px-4 py-2 text-center text-sm font-semibold text-white shadow-elevated transition-transform ease-soft-spring hover:-translate-y-0.5"
+                    className="rounded-xl bg-white px-4 py-2 text-center text-sm font-bold text-black transition-transform ease-soft-spring hover:scale-[1.02]"
                     onClick={() => setMobileOpen(false)}
                   >
                     Get Started
