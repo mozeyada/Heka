@@ -418,7 +418,7 @@ export const subscriptionsAPI = {
     return response.data;
   },
 
-  createCheckoutSession: async (data: { tier: string; success_url: string; cancel_url: string }) => {
+  createCheckoutSession: async (data: { tier: string; interval: string; success_url: string; cancel_url: string }) => {
     const response = await apiClient.post('/api/subscriptions/create-checkout-session', data);
     return response.data;
   },

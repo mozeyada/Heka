@@ -44,6 +44,7 @@ export default function SubscriptionPage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [usage, setUsage] = useState<Usage | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAnnual, setIsAnnual] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creatingCheckout, setCreatingCheckout] = useState<string | null>(null);
   const [requiresCoupleSetup, setRequiresCoupleSetup] = useState(false);
@@ -83,7 +84,7 @@ export default function SubscriptionPage() {
     loadData();
   }, [isAuthenticated, loadData, router]);
 
-  const handleUpgrade = async (tier: 'basic' | 'premium') => {
+  const handleUpgrade = async (tier: 'starter' | 'premium') => {
     try {
       setCreatingCheckout(tier);
       setError(null);
@@ -94,6 +95,7 @@ export default function SubscriptionPage() {
 
       const { checkout_url } = await subscriptionsAPI.createCheckoutSession({
         tier,
+        interval: isAnnual ? 'annual' : 'monthly',
         success_url: successUrl,
         cancel_url: cancelUrl,
       });
@@ -118,7 +120,7 @@ export default function SubscriptionPage() {
   };
 
   const getTierDisplayName = (tier: string) => tier.charAt(0).toUpperCase() + tier.slice(1);
-  const isPaidTier = subscription?.tier === 'basic' || subscription?.tier === 'premium';
+  const isPaidTier = subscription?.tier === 'starter' || subscription?.tier === 'premium';
   const isFreeTrial = subscription?.status === 'trial' && subscription?.tier === 'free';
   const isPaidTrial = subscription?.status === 'trial' && isPaidTier;
   const isActivePaid =
@@ -371,7 +373,7 @@ export default function SubscriptionPage() {
                 <p className="mt-2 text-sm font-semibold text-white">7 days / 5 arguments</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Basic</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Starter</p>
                 <p className="mt-2 text-sm font-semibold text-white">Unlimited core usage</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-4">
@@ -380,47 +382,91 @@ export default function SubscriptionPage() {
               </div>
             </div>
 
-            <div className="mt-8 grid gap-6 lg:grid-cols-2">
-              <div className="rounded-[1.9rem] border border-white/10 bg-black/25 p-6">
-                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Basic</p>
-                <div className="mt-4 text-4xl font-medium text-white">$9.99</div>
-                <p className="mt-1 text-sm text-zinc-500">per month</p>
-                <ul className="mt-6 space-y-3 text-sm text-zinc-300">
-                  <li>Unlimited argument resolutions</li>
-                  <li>Weekly relationship check-ins</li>
-                  <li>Monthly AI insight summaries</li>
-                  <li>Communication exercises</li>
-                </ul>
+            <div className="mt-8 flex justify-center">
+              <div className="relative flex rounded-full bg-white/5 p-1 backdrop-blur-md border border-white/10">
                 <button
-                  onClick={() => handleUpgrade('basic')}
-                  disabled={creatingCheckout === 'basic'}
-                  className="mt-8 inline-flex w-full items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-60"
+                  type="button"
+                  className={`relative w-32 rounded-full py-2 text-sm font-medium transition ${
+                    !isAnnual ? 'text-white' : 'text-zinc-400 hover:text-white'
+                  }`}
+                  onClick={() => setIsAnnual(false)}
                 >
-                  {creatingCheckout === 'basic' ? 'Processing…' : 'Upgrade to Basic'}
+                  {!isAnnual && (
+                    <span className="absolute inset-0 rounded-full bg-white/10 shadow-lg" />
+                  )}
+                  <span className="relative z-10">Monthly</span>
                 </button>
+                <button
+                  type="button"
+                  className={`relative w-32 rounded-full py-2 text-sm font-medium transition ${
+                    isAnnual ? 'text-white' : 'text-zinc-400 hover:text-white'
+                  }`}
+                  onClick={() => setIsAnnual(true)}
+                >
+                  {isAnnual && (
+                    <span className="absolute inset-0 rounded-full bg-white/10 shadow-lg" />
+                  )}
+                  <span className="relative z-10">Annually</span>
+                </button>
+                <span className="absolute -top-3 -right-6 rounded-full bg-teal-500/20 border border-teal-500/30 px-2 py-0.5 text-[10px] font-bold tracking-wide text-teal-300">
+                  SAVE 20%
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-6 lg:grid-cols-2">
+              <div className="rounded-[1.9rem] border border-white/10 bg-black/25 p-6 flex flex-col">
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Starter</p>
+                <div className="mt-4 flex items-baseline gap-2">
+                  <span className="text-4xl font-medium text-white">${isAnnual ? '3.33' : '4.99'}</span>
+                  <span className="text-sm text-zinc-500">/mo</span>
+                </div>
+                <p className="mt-2 text-sm text-zinc-400">Regular conflict resolution for navigating rough patches.</p>
+                <ul className="mt-6 space-y-3 text-sm text-zinc-300 flex-grow">
+                  <li>10 AI Mediations per month</li>
+                  <li>Deeper Context Recognition</li>
+                  <li>Shared Relationship Goals</li>
+                  <li>6-Month History Archive</li>
+                </ul>
+                <div className="mt-8">
+                  <button
+                    onClick={() => handleUpgrade('starter')}
+                    disabled={creatingCheckout === 'starter'}
+                    className="inline-flex w-full items-center justify-center rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {creatingCheckout === 'starter' ? 'Processing…' : 'Upgrade to Starter'}
+                  </button>
+                  {isAnnual && <p className="mt-3 text-center text-xs text-zinc-500">Billed $39.99 annually</p>}
+                </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-[1.9rem] border border-teal-500/20 bg-gradient-to-br from-teal-500/10 to-indigo-500/10 p-6">
+              <div className="relative flex flex-col overflow-hidden rounded-[1.9rem] border border-teal-500/20 bg-gradient-to-br from-teal-500/10 to-indigo-500/10 p-6">
                 <span className="absolute right-5 top-5 rounded-full border border-teal-400/20 bg-teal-400/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-teal-200">
                   Most popular
                 </span>
                 <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Premium</p>
-                <div className="mt-4 text-4xl font-medium text-white">$19.99</div>
-                <p className="mt-1 text-sm text-zinc-400">per month</p>
-                <ul className="mt-6 space-y-3 text-sm text-zinc-200">
-                  <li>Everything in Basic</li>
-                  <li>Advanced AI insights and proactive prompts</li>
-                  <li>Unlimited communication exercises</li>
-                  <li>Relationship goal tracking and analytics</li>
-                  <li>Priority support</li>
+                <div className="mt-4 flex items-baseline gap-2">
+                  <span className="text-4xl font-medium text-white">${isAnnual ? '6.66' : '9.99'}</span>
+                  <span className="text-sm text-zinc-500">/mo</span>
+                </div>
+                <p className="mt-2 text-sm text-zinc-400">Unlimited access to advanced frameworks and goal tracking.</p>
+                <ul className="mt-6 space-y-3 text-sm text-zinc-200 flex-grow">
+                  <li>Unlimited AI Mediations</li>
+                  <li>Complete Conversation Archive</li>
+                  <li>Priority AI Routing</li>
+                  <li>Advanced Relationship Insights</li>
+                  <li>24/7 Priority Support</li>
                 </ul>
-                <button
-                  onClick={() => handleUpgrade('premium')}
-                  disabled={creatingCheckout === 'premium'}
-                  className="mt-8 inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-teal-400 to-indigo-400 px-4 py-3 text-sm font-semibold text-black shadow-[0_0_26px_rgba(45,212,191,0.18)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {creatingCheckout === 'premium' ? 'Processing…' : 'Upgrade to Premium'}
-                </button>
+                <div className="mt-8">
+                  <button
+                    onClick={() => handleUpgrade('premium')}
+                    disabled={creatingCheckout === 'premium'}
+                    className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-teal-400 to-indigo-400 px-4 py-3 text-sm font-semibold text-black shadow-[0_0_26px_rgba(45,212,191,0.18)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {creatingCheckout === 'premium' ? 'Processing…' : 'Upgrade to Premium'}
+                  </button>
+                  {isAnnual && <p className="mt-3 text-center text-xs text-zinc-500">Billed $79.99 annually</p>}
+                </div>
               </div>
             </div>
 
