@@ -58,9 +58,11 @@ async def export_user_data(
         })
         
         if couple_doc:
-            couple_id = str(couple_doc["_id"])
+            couple_id_str = str(couple_doc["_id"])
+            couple_id_obj = couple_doc["_id"]
+            couple_query = {"$in": [couple_id_str, couple_id_obj]}
             export_data["couples"].append({
-                "id": couple_id,
+                "id": couple_id_str,
                 "user1_id": str(couple_doc.get("user1_id", "")),
                 "user2_id": str(couple_doc.get("user2_id", "")),
                 "status": couple_doc.get("status", ""),
@@ -68,7 +70,7 @@ async def export_user_data(
             })
             
             # Get arguments for this couple
-            arguments_cursor = db.arguments.find({"couple_id": couple_id})
+            arguments_cursor = db.arguments.find({"couple_id": couple_query})
             async for arg in arguments_cursor:
                 export_data["arguments"].append({
                     "id": str(arg["_id"]),
@@ -80,7 +82,8 @@ async def export_user_data(
                 })
             
             # Get perspectives for this user's arguments
-            perspectives_cursor = db.perspectives.find({"user_id": current_user.id})
+            user_query = {"$in": [current_user.id, ObjectId(current_user.id)]}
+            perspectives_cursor = db.perspectives.find({"user_id": user_query})
             async for persp in perspectives_cursor:
                 export_data["perspectives"].append({
                     "id": str(persp["_id"]),
@@ -90,7 +93,7 @@ async def export_user_data(
                 })
             
             # Get check-ins
-            checkins_cursor = db.relationship_checkins.find({"couple_id": couple_id})
+            checkins_cursor = db.relationship_checkins.find({"couple_id": couple_query})
             async for checkin in checkins_cursor:
                 export_data["checkins"].append({
                     "id": str(checkin["_id"]),
@@ -101,7 +104,7 @@ async def export_user_data(
                 })
             
             # Get goals
-            goals_cursor = db.relationship_goals.find({"couple_id": couple_id})
+            goals_cursor = db.relationship_goals.find({"couple_id": couple_query})
             async for goal in goals_cursor:
                 export_data["goals"].append({
                     "id": str(goal["_id"]),
@@ -114,7 +117,7 @@ async def export_user_data(
                 })
             
             # Get subscriptions
-            subscription_doc = await db.subscriptions.find_one({"couple_id": couple_id})
+            subscription_doc = await db.subscriptions.find_one({"couple_id": couple_query})
             if subscription_doc:
                 export_data["subscriptions"].append({
                     "id": str(subscription_doc["_id"]),
@@ -125,7 +128,7 @@ async def export_user_data(
                 })
             
             # Get usage records
-            usage_cursor = db.usages.find({"couple_id": couple_id})
+            usage_cursor = db.usages.find({"couple_id": couple_query})
             async for usage in usage_cursor:
                 export_data["usage"].append({
                     "id": str(usage["_id"]),
@@ -183,29 +186,32 @@ async def delete_account(
         })
         
         if couple_doc:
-            couple_id = str(couple_doc["_id"])
+            couple_id_str = str(couple_doc["_id"])
+            couple_id_obj = couple_doc["_id"]
+            couple_query = {"$in": [couple_id_str, couple_id_obj]}
+            user_query = {"$in": [current_user.id, ObjectId(current_user.id)]}
             
             # Delete user's perspectives
-            await db.perspectives.delete_many({"user_id": current_user.id})
+            await db.perspectives.delete_many({"user_id": user_query})
             
             # Delete arguments created by this user (if any)
             # Note: We might want to keep arguments if couple wants to keep them
             # For now, anonymize rather than delete
             await db.arguments.update_many(
-                {"couple_id": couple_id},
+                {"couple_id": couple_query},
                 {"$set": {"created_by_user_id": None}}  # Anonymize instead of delete
             )
             
             # Delete check-ins completed by this user
             await db.relationship_checkins.update_many(
-                {"couple_id": couple_id, "completed_by_user_id": current_user.id},
+                {"couple_id": couple_query, "completed_by_user_id": user_query},
                 {"$set": {"completed_by_user_id": None}}  # Anonymize
             )
             
             # Delete goals created by this user
             await db.relationship_goals.delete_many({
-                "couple_id": couple_id,
-                "created_by_user_id": current_user.id
+                "couple_id": couple_query,
+                "created_by_user_id": user_query
             })
         
         # Anonymize user account (don't fully delete for audit trail)
