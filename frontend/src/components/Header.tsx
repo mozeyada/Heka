@@ -91,9 +91,9 @@ export function Header() {
 
   return (
     <header className={classNames(
-      "border-b sticky top-0 z-40 transition-colors duration-300",
+      "border-b sticky top-0 z-[100] transition-colors duration-300",
       isMarketingPage 
-        ? "bg-black/20 backdrop-blur-xl border-white/5" 
+        ? "bg-black/40 backdrop-blur-2xl border-white/5" 
         : "bg-surface/80 backdrop-blur-md border-white/30"
     )}>
       <div className="app-container flex h-16 items-center justify-between">
@@ -158,7 +158,7 @@ export function Header() {
 
               {/* Desktop Dropdown Menu */}
               {accountMenuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-60 origin-top-right rounded-2xl border border-white/10 bg-zinc-950/94 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+                <div className="absolute right-0 top-full z-[110] mt-2 w-60 origin-top-right rounded-2xl border border-white/10 bg-[#0a0a0a] p-2 shadow-[0_0_40px_rgba(0,0,0,0.8)]">
                   <div className="space-y-1">
                     <div className="mb-2 border-b border-white/10 px-3 py-2">
                       <p className="truncate text-sm font-semibold text-white">
