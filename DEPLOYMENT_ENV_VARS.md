@@ -17,6 +17,7 @@ MONGODB_DB_NAME=heka_db
 
 # Security
 SECRET_KEY=<generate-with-python-secrets-token_urlsafe-32>
+FIELD_ENCRYPTION_KEY=<generate-with-fernet-generate-key>
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
