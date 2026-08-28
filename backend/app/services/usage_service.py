@@ -7,6 +7,7 @@ from typing import Optional
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.core.sanitization import couple_id_query
 from app.models.subscription import SubscriptionInDB
 from app.models.usage import UsageInDB, UsageType
 
@@ -52,7 +53,7 @@ class UsageService:
         
         # Check if usage entry exists for this period
         usage_doc = await db.usages.find_one({
-            "couple_id": ObjectId(couple_id),
+            "couple_id": couple_id_query(couple_id),
             "usage_type": usage_type.value,
             "period_start": datetime.combine(period_start, datetime.min.time()),
             "period_end": datetime.combine(period_end, datetime.min.time()),
@@ -102,7 +103,7 @@ class UsageService:
         pipeline = [
             {
                 "$match": {
-                    "couple_id": ObjectId(couple_id),
+                    "couple_id": couple_id_query(couple_id),
                     "usage_type": usage_type.value,
                     "period_start": {"$gte": datetime.combine(period_start, datetime.min.time())},
                     "period_end": {"$lte": datetime.combine(period_end, datetime.min.time())}

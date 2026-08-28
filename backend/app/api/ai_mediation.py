@@ -14,7 +14,7 @@ from app.api.schemas import (
     AIGoalsResponse,
 )
 from app.core.limiter import limiter
-from app.core.sanitization import validate_object_id
+from app.core.sanitization import couple_id_query, validate_object_id
 from app.db.database import get_database
 from app.models.argument import ArgumentInDB, ArgumentPriority, ArgumentStatus
 from app.models.couple import CoupleInDB
@@ -42,7 +42,7 @@ async def _curate_goal_suggestions(
 ) -> list[dict]:
     existing_goals = await db.relationship_goals.find(
         {
-            "couple_id": ObjectId(couple_id),
+            "couple_id": couple_id_query(couple_id),
             "status": {"$in": [GoalStatus.ACTIVE.value, GoalStatus.PAUSED.value]},
         },
         {"title": 1},
@@ -342,7 +342,7 @@ async def get_goal_suggestions(
     
     if cached:
         current_args = await db.arguments.find({
-            "couple_id": ObjectId(couple.id),
+            "couple_id": couple_id_query(couple.id),
             "priority": {"$in": [ArgumentPriority.HIGH.value, ArgumentPriority.URGENT.value]},
             "status": {"$in": [ArgumentStatus.ACTIVE.value, ArgumentStatus.ANALYZED.value]}
         }).sort("priority", -1).sort("created_at", -1).limit(2).to_list(length=2)
@@ -358,7 +358,7 @@ async def get_goal_suggestions(
     try:
         # Get top 1-2 high-priority arguments
         args_cursor = db.arguments.find({
-            "couple_id": ObjectId(couple.id),
+            "couple_id": couple_id_query(couple.id),
             "priority": {"$in": [ArgumentPriority.HIGH.value, ArgumentPriority.URGENT.value]},
             "status": {"$in": [ArgumentStatus.ACTIVE.value, ArgumentStatus.ANALYZED.value]}
         }).sort("priority", -1).sort("created_at", -1).limit(2)
@@ -436,7 +436,7 @@ async def get_checkin_suggestions(
         weeks_ago = datetime.utcnow() - timedelta(weeks=4)
         
         args_cursor = db.arguments.find({
-            "couple_id": ObjectId(couple.id),
+            "couple_id": couple_id_query(couple.id),
             "created_at": {"$gte": weeks_ago},
             "status": {"$in": [ArgumentStatus.ACTIVE.value, ArgumentStatus.ANALYZED.value]}
         }).sort("created_at", -1).limit(5)

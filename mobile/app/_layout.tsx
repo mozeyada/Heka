@@ -13,6 +13,7 @@ import { initializeMixpanel } from "../src/services/analytics";
 import { registerForPushNotifications } from "../src/services/notifications";
 import { registerSentry } from "../src/services/sentry";
 import { useAuthStore } from "../src/store/auth";
+import { ErrorBoundary } from "../src/components/ErrorBoundary";
 
 function RootLayout() {
   const router = useRouter();
@@ -110,10 +111,12 @@ function RootLayout() {
   }, [accessToken, segments, rootNavigationState?.key, router, _hasHydrated]);
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }} />
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <Stack screenOptions={{ headerShown: false }} />
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 

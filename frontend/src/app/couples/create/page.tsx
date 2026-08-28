@@ -19,7 +19,7 @@ import {
   TimerReset,
   Users,
 } from 'lucide-react';
-import { couplesAPI } from '@/lib/api';
+import { couplesAPI, getApiErrorMessage } from '@/lib/api';
 import { PageHeading } from '@/components/PageHeading';
 import { ErrorAlert, SuccessAlert } from '@/components/ErrorAlert';
 import { useAuthStore } from '@/store/authStore';
@@ -52,8 +52,8 @@ export default function CreateCouplePage() {
     try {
       const data = await couplesAPI.getPendingInvitations();
       setPendingInvitations(data.invitations || []);
-    } catch {
-      // Ignore invitation loading failures on this screen.
+    } catch (err: any) {
+      setError(getApiErrorMessage(err, 'Failed to load pending invitations.'));
     }
   }, []);
 

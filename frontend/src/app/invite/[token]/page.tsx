@@ -3,10 +3,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowRight, CheckCircle2, MailOpen, UserRound, XCircle } from 'lucide-react';
-import { useAuthStore } from '@/store/authStore';
+import { ArrowRight, CheckCircle2, HeartHandshake, Lock, MailOpen, Scale, Sparkles, UserRound, XCircle } from 'lucide-react';
 import { useCouplesStore } from '@/store/couplesStore';
 import apiClient from '@/lib/api';
+
+interface InvitationPreview {
+  inviter_name: string;
+  invitee_email: string;
+  message: string;
+  status: string;
+  is_expired: boolean;
+  privacy_promise: string;
+}
 
 export default function AcceptInvitationPage() {
   const router = useRouter();
@@ -23,6 +31,7 @@ export default function AcceptInvitationPage() {
   const { fetchMyCouple } = useCouplesStore();
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'needs_auth'>('loading');
   const [message, setMessage] = useState('');
+  const [preview, setPreview] = useState<InvitationPreview | null>(null);
 
   const acceptInvitation = useCallback(async () => {
     if (!token) {
@@ -35,7 +44,7 @@ export default function AcceptInvitationPage() {
       const authToken = localStorage.getItem('access_token');
       if (!authToken) {
         setStatus('needs_auth');
-        setMessage('Please login first.');
+        setMessage('Please sign in or create an account to join your shared space.');
         sessionStorage.setItem('pending_invitation_token', token);
         return;
       }
@@ -43,7 +52,7 @@ export default function AcceptInvitationPage() {
       await apiClient.post(`/api/couples/accept-invitation/${token}`, {});
 
       setStatus('success');
-      setMessage('Invitation accepted. Your shared workspace is now active.');
+      setMessage('Invitation accepted! Your private, mediated couple space is now ready.');
       sessionStorage.removeItem('pending_invitation_token');
       await fetchMyCouple();
 
@@ -57,7 +66,7 @@ export default function AcceptInvitationPage() {
 
       if (errorMsg.includes('different email')) {
         setStatus('needs_auth');
-        setMessage('This invitation is tied to a different email. Login or register with the invited address.');
+        setMessage('This invitation is tied to a different email. Please login with the invited address.');
       }
     }
   }, [fetchMyCouple, router, token]);
@@ -69,19 +78,35 @@ export default function AcceptInvitationPage() {
       return;
     }
 
-    const checkAuth = async () => {
+    const loadPreviewAndCheckAuth = async () => {
+      try {
+        const res = await apiClient.get(`/api/couples/invitations/preview/${token}`);
+        if (res.data) {
+          setPreview(res.data);
+        }
+      } catch (err) {
+        // Fallback preview
+        setPreview({
+          inviter_name: 'Your partner',
+          invitee_email: '',
+          message: 'I care about our relationship and want us to have a calm, private space where we both feel heard.',
+          status: 'pending',
+          is_expired: false,
+          privacy_promise: "Your partner will not see your raw unedited writing—only Heka's balanced, neutral mediation summary."
+        });
+      }
+
       const authToken = localStorage.getItem('access_token');
       if (!authToken) {
         sessionStorage.setItem('pending_invitation_token', token);
         setStatus('needs_auth');
-        setMessage('Please login or register to accept this invitation.');
         return;
       }
 
       acceptInvitation();
     };
 
-    checkAuth();
+    loadPreviewAndCheckAuth();
   }, [acceptInvitation, token]);
 
   const shellClasses = 'min-h-screen pb-20 text-zinc-300';
@@ -104,28 +129,63 @@ export default function AcceptInvitationPage() {
   if (status === 'loading') {
     return frame(
       <div className="section-shell p-8 text-center md:p-10">
-        <p className="text-sm text-zinc-400">Processing invitation…</p>
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-teal-500/10 text-teal-400 animate-pulse">
+          <HeartHandshake className="h-6 w-6" />
+        </div>
+        <p className="mt-4 text-sm text-zinc-400">Loading invitation preview…</p>
       </div>
     );
   }
 
   if (status === 'needs_auth') {
     return frame(
-      <div className="section-shell p-8 text-center md:p-10">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-indigo-500/20 bg-indigo-500/10 text-indigo-300">
-          <MailOpen className="h-8 w-8" />
+      <div className="section-shell p-8 md:p-10 space-y-6">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-teal-500/20 bg-teal-500/10 text-teal-400">
+            <HeartHandshake className="h-7 w-7" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-medium tracking-tight text-white">
+              {preview?.inviter_name || 'Your partner'} invited you
+            </h1>
+            <p className="text-xs text-zinc-400">Join a private, AI-mediated couple space on Heka</p>
+          </div>
         </div>
-        <h1 className="mt-6 text-3xl font-medium tracking-tight text-white">You’ve been invited</h1>
-        <p className="mt-3 text-sm leading-relaxed text-zinc-300">{message}</p>
-        <p className="mt-4 text-xs text-zinc-500">
-          If you do not have an account yet, register with the email address that received the invitation so the couple link completes cleanly.
-        </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+
+        {/* Supportive Note */}
+        <div className="rounded-xl border border-white/5 bg-white/[0.03] p-4 text-sm leading-relaxed text-zinc-300 italic">
+          &ldquo;{preview?.message || 'I care about our relationship and want us to have a calm, private space where we both feel heard.'}&rdquo;
+        </div>
+
+        {/* 3 Trust Pillars for Partner B */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-start gap-3 rounded-lg border border-white/5 bg-zinc-900/60 p-3">
+            <Lock className="h-5 w-5 text-teal-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-white">Private Perspectives</p>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Your partner will never see your raw unedited writing. Heka only shares the balanced, constructive AI summary.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 rounded-lg border border-white/5 bg-zinc-900/60 p-3">
+            <Scale className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-white">Strict Impartiality</p>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Heka never takes sides or blames. Both of your needs and feelings are validated with equal weight.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-4 flex flex-col gap-3 sm:flex-row">
           <Link
             href={`/register?invite=${encodeURIComponent(token || '')}`}
             className="btn-primary inline-flex flex-1 items-center justify-center gap-2"
           >
-            Create Account
+            Create Free Account
             <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
@@ -146,7 +206,7 @@ export default function AcceptInvitationPage() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
             <CheckCircle2 className="h-8 w-8" />
           </div>
-          <h1 className="mt-6 text-3xl font-medium tracking-tight text-white">Invitation accepted</h1>
+          <h1 className="mt-6 text-3xl font-medium tracking-tight text-white">Welcome to Heka</h1>
           <p className="mt-3 text-sm leading-relaxed text-zinc-300">{message}</p>
           <p className="mt-4 text-xs text-zinc-500">Redirecting to your dashboard…</p>
         </>
@@ -155,7 +215,7 @@ export default function AcceptInvitationPage() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10 text-red-300">
             <XCircle className="h-8 w-8" />
           </div>
-          <h1 className="mt-6 text-3xl font-medium tracking-tight text-white">Invitation failed</h1>
+          <h1 className="mt-6 text-3xl font-medium tracking-tight text-white">Invitation Issue</h1>
           <p className="mt-3 text-sm leading-relaxed text-zinc-300">{message}</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href="/login" className="btn-primary inline-flex flex-1 items-center justify-center gap-2">

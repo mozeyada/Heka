@@ -289,6 +289,7 @@ class PerspectiveResponse(BaseModel):
     user_id: str
     content: str
     created_at: datetime
+    safety_notice: Optional[dict] = None
 
 
 # Relationship Check-in Schemas
@@ -321,6 +322,7 @@ class CheckInResponse(BaseModel):
     completed_at: Optional[datetime] = None
     
     ai_harmony_report: Optional[str] = None
+    safety_notice: Optional[dict] = None
     created_at: datetime
 
 
@@ -426,3 +428,12 @@ class AIGoalsResponse(BaseModel):
 class AICheckInsResponse(BaseModel):
     """Response for AI-generated check-in questions."""
     suggestions: List[AICheckInSuggestion] = Field(default_factory=list)
+
+class InvitationPreviewResponse(BaseModel):
+    """Public invitation preview response for invited partner."""
+    inviter_name: str
+    invitee_email: EmailStr
+    message: str
+    status: str
+    is_expired: bool
+    privacy_promise: str = "Your partner will not see your raw unedited writing—only Heka's balanced, neutral mediation summary."

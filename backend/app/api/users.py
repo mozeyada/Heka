@@ -1,5 +1,6 @@
 """User data export and deletion endpoints for Australian Privacy Act compliance."""
 
+import logging
 from datetime import datetime
 from typing import Any, Dict
 
@@ -8,12 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.api.dependencies import get_current_user
+from app.core.crypto import decrypt_text
 from app.db.database import get_database
 from app.models.user import UserInDB
 from app.services.notification_preferences import normalize_notification_preferences
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/users", tags=["Users"])
-
 
 @router.get("/me/export")
 async def export_user_data(
@@ -88,7 +90,7 @@ async def export_user_data(
                 export_data["perspectives"].append({
                     "id": str(persp["_id"]),
                     "argument_id": str(persp.get("argument_id", "")),
-                    "content": persp.get("content", ""),
+                    "content": decrypt_text(persp.get("content", "")),
                     "created_at": persp.get("created_at").isoformat() if persp.get("created_at") else None,
                 })
             
@@ -148,12 +150,10 @@ async def export_user_data(
         }
         
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Data export error: {str(e)}")
+        logger.error("Data export error: %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to export data: {str(e)}"
+            detail="Failed to export data. Please try again."
         )
 
 
@@ -185,15 +185,24 @@ async def delete_account(
             ]
         })
         
+        user_query = {"$in": [current_user.id, ObjectId(current_user.id)]}
+
         if couple_doc:
             couple_id_str = str(couple_doc["_id"])
             couple_id_obj = couple_doc["_id"]
             couple_query = {"$in": [couple_id_str, couple_id_obj]}
-            user_query = {"$in": [current_user.id, ObjectId(current_user.id)]}
-            
+
+            # Collect this couple's argument ids before touching anything,
+            # so AI-generated insights derived from the deleted perspectives
+            # can be purged too (see below) instead of surviving deletion.
+            argument_ids = [
+                arg["_id"]
+                async for arg in db.arguments.find({"couple_id": couple_query}, {"_id": 1})
+            ]
+
             # Delete user's perspectives
             await db.perspectives.delete_many({"user_id": user_query})
-            
+
             # Delete arguments created by this user (if any)
             # Note: We might want to keep arguments if couple wants to keep them
             # For now, anonymize rather than delete
@@ -201,19 +210,36 @@ async def delete_account(
                 {"couple_id": couple_query},
                 {"$set": {"created_by_user_id": None}}  # Anonymize instead of delete
             )
-            
+
             # Delete check-ins completed by this user
             await db.relationship_checkins.update_many(
                 {"couple_id": couple_query, "completed_by_user_id": user_query},
                 {"$set": {"completed_by_user_id": None}}  # Anonymize
             )
-            
+
             # Delete goals created by this user
             await db.relationship_goals.delete_many({
                 "couple_id": couple_query,
                 "created_by_user_id": user_query
             })
-        
+
+            # AI-generated insights are derived directly from the perspective
+            # content just deleted above (summaries, quoted disagreements,
+            # root causes) — they must not outlive it. Previously these
+            # survived "delete my account" indefinitely.
+            if argument_ids:
+                await db.ai_insights.delete_many({"argument_id": {"$in": argument_ids}})
+
+            # Cached AI goal/check-in suggestions are also derived content.
+            await db.ai_suggestion_cache.delete_many({"couple_id": couple_query})
+
+        # Refresh tokens, device push tokens, and in-app notifications are
+        # tied to this user specifically (not the couple) and are not
+        # needed for the couple's remaining history — purge them outright.
+        await db.refresh_tokens.delete_many({"user_id": user_query})
+        await db.device_tokens.delete_many({"user_id": user_query})
+        await db.in_app_notifications.delete_many({"user_id": user_query})
+
         # Anonymize user account (don't fully delete for audit trail)
         # Keep for 7 years for financial/legal compliance
         await db.users.update_one(
@@ -237,10 +263,8 @@ async def delete_account(
         }
         
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Account deletion error: {str(e)}")
+        logger.error("Account deletion error: %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete account: {str(e)}"
+            detail="Failed to delete account. Please try again."
         )

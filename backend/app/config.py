@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    # Field-level encryption at rest for argument/perspective content.
+    # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    FIELD_ENCRYPTION_KEY: str = ""
+
     # CORS — includes localhost ports. Production URLs should be set via env vars.
     ALLOWED_ORIGINS: Union[List[str], str] = [
         "http://localhost:3000",
@@ -102,6 +106,12 @@ class Settings(BaseSettings):
                 raise ValueError('Production MongoDB must have authentication configured')
             if not self.FRONTEND_URL.startswith('https://'):
                 raise ValueError(f'Production FRONTEND_URL must use HTTPS: {self.FRONTEND_URL}')
+            if not self.FIELD_ENCRYPTION_KEY:
+                raise ValueError(
+                    'Production requires FIELD_ENCRYPTION_KEY for encrypting argument/perspective '
+                    'content at rest. Generate one with: python -c "from cryptography.fernet import '
+                    'Fernet; print(Fernet.generate_key().decode())"'
+                )
             origins = self.ALLOWED_ORIGINS if isinstance(self.ALLOWED_ORIGINS, list) else [self.ALLOWED_ORIGINS]
             for origin in origins:
                 if not origin.startswith('https://'):

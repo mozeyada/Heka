@@ -127,3 +127,19 @@ def sanitize_email(email: str) -> str:
         raise ValueError(f"Invalid email format: {str(e)}")
 
 
+def couple_id_query(couple_id: str) -> dict:
+    """Return a MongoDB query value that matches couple_id stored as either a
+    plain string OR an ObjectId.
+
+    Documents written before the ObjectId-consistency fix (commit 5756245)
+    store couple_id as a raw string; documents written after store it as an
+    ObjectId. Using ``$in`` for every read avoids a data migration while
+    keeping both old and new records visible.
+
+    Usage::
+
+        await db.relationship_goals.find({"couple_id": couple_id_query(couple.id), ...})
+    """
+    from bson import ObjectId as _ObjectId
+    oid = _ObjectId(couple_id)
+    return {"$in": [couple_id, oid]}

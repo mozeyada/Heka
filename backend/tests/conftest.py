@@ -11,6 +11,10 @@ os.environ["MONGODB_URL"] = "mongodb://localhost:27017"
 os.environ["MONGODB_DB_NAME"] = "heka_test_db"
 os.environ["SECRET_KEY"] = "test_secret_key_needs_to_be_at_least_32_chars_long"
 os.environ["OPENAI_API_KEY"] = "sk-test-key-mock"
+# Fixed test key so field-encryption round-trips deterministically across
+# the test run (regenerating per-process would still work, but a fixed key
+# makes failures reproducible).
+os.environ["FIELD_ENCRYPTION_KEY"] = "wxCec3R9_ne8MmP31kzSwJna3gIA4WULhieD8VTQVLU="
 
 from app.db.database import get_database  # noqa: E402
 from app.main import app  # noqa: E402

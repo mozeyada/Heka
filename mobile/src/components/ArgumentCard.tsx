@@ -111,12 +111,12 @@ const styles = StyleSheet.create({
   title: {
     ...typography.heading,
     fontSize: 18,
-    color: colors.neutral[100],
+    color: colors.neutral[900],
     flex: 1,
   },
   meta: {
     ...typography.body,
-    color: colors.neutral[400],
+    color: colors.neutral[600],
   },
   footerRow: {
     marginTop: spacing.md,
@@ -155,11 +155,11 @@ const styles = StyleSheet.create({
   statePillText: {
     ...typography.label,
     fontSize: 11,
-    color: colors.neutral[100],
+    color: colors.neutral[900],
   },
   metaHint: {
     ...typography.body,
     fontSize: 12,
-    color: colors.neutral[400],
+    color: colors.neutral[600],
   },
 });

@@ -13,6 +13,7 @@ from app.api.checkins import _build_checkin_response
 from app.api.dependencies import get_current_user
 from app.api.goals import _build_goal_response, _parse_goal_doc
 from app.api.schemas import ArgumentResponse
+from app.core.sanitization import couple_id_query
 from app.db.database import get_database
 from app.models.argument import ArgumentInDB
 from app.models.couple import CoupleInDB, CoupleStatus
@@ -136,7 +137,7 @@ async def get_dashboard_overview(
     argument_docs = await (
         db.arguments.find(
             {
-                "couple_id": ObjectId(couple.id),
+                "couple_id": couple_id_query(couple.id),
                 "hidden_for_user_ids": {"$ne": current_user.id},
                 "status": {"$ne": "archived"},
             }
@@ -188,7 +189,7 @@ async def get_dashboard_overview(
     goals_cursor = (
         db.relationship_goals.find(
             {
-                "couple_id": ObjectId(couple.id),
+                "couple_id": couple_id_query(couple.id),
                 "status": "active",
                 "hidden_for_user_ids": {"$ne": current_user.id},
             }
@@ -218,7 +219,7 @@ async def get_dashboard_overview(
     current_week_start = datetime.combine(week_start_date, datetime.min.time())
     checkin_doc = await db.relationship_checkins.find_one(
         {
-            "couple_id": ObjectId(couple.id),
+            "couple_id": couple_id_query(couple.id),
             "week_start_date": current_week_start,
         }
     )

@@ -27,6 +27,7 @@ from app.services.email_service import email_service
 from app.services.refresh_token_service import (
     RefreshTokenError,
     create_refresh_token,
+    revoke_tokens_for_user,
     verify_and_rotate_refresh_token,
 )
 
@@ -109,13 +110,10 @@ async def register(
             created_at=user.created_at
         )
     except Exception as e:
-        # Log the error for debugging
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Registration error: {str(e)}")
+        logger.error("Registration error: %s", e, exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Registration failed: {str(e)}"
+            detail="Registration failed. Please try again."
         )
 
 
@@ -334,5 +332,23 @@ async def reset_password(
         {"$set": {"password_hash": hashed_password},
          "$unset": {"reset_password_token": "", "reset_password_expires": ""}}
     )
-    
+
+    # Revoke every existing session — otherwise a session established before
+    # the reset (e.g. by whoever prompted the reset) survives it unaffected.
+    await revoke_tokens_for_user(str(user_doc["_id"]), db)
+
     return {"message": "Password successfully reset. You can now log in."}
+
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout(
+    current_user: UserInDB = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+):
+    """Log out by revoking all of the current user's refresh tokens.
+
+    Access tokens are stateless and expire on their own; this only affects
+    the ability to mint new ones via refresh.
+    """
+    await revoke_tokens_for_user(current_user.id, db)
+    return {"message": "Logged out successfully."}

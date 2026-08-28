@@ -56,28 +56,30 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     ...shadows.card,
     marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
   },
   sectionHeader: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[600],
+    borderBottomColor: colors.neutral[200],
     paddingBottom: spacing.md,
     marginBottom: spacing.md,
   },
   sectionTitle: {
     ...typography.heading,
     fontSize: 20,
-    color: colors.neutral[100],
+    color: colors.neutral[900],
   },
   sectionSubtitle: {
     ...typography.body,
-    color: colors.neutral[400],
+    color: colors.neutral[600],
     marginTop: spacing.xs,
   },
   sectionContent: {
     marginTop: spacing.md,
   },
   skeleton: {
-    backgroundColor: colors.neutral[700],
+    backgroundColor: colors.neutral[200],
     borderRadius: radii.sm,
   },
 });

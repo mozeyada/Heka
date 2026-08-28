@@ -10,11 +10,13 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.api.dependencies import get_current_user
 from app.api.schemas import CheckInCreate, CheckInResponse
+from app.core.sanitization import couple_id_query
 from app.db.database import get_database
 from app.models.argument import ArgumentStatus
 from app.models.couple import CoupleInDB, CoupleStatus
 from app.models.relationship_checkin import CheckInStatus, RelationshipCheckInInDB
 from app.models.user import UserInDB
+from app.services.safety_service import safety_service
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +45,7 @@ async def _build_checkin_response(
 
     open_argument_count = await db.arguments.count_documents(
         {
-            "couple_id": ObjectId(couple.id),
+            "couple_id": couple_id_query(couple.id),
             "status": {"$in": [
                 ArgumentStatus.DRAFT.value,
                 ArgumentStatus.ACTIVE.value,
@@ -54,7 +56,7 @@ async def _build_checkin_response(
     )
     active_goal_count = await db.relationship_goals.count_documents(
         {
-            "couple_id": ObjectId(couple.id),
+            "couple_id": couple_id_query(couple.id),
             "status": "active",
             "hidden_for_user_ids": {"$ne": current_user.id},
         }
@@ -160,7 +162,7 @@ async def get_current_checkin(
     
     # Find or create check-in for this week
     checkin_doc = await db.relationship_checkins.find_one({
-        "couple_id": ObjectId(couple.id),
+        "couple_id": couple_id_query(couple.id),
         "week_start_date": datetime.combine(week_start, datetime.min.time())
     })
     
@@ -213,7 +215,7 @@ async def complete_checkin(
     
     # Find check-in for this week
     checkin_doc = await db.relationship_checkins.find_one({
-        "couple_id": ObjectId(couple.id),
+        "couple_id": couple_id_query(couple.id),
         "week_start_date": datetime.combine(week_start, datetime.min.time())
     })
     
@@ -259,12 +261,29 @@ async def complete_checkin(
         {"_id": ObjectId(checkin.id)},
         update_data
     )
-    
+
+    # Safety scan runs on submission, same as perspectives — a check-in is
+    # free text too, and disclosures shouldn't wait for someone to request
+    # AI analysis before resources are surfaced.
+    response_text = " ".join(str(v) for v in checkin_data.responses.values())
+    safety_check = safety_service.detect_safety_concerns(response_text, "")
+    safety_notice = safety_service.build_notice(safety_check)
+    if safety_notice:
+        await safety_service.record_alert(
+            safety_check=safety_check,
+            db=db,
+            context="checkin_submitted",
+            couple_id=couple.id,
+            user_id=current_user.id,
+        )
+
     # Refresh object
     updated_doc = await db.relationship_checkins.find_one({"_id": ObjectId(checkin.id)})
     checkin = RelationshipCheckInInDB.from_mongo(updated_doc)
-    
-    return await _build_checkin_response(checkin=checkin, current_user=current_user, couple=couple, db=db)
+
+    response = await _build_checkin_response(checkin=checkin, current_user=current_user, couple=couple, db=db)
+    response.safety_notice = safety_notice
+    return response
 
 
 @router.get("/history")
@@ -306,7 +325,7 @@ async def get_checkin_history(
 
     cursor = (
         db.relationship_checkins.find({
-            "couple_id": ObjectId(couple.id)
+            "couple_id": couple_id_query(couple.id)
         })
         .sort("week_start_date", -1)
         .skip(offset)

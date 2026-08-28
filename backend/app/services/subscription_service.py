@@ -7,6 +7,7 @@ from typing import Optional
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.core.sanitization import couple_id_query
 from app.models.subscription import (
     SubscriptionInDB,
     SubscriptionStatus,
@@ -82,7 +83,7 @@ class SubscriptionService:
     ) -> SubscriptionInDB:
         """Get existing subscription or create a free trial subscription."""
         # Check if subscription exists
-        sub_doc = await db.subscriptions.find_one({"couple_id": ObjectId(couple_id)})
+        sub_doc = await db.subscriptions.find_one({"couple_id": couple_id_query(couple_id)})
         
         if sub_doc:
             subscription = SubscriptionInDB.from_mongo(sub_doc)
@@ -121,7 +122,7 @@ class SubscriptionService:
         db: AsyncIOMotorDatabase
     ) -> Optional[SubscriptionInDB]:
         """Get subscription for a couple."""
-        sub_doc = await db.subscriptions.find_one({"couple_id": ObjectId(couple_id)})
+        sub_doc = await db.subscriptions.find_one({"couple_id": couple_id_query(couple_id)})
         if sub_doc:
             subscription = SubscriptionInDB.from_mongo(sub_doc)
             original = subscription.model_copy(deep=True)

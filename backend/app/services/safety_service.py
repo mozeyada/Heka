@@ -1,7 +1,10 @@
 """Safety detection service for crisis situations and abuse indicators."""
 
 import logging
-from typing import Dict, List
+from datetime import datetime
+from typing import Dict, List, Optional
+
+from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
@@ -15,16 +18,22 @@ class SafetyService:
             'punch', 'punching', 'physically attack',
             'violent', 'violence', 'beat you', 'beating you',
             'assault', 'assaulting', 'physically harm',
-            'domestic violence', 'threaten to kill'
+            'domestic violence', 'threaten to kill',
+            'hit me', 'hit her', 'hit him', 'hurt me', 'choked me', 'choke me',
+            'grabbed me', 'threw something at me', 'scared for my safety'
         ],
         'abuse': [
             'manipulate', 'manipulating', 'manipulation', 'coerce', 'coercing',
             'financial control', 'emotional abuse',
-            'verbal abuse', 'psychological abuse', 'gaslight', 'gaslighting'
+            'verbal abuse', 'psychological abuse', 'gaslight', 'gaslighting',
+            'controls everything i do', 'won\'t let me leave', "won't let me leave",
+            'threatens to hurt', 'isolates me from'
         ],
         'self_harm': [
             'suicide', 'suicidal', 'kill myself', 'end my life', 'want to die',
-            'self-harm', 'self harm', 'cutting', 'cut myself', 'better off dead'
+            'self-harm', 'self harm', 'cutting', 'cut myself', 'better off dead',
+            "don't want to be here anymore", "no reason to keep going",
+            "no point in living", "can't go on like this"
         ],
         'substance': [
             'alcoholic', 'addiction', 'substance abuse', 'overdose'
@@ -143,6 +152,56 @@ class SafetyService:
     def should_block_mediation(self, safety_check: Dict) -> bool:
         """Determine if mediation should be blocked."""
         return safety_check.get("severity") == "critical"
+
+    def build_notice(self, safety_check: Dict) -> Optional[Dict]:
+        """Build a user-facing notice (message + crisis resources) for immediate display.
+
+        Unlike should_block_mediation, this fires on ANY detected concern, not
+        just critical ones — the point is to surface help the moment someone
+        discloses something, not only when they later request AI analysis.
+        """
+        if not safety_check.get("has_concerns"):
+            return None
+        return {
+            "severity": safety_check.get("severity"),
+            "concern_types": safety_check.get("concern_types", []),
+            "message": safety_check.get("message"),
+            "resources": self.get_crisis_resources(),
+        }
+
+    async def record_alert(
+        self,
+        *,
+        safety_check: Dict,
+        db,
+        context: str,
+        argument_id: Optional[str] = None,
+        couple_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> None:
+        """Persist a safety concern for future human review.
+
+        This is a seed for a real review queue: today nothing consumes
+        `reviewed=False` rows automatically, but the concern is no longer
+        lost the moment the request finishes, which is what it takes for a
+        human-review process to exist at all in the future.
+        """
+        if not safety_check.get("has_concerns"):
+            return
+        try:
+            await db.safety_alerts.insert_one({
+                "context": context,
+                "argument_id": ObjectId(argument_id) if argument_id else None,
+                "couple_id": ObjectId(couple_id) if couple_id else None,
+                "user_id": ObjectId(user_id) if user_id else None,
+                "concern_types": safety_check.get("concern_types", []),
+                "severity": safety_check.get("severity"),
+                "reviewed": False,
+                "created_at": datetime.utcnow(),
+            })
+        except Exception:
+            # Never let alert logging break the user's actual submission.
+            logger.exception("Failed to record safety alert (context=%s)", context)
     
     def get_crisis_resources(self) -> Dict[str, List[str]]:
         """Get crisis resources for Australia."""

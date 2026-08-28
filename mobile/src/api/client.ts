@@ -2,7 +2,9 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
 import { useAuthStore } from "../store/auth";
 
-// Using production backend - local debugging requires network setup (tunnel/port forwarding)
+if (__DEV__ && !process.env.EXPO_PUBLIC_API_BASE_URL) {
+  throw new Error("EXPO_PUBLIC_API_BASE_URL must be set in development");
+}
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL ||
   "https://heka-production.up.railway.app";
@@ -58,15 +60,7 @@ api.interceptors.request.use(
     )?._retry;
     console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`, {
       hasAuth: !!authHeader,
-      authPreview: authHeader ? `${authHeader.substring(0, 30)}...` : "none",
       isRetry,
-      tokenFromStore: authStore.accessToken
-        ? `${authStore.accessToken.substring(0, 20)}...`
-        : "none",
-      tokensMatch:
-        authHeader && authStore.accessToken
-          ? authHeader.includes(authStore.accessToken.substring(0, 20))
-          : "N/A",
     });
     return config;
   },
@@ -127,24 +121,9 @@ api.interceptors.response.use(
 
       // Check if we have a refresh token before attempting refresh
       const authStore = useAuthStore.getState();
-      console.log("[API] Checking for refresh token before refresh attempt:", {
-        hasRefreshToken: !!authStore.refreshToken,
-        refreshTokenPreview: authStore.refreshToken
-          ? `${authStore.refreshToken.substring(0, 20)}...`
-          : "null",
-        hasAccessToken: !!authStore.accessToken,
-        userId: authStore.userId,
-        email: authStore.email,
-      });
-
       if (!authStore.refreshToken) {
         console.error("[API] No refresh token available, cannot refresh");
-        console.error("Current auth store state:", {
-          accessToken: authStore.accessToken ? "present" : "missing",
-          refreshToken: authStore.refreshToken ? "present" : "missing",
-          email: authStore.email,
-          userId: authStore.userId,
-        });
+
         return Promise.reject(error);
       }
 
@@ -192,7 +171,6 @@ api.interceptors.response.use(
           console.log("[API] Retrying original request with new token:", {
             url: newRequestConfig.url,
             hasNewToken: !!newToken,
-            tokenPreview: newToken ? `${newToken.substring(0, 20)}...` : "none",
           });
 
           return api(newRequestConfig);
@@ -235,13 +213,6 @@ api.interceptors.response.use(
           originalRequest?.headers?.Authorization ||
             error.config?.headers?.Authorization,
         ),
-        authHeader: (() => {
-          const header = normalizeAuthHeader(
-            originalRequest?.headers?.Authorization ||
-              error.config?.headers?.Authorization,
-          );
-          return header ? `${header.substring(0, 30)}...` : "none";
-        })(),
       });
     }
 
@@ -252,10 +223,7 @@ api.interceptors.response.use(
 export const setAuthToken = (token: string | null) => {
   if (token) {
     api.defaults.headers.common.Authorization = `Bearer ${token}`;
-    console.log(
-      "[API] Authorization header set:",
-      `Bearer ${token.substring(0, 20)}...`,
-    );
+    console.log("[API] Authorization header set");
   } else {
     delete api.defaults.headers.common.Authorization;
     console.log("[API] Authorization header cleared");

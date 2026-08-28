@@ -13,7 +13,7 @@ Heka helps couples resolve arguments using AI-powered mediation. Each partner sh
 **MVP Complete (Production-ready web + mobile core)**
 - Full-stack application deployed and operational
 - 17 responsive web pages with cohesive design system
-- Native mobile app (Expo) with polished dashboard, glassmorphic navigation, and offline-first ready architecture
+- Native mobile app (Expo) with polished dashboard and glassmorphic navigation
 - **Action Plans:** Convert resolved arguments into shared goals and check-ins (Cement the Win)
 - AI mediation with safety detection
 - Subscription management (Free, Basic, Premium tiers)

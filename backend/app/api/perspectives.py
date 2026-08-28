@@ -9,12 +9,14 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.api.dependencies import get_current_user
 from app.api.schemas import PerspectiveCreate, PerspectiveResponse, PerspectiveUpdate
+from app.core.crypto import encrypt_text
 from app.core.sanitization import sanitize_text, validate_object_id
 from app.db.database import get_database
 from app.models.argument import ArgumentInDB, ArgumentStatus
 from app.models.couple import CoupleStatus
 from app.models.perspective import PerspectiveInDB
 from app.models.user import UserInDB
+from app.services.safety_service import safety_service
 
 router = APIRouter(prefix="/api/perspectives", tags=["Perspectives"])
 
@@ -119,13 +121,29 @@ async def create_perspective(
             }
         }
     )
-    
+
+    # Safety scan runs on submission, not only when AI analysis is requested,
+    # so a crisis/abuse disclosure surfaces resources immediately instead of
+    # sitting unflagged until someone happens to trigger mediation.
+    safety_check = safety_service.detect_safety_concerns(sanitized_content, "")
+    safety_notice = safety_service.build_notice(safety_check)
+    if safety_notice:
+        await safety_service.record_alert(
+            safety_check=safety_check,
+            db=db,
+            context="perspective_submitted",
+            argument_id=validated_argument_id,
+            couple_id=str(couple_doc["_id"]),
+            user_id=current_user.id,
+        )
+
     return PerspectiveResponse(
         id=perspective.id,
         argument_id=perspective.argument_id,
         user_id=perspective.user_id,
         content=perspective.content,
-        created_at=perspective.created_at
+        created_at=perspective.created_at,
+        safety_notice=safety_notice,
     )
 
 
@@ -197,7 +215,7 @@ async def update_my_perspective(
     now = datetime.utcnow()
     await db.perspectives.update_one(
         {"_id": existing_perspective["_id"]},
-        {"$set": {"content": sanitized_content, "updated_at": now}},
+        {"$set": {"content": encrypt_text(sanitized_content), "updated_at": now}},
     )
 
     perspectives_count = await db.perspectives.count_documents({"argument_id": argument_oid})
@@ -213,6 +231,18 @@ async def update_my_perspective(
         }
     )
 
+    safety_check = safety_service.detect_safety_concerns(sanitized_content, "")
+    safety_notice = safety_service.build_notice(safety_check)
+    if safety_notice:
+        await safety_service.record_alert(
+            safety_check=safety_check,
+            db=db,
+            context="perspective_updated",
+            argument_id=validated_argument_id,
+            couple_id=str(couple_doc["_id"]),
+            user_id=current_user.id,
+        )
+
     updated_doc = await db.perspectives.find_one({"_id": existing_perspective["_id"]})
     perspective = PerspectiveInDB.from_mongo(updated_doc)
     return PerspectiveResponse(
@@ -221,6 +251,7 @@ async def update_my_perspective(
         user_id=perspective.user_id,
         content=perspective.content,
         created_at=perspective.created_at,
+        safety_notice=safety_notice,
     )
 
 

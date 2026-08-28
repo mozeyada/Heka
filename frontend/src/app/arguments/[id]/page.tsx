@@ -119,7 +119,12 @@ export default function ArgumentDetailPage() {
       setSafetyConcern(data?.safety_check?.blocked ? data?.safety_check : null);
       await fetchArgumentById(argumentId);
       if (!data?.safety_check?.blocked) {
-        Promise.all([aiSuggestionsAPI.generateArgumentGoals(argumentId), aiSuggestionsAPI.generateArgumentCheckins(argumentId)]).catch(() => {});
+        Promise.all([
+          aiSuggestionsAPI.generateArgumentGoals(argumentId),
+          aiSuggestionsAPI.generateArgumentCheckins(argumentId)
+        ]).catch((err: any) => {
+          setError(err.response?.data?.detail || 'Failed to generate AI follow-up suggestions. You can try again from the Cement the Win menu.');
+        });
       }
     } catch (err: any) {
       const detail = err.response?.data?.detail || 'Failed to analyze argument';
@@ -229,7 +234,7 @@ export default function ArgumentDetailPage() {
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            End-to-end encrypted
+            Encrypted at Rest
           </div>
         </div>
 

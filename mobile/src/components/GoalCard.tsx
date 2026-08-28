@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   title: {
     ...typography.heading,
     fontSize: 18,
-    color: colors.neutral[100],
+    color: colors.neutral[900],
     flex: 1,
   },
   statusPill: {
@@ -169,11 +169,11 @@ const styles = StyleSheet.create({
   archivedText: {
     ...typography.label,
     fontSize: 12,
-    color: colors.neutral[100],
+    color: colors.neutral[900],
   },
   description: {
     ...typography.body,
-    color: colors.neutral[400],
+    color: colors.neutral[600],
     marginBottom: spacing.md,
   },
   nextActionBlock: {
@@ -195,16 +195,16 @@ const styles = StyleSheet.create({
   nextActionPillText: {
     ...typography.label,
     fontSize: 11,
-    color: colors.neutral[100],
+    color: colors.neutral[900],
   },
   nextActionTitle: {
     ...typography.label,
-    color: colors.neutral[100],
+    color: colors.neutral[900],
   },
   nextActionDescription: {
     ...typography.body,
     fontSize: 13,
-    color: colors.neutral[400],
+    color: colors.neutral[600],
   },
   latestMoveBlock: {
     marginBottom: spacing.md,
@@ -218,13 +218,13 @@ const styles = StyleSheet.create({
   latestMoveLabel: {
     ...typography.label,
     fontSize: 10,
-    color: colors.neutral[400],
+    color: colors.neutral[600],
     textTransform: "uppercase",
   },
   latestMoveNote: {
     ...typography.body,
     fontSize: 13,
-    color: colors.neutral[200],
+    color: colors.neutral[800],
   },
   latestMoveMeta: {
     ...typography.label,
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   date: {
     ...typography.body,
     fontSize: 12,
-    color: colors.neutral[400],
+    color: colors.neutral[600],
     marginBottom: spacing.md,
   },
   actions: {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     ...typography.label,
-    color: colors.neutral[200],
+    color: colors.neutral[800],
   },
   completeButton: {
     backgroundColor: colors.success,

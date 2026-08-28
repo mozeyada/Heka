@@ -29,6 +29,7 @@ class Invitation(BaseModel):
     
     # Couple linking (set when invitation is accepted)
     couple_id: Optional[str] = None  # ObjectId reference to Couple
+    message: Optional[str] = None  # Warm personal invitation message
     
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)

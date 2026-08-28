@@ -1,3 +1,4 @@
+from typing import Optional
 """Couples endpoints with invitation system."""
 
 import logging
@@ -7,7 +8,7 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from app.api.dependencies import get_current_user
 from app.db.database import get_database
@@ -22,8 +23,12 @@ router = APIRouter(prefix="/api/couples", tags=["Couples"])
 
 
 class InviteRequest(BaseModel):
-    """Invite partner request."""
+    """Invite partner request with empathetic custom message."""
     partner_email: EmailStr
+    message: Optional[str] = Field(
+        default="I care about our relationship and want us to have a calm, private space where we both feel heard.",
+        max_length=500
+    )
 
 
 @router.post("/invite")
@@ -77,11 +82,12 @@ async def invite_partner(
     # Generate invitation token
     invitation_token = secrets.token_urlsafe(32)
     
-    # Create invitation
+    # Create invitation with supportive message
     invitation = InvitationInDB(
         inviter_id=current_user.id,
         invitee_email=partner_email,
         token=invitation_token,
+        message=invite_data.message or "I care about our relationship and want us to have a calm, private space where we both feel heard.",
         status=InvitationStatus.PENDING,
         expires_at=datetime.utcnow() + timedelta(days=7)
     )
@@ -319,13 +325,16 @@ async def accept_invitation(
     couple_result = await db.couples.insert_one(couple.to_mongo())
     couple.id = str(couple_result.inserted_id)
     
-    # Update invitation
+    # Update invitation. couple_id must be stored as an ObjectId — every
+    # reader in the codebase queries invitations.couple_id as ObjectId, and a
+    # bare string here previously produced exactly the class of silent
+    # type-mismatch bug fixed for data exports in commit 5756245.
     await db.invitations.update_one(
         {"_id": ObjectId(invitation.id)},
         {
             "$set": {
                 "status": InvitationStatus.ACCEPTED.value,
-                "couple_id": couple.id,
+                "couple_id": ObjectId(couple.id),
                 "accepted_at": datetime.utcnow()
             }
         }
@@ -371,4 +380,32 @@ async def get_my_couple(
         "user2_id": couple.user2_id,
         "status": couple.status.value,
         "created_at": couple.created_at
+    }
+
+
+@router.get("/invitations/preview/{token}")
+async def preview_invitation(
+    token: str,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Public preview of invitation for invited Partner B."""
+    invitation_doc = await db.invitations.find_one({"token": token})
+    if not invitation_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invitation not found"
+        )
+    invitation = InvitationInDB.from_mongo(invitation_doc)
+    inviter = await db.users.find_one({"_id": ObjectId(invitation.inviter_id)})
+    inviter_name = inviter.get("first_name", "Your partner") if inviter else "Your partner"
+
+    is_expired = invitation.expires_at < datetime.utcnow() or invitation.status == InvitationStatus.EXPIRED
+
+    return {
+        "inviter_name": inviter_name,
+        "invitee_email": invitation.invitee_email,
+        "message": invitation.message or "I care about our relationship and want us to have a calm, private space where we both feel heard.",
+        "status": invitation.status.value,
+        "is_expired": is_expired,
+        "privacy_promise": "Your partner will not see your raw unedited writing—only Heka's balanced, neutral mediation summary."
     }

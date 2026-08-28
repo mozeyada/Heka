@@ -5,11 +5,14 @@ import logging
 import re
 from typing import Dict, List, Optional
 
+import asyncio
 import httpx
+from httpx import HTTPStatusError, RequestError
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.config import settings
+from app.core.crypto import decrypt_text
 from app.models.ai_insight import AIInsightInDB
 from app.services.safety_service import safety_service
 
@@ -28,6 +31,29 @@ class AIMediationService:
         self.api_key = settings.OPENAI_API_KEY
         self.model = settings.OPENAI_MODEL
         self.api_url = "https://api.openai.com/v1/chat/completions"
+
+    async def _execute_with_retry(self, client: httpx.AsyncClient, url: str, **kwargs) -> httpx.Response:
+        max_retries = 3
+        base_delay = 1.0
+        
+        for attempt in range(max_retries):
+            try:
+                resp = await client.post(url, **kwargs)
+                resp.raise_for_status()
+                return resp
+            except (HTTPStatusError, RequestError) as e:
+                status_code = getattr(getattr(e, 'response', None), 'status_code', None)
+                if status_code and status_code not in [429, 500, 502, 503, 504]:
+                    if not isinstance(e, RequestError):
+                        raise
+                
+                if attempt == max_retries - 1:
+                    logger.error(f"OpenAI API failed after {max_retries} attempts: {e}")
+                    raise
+                    
+                delay = base_delay * (2 ** attempt)
+                logger.warning(f"OpenAI API call failed ({e}). Retrying in {delay}s...")
+                await asyncio.sleep(delay)
 
     async def mediate_argument(
         self,
@@ -85,18 +111,24 @@ SAFETY PROTOCOLS:
 - Do NOT attempt to mediate situations involving safety concerns
 - When safety concerns are present, prioritize safety over mediation
 
-RESPONSE STYLE:
-- Empathetic but direct
-- Use "I notice..." statements for observations (NVC)
-- Frame issues as "us vs. the problem" not "you vs. them"
-- Provide 3-5 concrete, actionable suggestions (not generic advice)
-- Include specific conversation scripts when helpful
-- Acknowledge emotions while focusing on solutions
+RESPONSE STYLE & BILATERAL SYMMETRY:
+- Maintain STRICT bilateral symmetry: validate both partners' emotional realities and underlying needs with equal weight and compassion.
+- Empathetic, neutral, and collaborative.
+- Use "I notice..." statements for observations (NVC).
+- Frame issues as "us vs. the problem" not "you vs. them".
+- Provide 3-5 concrete, actionable suggestions with paired micro-commitments for BOTH partners.
+- Include specific, non-judgmental conversation scripts for both sides.
+- Acknowledge deep attachment emotions while focusing on collaborative solutions.
+
+ANTI-WEAPONIZATION & CLINICAL REFRAMING RULES:
+- Never take sides, judge either partner, or declare one partner at fault.
+- Never use pathologizing buzzwords or diagnostic labels (e.g., "stonewalling", "gaslighting", "narcissist", "toxic", "passive-aggressive", "manipulative").
+- Translate defensive behaviors into Nonviolent Communication (NVC) and Emotion-Focused Therapy (EFT) terms: observable triggers, self-regulation protective responses, and vulnerable unmet attachment needs.
 
 PROHIBITED:
 - Never diagnose mental health conditions
 - Never provide medical or therapeutic treatment
-- Never take sides or judge either partner
+- Never take sides or validate one partner at the expense of the other
 - Never suggest leaving the relationship unless safety is at risk
 - Never minimize serious concerns
 
@@ -127,10 +159,14 @@ Category: {category}
 {safety_context}
 
 Partner 1 Perspective:
+<perspective>
 {perspective_1}
+</perspective>
 
 Partner 2 Perspective:
+<perspective>
 {perspective_2}
+</perspective>
 
 ANALYSIS REQUEST:
 Using Gottman Method, NVC, and EFT frameworks, provide:
@@ -168,7 +204,8 @@ Respond in JSON format only."""
                 payload["response_format"] = {"type": "json_object"}
 
             async with httpx.AsyncClient(timeout=90.0) as client:
-                resp = await client.post(
+                resp = await self._execute_with_retry(
+                    client,
                     self.api_url,
                     json=payload,
                     headers={
@@ -176,8 +213,9 @@ Respond in JSON format only."""
                         "Content-Type": "application/json",
                     }
                 )
-                resp.raise_for_status()
-                response_content = resp.json()["choices"][0]["message"]["content"]
+                resp_json = resp.json()
+                response_content = resp_json["choices"][0]["message"]["content"]
+                usage = resp_json.get("usage") or {}
 
             # Try to parse as JSON
             try:
@@ -196,10 +234,12 @@ Respond in JSON format only."""
                 logger.warning(f"AI response quality check failed for argument {argument_id}")
                 # Don't fail completely, but log the issue
             
-            # Cost tracking not available without SDK — set to 0
-            input_tokens = 0
-            output_tokens = 0
-            cost = 0.0
+            # Cost tracking: OpenAI's chat/completions response includes a
+            # `usage` block even when called via raw httpx (no SDK needed).
+            # This used to be hardcoded to 0 — see the Heka Trust Audit, Exhibit D.
+            input_tokens = usage.get("prompt_tokens", 0)
+            output_tokens = usage.get("completion_tokens", 0)
+            cost = self._calculate_cost(input_tokens, output_tokens)
             
             # Create AI insight document
             insight = AIInsightInDB(
@@ -276,12 +316,15 @@ Respond in JSON format only."""
             logger.warning("AI response summary is too short or missing")
             return False
         
-        # Check for potentially harmful content
-        harmful_keywords = ['leave them', 'divorce', 'break up', 'worthless', 'stupid', 'idiot']
+        # Check for potentially harmful or pathologizing/weaponized diagnostic language
+        harmful_keywords = [
+            'leave them', 'divorce', 'break up', 'worthless', 'stupid', 'idiot',
+            'narcissist', 'toxic', 'gaslighting', 'manipulative', 'stonewalling'
+        ]
         response_text = str(response).lower()
         if any(keyword in response_text for keyword in harmful_keywords):
-            logger.warning("Potentially harmful content detected in AI response")
-            # Don't block, but flag for review
+            logger.warning("Potentially harmful or pathologizing/weaponized language detected in AI response")
+            # Flag for review without crashing
         
         return True
     
@@ -429,7 +472,7 @@ Make them feel like a sequenced weekly ritual, not three interchangeable prompts
                 {"argument_id": arg_oid}
             ).sort([("updated_at", -1)]).to_list(length=2)
             perspective_glimpses = [
-                re.sub(r"\s+", " ", str(doc.get("content", "")).strip())[:220]
+                re.sub(r"\s+", " ", str(decrypt_text(doc.get("content", ""))).strip())[:220]
                 for doc in perspective_docs
                 if doc.get("content")
             ]
@@ -472,7 +515,8 @@ Make them feel like a sequenced weekly ritual, not three interchangeable prompts
                 payload["response_format"] = {"type": "json_object"}
 
             async with httpx.AsyncClient(timeout=60.0) as client:
-                resp = await client.post(
+                resp = await self._execute_with_retry(
+                    client,
                     self.api_url,
                     json=payload,
                     headers={
@@ -480,7 +524,6 @@ Make them feel like a sequenced weekly ritual, not three interchangeable prompts
                         "Content-Type": "application/json",
                     }
                 )
-                resp.raise_for_status()
                 response_content = resp.json()["choices"][0]["message"]["content"]
 
             try:
@@ -515,10 +558,14 @@ Make them feel like a sequenced weekly ritual, not three interchangeable prompts
 
             user_prompt = f"""
             Partner A answered:
+            <responses>
             {json.dumps(user1_responses, indent=2)}
+            </responses>
             
             Partner B answered:
+            <responses>
             {json.dumps(user2_responses, indent=2)}
+            </responses>
             """
 
             payload = {
@@ -532,7 +579,8 @@ Make them feel like a sequenced weekly ritual, not three interchangeable prompts
             }
 
             async with httpx.AsyncClient(timeout=60.0) as client:
-                resp = await client.post(
+                resp = await self._execute_with_retry(
+                    client,
                     self.api_url,
                     json=payload,
                     headers={
@@ -540,7 +588,6 @@ Make them feel like a sequenced weekly ritual, not three interchangeable prompts
                         "Content-Type": "application/json",
                     }
                 )
-                resp.raise_for_status()
                 report_text = resp.json()["choices"][0]["message"]["content"]
                 
                 # Update the database

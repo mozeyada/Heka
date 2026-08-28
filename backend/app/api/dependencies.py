@@ -25,22 +25,18 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
-    # Verify token with detailed logging
+
     import logging
+    import uuid
     logger = logging.getLogger(__name__)
-    logger.info(f"🔍 Validating token - preview: {token[:30] if token else 'None'}...")
-    
+    request_id = uuid.uuid4().hex[:8]
+
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        logger.info(f"✅ Token valid - user_id: {payload.get('sub')}")
-    except JWTError as e:
-        logger.error(f"❌ Token validation failed: {str(e)} - token preview: {token[:30] if token else 'None'}...")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token invalid: {str(e)}",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        logger.debug("Token validated request_id=%s user_id=%s", request_id, payload.get("sub"))
+    except JWTError:
+        logger.warning("Token validation failed request_id=%s", request_id)
+        raise credentials_exception
     
     if payload is None:
         raise credentials_exception

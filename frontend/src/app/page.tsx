@@ -285,7 +285,7 @@ export default function Home() {
                   <p className="font-semibold text-white">Encrypted at Rest</p>
                 </div>
                 <p className="text-sm text-zinc-400 leading-relaxed">
-                  All data is encrypted on disk. Your content is stored in Australia and Singapore. Even in a breach, your conversations are ciphertext — not readable.
+                  Argument and perspective content is encrypted at rest using AES-128 before it reaches our database. Your data is stored in Australia and Singapore. A breach of the database alone yields ciphertext — the application key is required to read it.
                 </p>
               </div>
 

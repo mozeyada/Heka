@@ -214,5 +214,10 @@ async def create_indexes(db: AsyncIOMotorDatabase):
     await _safe_create_index(db.in_app_notifications, "user_id")
     await _safe_create_index(db.in_app_notifications, [("user_id", ASCENDING), ("created_at", DESCENDING)])
     await _safe_create_index(db.in_app_notifications, [("user_id", ASCENDING), ("read_at", ASCENDING)])
-    
+
+    # Safety alerts collection indexes — the review queue seeded by submission-time
+    # crisis/abuse detection (see app/services/safety_service.py).
+    await _safe_create_index(db.safety_alerts, [("reviewed", ASCENDING), ("created_at", DESCENDING)])
+    await _safe_create_index(db.safety_alerts, "couple_id")
+
     logger.info("Database indexes and validators refreshed successfully")

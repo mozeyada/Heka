@@ -40,14 +40,26 @@ async def create_refresh_token(
 ) -> str:
     """
     Create and persist a new refresh token for a user.
-    All active tokens for the user are revoked before issuing a new one.
+    Any existing active token for the SAME device is revoked before issuing
+    a new one (re-login on a device replaces that device's session). Other
+    devices are left alone — Heka is built around two people, often on
+    separate devices, and a couple's session should not silently sign out
+    when either partner logs in elsewhere.
     Returns the raw token string for client consumption.
     """
-    # Revoke ALL active tokens for this user (not just same device_id)
-    # This ensures old tokens are invalidated on new login, preventing token reuse
-    # and ensuring only the latest login's token is valid
+    revoke_query = {"user_id": ObjectId(user_id), "revoked_at": None}
+    if device_id:
+        # Known device: replace only that device's active session.
+        revoke_query["device_id"] = device_id
+    else:
+        # No device_id supplied (e.g. web without device tracking): only
+        # replace other sessions that are similarly untracked, never touch
+        # sessions that do have a device_id — those belong to a specific
+        # device/partner and must not be revoked by an untracked login.
+        revoke_query["device_id"] = None
+
     await db.refresh_tokens.update_many(
-        {"user_id": ObjectId(user_id), "revoked_at": None},
+        revoke_query,
         {
             "$set": {
                 "revoked_at": datetime.utcnow(),

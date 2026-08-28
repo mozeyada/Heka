@@ -20,6 +20,7 @@ from app.db.database import get_database
 from app.models.couple import CoupleInDB, CoupleStatus
 from app.models.relationship_goal import GoalProgress, GoalStatus, RelationshipGoalInDB
 from app.models.user import UserInDB
+from app.core.sanitization import couple_id_query
 from app.services.in_app_notification_service import create_in_app_notification
 
 logger = logging.getLogger(__name__)
@@ -197,7 +198,7 @@ async def create_goal(
     
     # Check goal limit (max 10 active goals per couple)
     active_goals_count = await db.relationship_goals.count_documents({
-        "couple_id": ObjectId(couple.id),
+        "couple_id": couple_id_query(couple.id),
         "status": GoalStatus.ACTIVE.value
     })
     
@@ -307,7 +308,7 @@ async def get_goals(
         )
 
     query = {
-        "couple_id": ObjectId(couple.id),
+        "couple_id": couple_id_query(couple.id),
         "hidden_for_user_ids": {"$ne": current_user.id},
     }
     if status_filter:
@@ -361,7 +362,7 @@ async def get_goal(
     # Get goal
     goal_doc = await db.relationship_goals.find_one({
         "_id": ObjectId(goal_id),
-        "couple_id": ObjectId(couple.id),
+        "couple_id": couple_id_query(couple.id),
         "hidden_for_user_ids": {"$ne": current_user.id},
     })
     
@@ -411,7 +412,7 @@ async def update_goal_progress(
     # Get goal
     goal_doc = await db.relationship_goals.find_one({
         "_id": ObjectId(goal_id),
-        "couple_id": ObjectId(couple.id),
+        "couple_id": couple_id_query(couple.id),
         "hidden_for_user_ids": {"$ne": current_user.id},
     })
     
@@ -525,7 +526,7 @@ async def complete_goal(
     # Get goal
     goal_doc = await db.relationship_goals.find_one({
         "_id": ObjectId(goal_id),
-        "couple_id": ObjectId(couple.id),
+        "couple_id": couple_id_query(couple.id),
         "hidden_for_user_ids": {"$ne": current_user.id},
     })
     
@@ -595,7 +596,7 @@ async def delete_goal(
 
     goal_doc = await db.relationship_goals.find_one({
         "_id": ObjectId(goal_id),
-        "couple_id": ObjectId(couple.id)
+        "couple_id": couple_id_query(couple.id)
     })
 
     if not goal_doc:
@@ -692,7 +693,7 @@ async def react_to_goal_progress(
     # Get goal
     goal_doc = await db.relationship_goals.find_one({
         "_id": ObjectId(goal_id),
-        "couple_id": ObjectId(couple.id),
+        "couple_id": couple_id_query(couple.id),
         "hidden_for_user_ids": {"$ne": current_user.id},
     })
     
