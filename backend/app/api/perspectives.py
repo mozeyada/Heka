@@ -117,6 +117,7 @@ async def create_perspective(
             "$set": {
                 "status": next_status,
                 "latest_context_at": now,
+                "resolution_acknowledged_by_user_ids": [],
                 "updated_at": now,
             }
         }
@@ -226,6 +227,7 @@ async def update_my_perspective(
             "$set": {
                 "status": next_status,
                 "latest_context_at": now,
+                "resolution_acknowledged_by_user_ids": [],
                 "updated_at": now,
             }
         }
@@ -304,8 +306,12 @@ async def get_perspectives_for_argument(
             detail="Access denied to this argument"
         )
     
-    # Get perspectives
-    cursor = db.perspectives.find({"argument_id": argument_oid})
+    # Raw accounts are author-private. The other partner receives the shared
+    # mediation synthesis, never this endpoint's unedited source material.
+    cursor = db.perspectives.find({
+        "argument_id": argument_oid,
+        "user_id": ObjectId(current_user.id),
+    })
     perspectives = []
     
     async for persp_doc in cursor:

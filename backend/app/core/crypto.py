@@ -13,7 +13,7 @@ itself — see the Heka Trust Audit, Exhibit A.
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -70,3 +70,25 @@ def decrypt_text(value: Optional[str]) -> Optional[str]:
     except InvalidToken:
         logger.error("Failed to decrypt stored field — wrong FIELD_ENCRYPTION_KEY or corrupted ciphertext")
         raise
+
+
+def encrypt_nested_strings(value: Any) -> Any:
+    """Encrypt free-text values in a JSON-like structure without changing its shape."""
+    if isinstance(value, str):
+        return encrypt_text(value)
+    if isinstance(value, dict):
+        return {key: encrypt_nested_strings(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [encrypt_nested_strings(item) for item in value]
+    return value
+
+
+def decrypt_nested_strings(value: Any) -> Any:
+    """Decrypt values encrypted by :func:`encrypt_nested_strings`."""
+    if isinstance(value, str):
+        return decrypt_text(value)
+    if isinstance(value, dict):
+        return {key: decrypt_nested_strings(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [decrypt_nested_strings(item) for item in value]
+    return value

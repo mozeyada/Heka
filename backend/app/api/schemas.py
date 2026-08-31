@@ -265,6 +265,9 @@ class ArgumentResponse(BaseModel):
     can_generate_insight: bool = False
     insight_generated_at: Optional[datetime] = None
     latest_context_at: Optional[datetime] = None
+    resolution_acknowledged_by_current_user: bool = False
+    resolution_acknowledged_by_partner: bool = False
+    resolution_pending: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -308,7 +311,9 @@ class CheckInResponse(BaseModel):
     
     # Dual tracking
     responses: Optional[dict] = None          # Current user's responses
-    partner_responses: Optional[dict] = None  # Partner's responses (only shown if both completed)
+    # Reflections stay author-private. The shared harmony report is the only
+    # cross-partner representation of the written check-in.
+    partner_responses: Optional[dict] = None
     completed_by: list[str] = Field(default_factory=list)  # User IDs who completed it
     current_user_completed: bool = False
     partner_completed: bool = False

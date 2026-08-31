@@ -79,6 +79,11 @@ async def _build_argument_response(
         insight_status = "current"
 
     archived_for_current_user = _is_archived_for_user(argument, str(current_user.id))
+    resolution_acknowledgements = set(
+        getattr(argument, "resolution_acknowledged_by_user_ids", None) or []
+    )
+    resolution_acknowledged_by_current_user = str(current_user.id) in resolution_acknowledgements
+    resolution_acknowledged_by_partner = partner_id in resolution_acknowledgements
     effective_status = (
         ArgumentStatus.ARCHIVED.value
         if archived_for_current_user
@@ -109,6 +114,14 @@ async def _build_argument_response(
         can_generate_insight=insight_status in {"ready", "stale"},
         insight_generated_at=insight_generated_at,
         latest_context_at=latest_context_at,
+        resolution_acknowledged_by_current_user=resolution_acknowledged_by_current_user,
+        resolution_acknowledged_by_partner=resolution_acknowledged_by_partner,
+        resolution_pending=(
+            not archived_for_current_user
+            and argument.status != ArgumentStatus.RESOLVED
+            and resolution_acknowledged_by_current_user
+            and not resolution_acknowledged_by_partner
+        ),
         created_at=argument.created_at,
         updated_at=argument.updated_at,
     )
@@ -403,7 +416,9 @@ async def update_argument_status(
             detail="Status is required"
         )
 
-    # Validate status enum
+    # The public endpoint expresses a participant's intent rather than exposing
+    # every internal state-machine transition. Analysis and archive transitions
+    # are owned by their dedicated workflows.
     try:
         new_status = ArgumentStatus(status_update.status)
     except ValueError:
@@ -412,22 +427,55 @@ async def update_argument_status(
             detail=f"Invalid status. Must be one of: {[s.value for s in ArgumentStatus]}"
         )
 
-    # Update timestamp
+    if new_status not in {ArgumentStatus.ACTIVE, ArgumentStatus.RESOLVED}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only active (reopen) or resolved (acknowledge) can be set directly.",
+        )
+
     updated_at = datetime.utcnow()
-    
-    await db.arguments.update_one(
-        {"_id": argument_oid},
-        {"$set": {
-            "status": new_status.value,
-            "updated_at": updated_at
-        }}
+
+    if new_status == ArgumentStatus.ACTIVE:
+        await db.arguments.update_one(
+            {"_id": argument_oid},
+            {"$set": {
+                "status": ArgumentStatus.ACTIVE.value,
+                "resolution_acknowledged_by_user_ids": [],
+                "updated_at": updated_at,
+            }},
+        )
+    else:
+        # Resolution is a mutual acknowledgement of the shared plan, not a
+        # unilateral judgement that the other person's concern is finished.
+        if argument.status != ArgumentStatus.ANALYZED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Generate a current mediation plan before acknowledging resolution.",
+            )
+        acknowledgements = set(
+            getattr(argument, "resolution_acknowledged_by_user_ids", None) or []
+        )
+        acknowledgements.add(str(current_user.id))
+        both_acknowledged = {str(couple_doc["user1_id"]), str(couple_doc["user2_id"])}.issubset(
+            acknowledgements
+        )
+        await db.arguments.update_one(
+            {"_id": argument_oid},
+            {"$set": {
+                "status": (
+                    ArgumentStatus.RESOLVED.value
+                    if both_acknowledged
+                    else argument.status.value
+                ),
+                "resolution_acknowledged_by_user_ids": list(acknowledgements),
+                "updated_at": updated_at,
+            }},
+        )
+
+    updated_doc = await db.arguments.find_one({"_id": argument_oid})
+    return await _build_argument_response(
+        ArgumentInDB.from_mongo(updated_doc), current_user, db
     )
-    
-    # Return updated argument
-    argument.status = new_status
-    argument.updated_at = updated_at
-    
-    return await _build_argument_response(argument, current_user, db)
 
 
 @router.delete("/{argument_id}", status_code=status.HTTP_204_NO_CONTENT)

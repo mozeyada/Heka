@@ -10,6 +10,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.api.dependencies import get_current_user
 from app.api.schemas import CheckInCreate, CheckInResponse
+from app.core.crypto import encrypt_nested_strings
 from app.core.sanitization import couple_id_query
 from app.db.database import get_database
 from app.models.argument import ArgumentStatus
@@ -116,7 +117,9 @@ async def _build_checkin_response(
         status=checkin.status.value,
         journey_state=journey_state,
         responses=checkin.user_responses.get(current_user.id),
-        partner_responses=checkin.user_responses.get(partner_id) if checkin.status == CheckInStatus.COMPLETED else None,
+        # Raw reflections are author-private. A completed check-in shares the
+        # bounded harmony report, not a partner's unedited answers.
+        partner_responses=None,
         completed_by=checkin.completed_by,
         current_user_completed=current_user_completed,
         partner_completed=partner_completed,
@@ -239,7 +242,7 @@ async def complete_checkin(
     update_data = {
         "$set": {
             "status": new_status.value,
-            f"user_responses.{current_user.id}": checkin_data.responses,
+            f"user_responses.{current_user.id}": encrypt_nested_strings(checkin_data.responses),
             "completed_by": completed_by_object_ids,
             "updated_at": datetime.utcnow()
         }

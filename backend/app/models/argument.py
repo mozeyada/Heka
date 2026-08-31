@@ -51,6 +51,10 @@ class Argument(BaseModel):
     latest_context_at: Optional[datetime] = None
     hidden_for_user_ids: list[str] = Field(default_factory=list)
     archived_for_user_ids: list[str] = Field(default_factory=list)
+    # An issue is only resolved when both members of the couple acknowledge
+    # the shared plan. This prevents one person from unilaterally closing a
+    # conflict that is still live for the other.
+    resolution_acknowledged_by_user_ids: list[str] = Field(default_factory=list)
     
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -78,6 +82,10 @@ class ArgumentInDB(Argument):
             data["hidden_for_user_ids"] = [str(user_id) for user_id in data["hidden_for_user_ids"]]
         if "archived_for_user_ids" in data:
             data["archived_for_user_ids"] = [str(user_id) for user_id in data["archived_for_user_ids"]]
+        if "resolution_acknowledged_by_user_ids" in data:
+            data["resolution_acknowledged_by_user_ids"] = [
+                str(user_id) for user_id in data["resolution_acknowledged_by_user_ids"]
+            ]
         return cls(**data)
     
     def to_mongo(self) -> dict:

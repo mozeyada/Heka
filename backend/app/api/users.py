@@ -11,6 +11,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.api.dependencies import get_current_user
 from app.core.crypto import decrypt_text
 from app.db.database import get_database
+from app.models.relationship_checkin import RelationshipCheckInInDB
 from app.models.user import UserInDB
 from app.services.notification_preferences import normalize_notification_preferences
 
@@ -97,12 +98,15 @@ async def export_user_data(
             # Get check-ins
             checkins_cursor = db.relationship_checkins.find({"couple_id": couple_query})
             async for checkin in checkins_cursor:
+                parsed_checkin = RelationshipCheckInInDB.from_mongo(checkin)
                 export_data["checkins"].append({
-                    "id": str(checkin["_id"]),
-                    "week_start_date": checkin.get("week_start_date").isoformat() if checkin.get("week_start_date") else None,
-                    "status": checkin.get("status", ""),
-                    "responses": checkin.get("responses", {}),
-                    "completed_at": checkin.get("completed_at").isoformat() if checkin.get("completed_at") else None,
+                    "id": parsed_checkin.id,
+                    "week_start_date": parsed_checkin.week_start_date.isoformat(),
+                    "status": parsed_checkin.status.value,
+                    # A personal export includes the requester's own writing,
+                    # not the other member's author-private reflection.
+                    "responses": parsed_checkin.user_responses.get(current_user.id, {}),
+                    "completed_at": parsed_checkin.completed_at.isoformat() if parsed_checkin.completed_at else None,
                 })
             
             # Get goals
@@ -211,10 +215,14 @@ async def delete_account(
                 {"$set": {"created_by_user_id": None}}  # Anonymize instead of delete
             )
 
-            # Delete check-ins completed by this user
+            # Remove the deleted user's private check-in responses rather than
+            # leaving their plaintext/encrypted reflection in shared history.
             await db.relationship_checkins.update_many(
-                {"couple_id": couple_query, "completed_by_user_id": user_query},
-                {"$set": {"completed_by_user_id": None}}  # Anonymize
+                {"couple_id": couple_query},
+                {
+                    "$unset": {f"user_responses.{current_user.id}": ""},
+                    "$pull": {"completed_by": {"$in": [current_user.id, ObjectId(current_user.id)]}},
+                },
             )
 
             # Delete goals created by this user

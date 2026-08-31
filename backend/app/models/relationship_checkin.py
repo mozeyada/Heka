@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from pydantic import BaseModel, Field
 
+from app.core.crypto import decrypt_nested_strings, encrypt_nested_strings
+
 
 class CheckInStatus(str, Enum):
     """Check-in completion status."""
@@ -66,6 +68,10 @@ class RelationshipCheckInInDB(RelationshipCheckIn):
             
         if "week_start_date" in data and isinstance(data["week_start_date"], datetime):
             data["week_start_date"] = data["week_start_date"].date()
+        if "user_responses" in data:
+            data["user_responses"] = decrypt_nested_strings(data["user_responses"])
+        if "ai_harmony_report" in data:
+            data["ai_harmony_report"] = decrypt_nested_strings(data["ai_harmony_report"])
         return cls(**data)
     
     def to_mongo(self) -> dict:
@@ -79,5 +85,9 @@ class RelationshipCheckInInDB(RelationshipCheckIn):
             data["completed_by"] = [ObjectId(uid) for uid in data["completed_by"] if uid]
         if "week_start_date" in data and isinstance(data["week_start_date"], date):
             data["week_start_date"] = datetime.combine(data["week_start_date"], datetime.min.time())
+        if "user_responses" in data:
+            data["user_responses"] = encrypt_nested_strings(data["user_responses"])
+        if "ai_harmony_report" in data:
+            data["ai_harmony_report"] = encrypt_nested_strings(data["ai_harmony_report"])
         return data
 
