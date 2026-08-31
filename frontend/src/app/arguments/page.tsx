@@ -234,7 +234,7 @@ export default function ArgumentsPage() {
                             : arg.status === 'archived'
                               ? 'Your partner stepped away from this issue. It stays here as archived context unless you remove it too.'
                               : arg.can_generate_insight
-                                ? 'Both sides are in. Open this conversation to get Heka's mediation.'
+                                ? "Both sides are in. Open this conversation to get Heka's mediation."
                               : arg.insight_status === 'current'
                                 ? 'This issue already has a current insight. Add more context only if the situation changed.'
                                 : 'Your side is in. Waiting for your partner to share their perspective.'}

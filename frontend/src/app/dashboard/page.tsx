@@ -322,8 +322,8 @@ export default function DashboardPage() {
              <div className="rounded-2xl bg-black/20 border border-white/5 p-8 text-center flex flex-col items-center">
                  <Shield className="h-10 w-10 text-emerald-500/50 mb-4" />
                  <p className="text-2xl mb-2">🌿</p>
-                 <p className="text-sm font-medium text-white">You're all caught up.</p>
-                 <p className="text-xs text-zinc-500 mt-2">No open conversations right now. That's a good sign.</p>
+                 <p className="text-sm font-medium text-white">You&apos;re all caught up.</p>
+                 <p className="text-xs text-zinc-500 mt-2">No open conversations right now. That&apos;s a good sign.</p>
              </div>
           ) : (
             <div className="space-y-3">

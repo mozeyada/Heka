@@ -43,7 +43,7 @@ export default function CheckInPage() {
         setResponses(data.responses);
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'We're having trouble loading your check-in right now. Try again in a moment.');
+      setError(err.response?.data?.detail || err.message || "We're having trouble loading your check-in right now. Try again in a moment.");
     } finally {
       setLoading(false);
     }
