@@ -132,7 +132,7 @@ export default function GoalDetailPage() {
     try {
       setArchiving(true);
       setError(null);
-      await goalsAPI.archive(goal.id);
+      await goalsAPI.delete(goal.id);
       router.push('/goals');
     } catch (err: any) {
       setError(getApiErrorMessage(err, 'Failed to remove goal'));
