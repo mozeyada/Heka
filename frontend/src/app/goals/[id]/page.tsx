@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Target,
   MessageCircle,
@@ -11,10 +11,13 @@ import {
   ThumbsUp,
   PlusCircle,
   Trash2,
-} from "lucide-react";
-import { useAuthStore } from "@/store/authStore";
-import { couplesAPI, getApiErrorMessage, goalsAPI } from "@/lib/api";
-import { PageHeading } from "@/components/PageHeading";
+  Calendar,
+  Sparkles,
+  ArrowLeft,
+} from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
+import { couplesAPI, getApiErrorMessage, goalsAPI } from '@/lib/api';
+import { PageHeading } from '@/components/PageHeading';
 
 interface GoalProgress {
   id: string;
@@ -42,164 +45,159 @@ interface Goal {
   latest_progress_at?: string;
   latest_progress_note?: string;
   latest_progress_value?: number;
-  latest_progress_acknowledged_by_current_user: boolean;
   archived_for_current_user?: boolean;
 }
 
 const EMOJI_OPTIONS = [
-  { emoji: "❤️", label: "Love" },
-  { emoji: "🔥", label: "Fire" },
-  { emoji: "👏", label: "Clap" },
-  { emoji: "✨", label: "Sparkles" },
+  { emoji: '❤️', label: 'Love' },
+  { emoji: '🔥', label: 'Fire' },
+  { emoji: '👏', label: 'Clap' },
+  { emoji: '💪', label: 'Strong' },
+  { emoji: '✨', label: 'Sparkles' },
 ];
 
 export default function GoalDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const goalId = params.id as string;
-  const { user, isAuthenticated } = useAuthStore();
+  const goalId = params?.id as string;
+  const { user } = useAuthStore();
 
   const [goal, setGoal] = useState<Goal | null>(null);
   const [partnerMap, setPartnerMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Progress Form
   const [showProgressForm, setShowProgressForm] = useState(false);
-  const [progressNotes, setProgressNotes] = useState("");
-  const [progressValue, setProgressValue] = useState(0);
+  const [notes, setNotes] = useState('');
+  const [progressValue, setProgressValue] = useState<number>(50);
   const [submitting, setSubmitting] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
-  const goalActionLabel = goal?.needs_user_progress
-    ? "Add Your Next Step"
-    : "Add More Momentum";
-
-  const loadData = useCallback(async () => {
+  const fetchGoalAndPartners = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const [goalData, coupleData] = await Promise.all([
         goalsAPI.getById(goalId),
-        couplesAPI.getMyCouple(),
+        couplesAPI.getMyCouple().catch(() => null),
       ]);
       setGoal(goalData);
 
-      // Build a map of user IDs to names for the timeline
-      const map: Record<string, string> = {
-        [user?.id || ""]: "You",
-      };
-      if (coupleData.partner_id) {
-        map[coupleData.partner_id] =
-          coupleData.partner_email?.split("@")[0] || "Partner";
+      if (coupleData) {
+        setPartnerMap({
+          [coupleData.user1_id]: coupleData.user1_id === user?.id ? 'You' : coupleData.partner_name || 'Partner',
+          [coupleData.user2_id]: coupleData.user2_id === user?.id ? 'You' : coupleData.partner_name || 'Partner',
+        });
       }
-      setPartnerMap(map);
-
-      if (goalData.progress?.length > 0) {
-        // Set default progress value for the slider to the latest value
-        const lastValue =
-          goalData.progress[goalData.progress.length - 1].progress_value;
-        if (lastValue) setProgressValue(Math.round(lastValue * 100));
-      }
-    } catch (error: any) {
-      console.error("Failed to load goal:", error);
-      setError(getApiErrorMessage(error, "Failed to load goal details."));
+    } catch (err: any) {
+      setError(getApiErrorMessage(err, 'Failed to load goal'));
     } finally {
       setLoading(false);
     }
   }, [goalId, user?.id]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login");
-      return;
+    if (goalId) {
+      fetchGoalAndPartners();
     }
-    loadData();
-  }, [isAuthenticated, loadData, router]);
+  }, [fetchGoalAndPartners, goalId]);
 
-  const handleUpdateProgress = async (e: React.FormEvent) => {
+  const handleAddProgress = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!notes.trim()) return;
+
     try {
       setSubmitting(true);
-      await goalsAPI.updateProgress(goalId, {
-        notes: progressNotes,
+      setError(null);
+      await goalsAPI.addProgress(goalId, {
+        notes,
         progress_value: progressValue / 100,
       });
-      setProgressNotes("");
+      setNotes('');
       setShowProgressForm(false);
-      loadData(); // Reload to get new progress
-    } catch (error: any) {
-      setError(getApiErrorMessage(error, "Failed to add progress."));
+      await fetchGoalAndPartners();
+    } catch (err: any) {
+      setError(getApiErrorMessage(err, 'Failed to add progress'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleReact = async (progressId: string, emoji: string) => {
-    // Optimistic UI update could go here, but for simplicity we reload
-    try {
-      await goalsAPI.reactToProgress(goalId, progressId, emoji);
-      loadData();
-    } catch (error: any) {
-      console.error("Failed to react:", error);
-    }
-  };
-
-  const handleDeleteGoal = async () => {
+  const handleArchiveGoal = async () => {
     if (!goal) return;
-
     const confirmed = window.confirm(
-      goal.archived_for_current_user
-        ? "Remove this archived goal from your space?"
-        : "Remove this shared goal from your space? Your partner will keep it in archive.",
+      'Are you sure you want to remove this goal from your active workspace?'
     );
-
     if (!confirmed) return;
 
     try {
-      setDeleting(true);
-      await goalsAPI.delete(goalId);
-      router.push("/goals");
-    } catch (error: any) {
-      setError(getApiErrorMessage(error, "Failed to delete goal."));
+      setArchiving(true);
+      setError(null);
+      await goalsAPI.archive(goal.id);
+      router.push('/goals');
+    } catch (err: any) {
+      setError(getApiErrorMessage(err, 'Failed to remove goal'));
     } finally {
-      setDeleting(false);
+      setArchiving(false);
+    }
+  };
+
+  const handleReact = async (progressId: string, emoji: string) => {
+    try {
+      await goalsAPI.reactToProgress(goalId, progressId, emoji);
+      await fetchGoalAndPartners();
+    } catch (err: any) {
+      setError(getApiErrorMessage(err, 'Failed to react to update'));
     }
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-25">
-        <p className="text-sm text-neutral-500">Loading goal…</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#050505]">
+        <div className="h-7 w-7 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" />
       </div>
     );
   }
 
-  if (!goal) return null;
+  if (!goal) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#050505] p-4 text-center">
+        <h2 className="text-xl font-semibold text-white">Goal not found</h2>
+        <p className="mt-2 text-sm text-zinc-400">This goal may have been archived or removed.</p>
+        <Link href="/goals" className="btn-primary mt-6 inline-flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Goals
+        </Link>
+      </div>
+    );
+  }
+
+  const isCompleted = goal.status === 'completed';
+  const isArchived = goal.status === 'archived' || goal.archived_for_current_user;
 
   return (
-    <div className="bg-neutral-25 pb-32 min-h-screen">
+    <div className="min-h-screen text-zinc-300 pb-32 font-sans relative">
+      {/* Background ambient lighting */}
+      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div className="absolute top-[8%] left-[-10%] h-[48vh] w-[48vh] rounded-full bg-teal-900/15 blur-[150px]" />
+        <div className="absolute top-[35%] right-[-10%] h-[55vh] w-[55vh] rounded-full bg-indigo-900/15 blur-[160px]" />
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay" />
+      </div>
+
       <PageHeading
         title={goal.title}
-        description={goal.description || "Track your collaborative progress"}
+        description={goal.description}
         actions={
           <div className="flex items-center gap-3">
-            {goal.status !== "cancelled" && (
-              <button
-                type="button"
-                onClick={handleDeleteGoal}
-                disabled={deleting}
-                className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Trash2 className="h-4 w-4" />
-                {deleting
-                  ? "Removing..."
-                  : goal.archived_for_current_user
-                    ? "Remove From My Space"
-                    : "Remove From My Space"}
-              </button>
-            )}
-            <Link href="/goals" className="btn-secondary">
+            <button
+              type="button"
+              onClick={handleArchiveGoal}
+              disabled={archiving}
+              className="inline-flex items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-300 transition hover:border-red-500/40 hover:bg-red-500/20 disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {archiving ? 'Removing…' : 'Remove From My Space'}
+            </button>
+            <Link href="/goals" className="btn-secondary text-xs">
               Back
             </Link>
           </div>
@@ -208,194 +206,170 @@ export default function GoalDetailPage() {
 
       <div className="app-container max-w-3xl space-y-8">
         {error && (
-          <div className="section-shell border border-red-200 bg-red-50 p-5">
-            <p className="text-sm font-semibold text-red-600">{error}</p>
+          <div className="section-shell border border-red-500/30 bg-red-500/10 p-4">
+            <p className="text-sm font-semibold text-red-300">{error}</p>
           </div>
         )}
 
-        {goal.archived_for_current_user && (
-          <div className="section-shell border border-zinc-200 bg-zinc-50 p-5">
-            <p className="text-sm font-semibold text-zinc-700">
-              Your partner stepped away from this goal. It is archived for you
-              as reference only, and new shared updates are closed.
-            </p>
-          </div>
-        )}
-
-        {/* Goal Metadata Header */}
-        <div className="section-shell p-6 bg-gradient-to-br from-indigo-50 to-white border-indigo-100">
+        {/* Goal Meta Card */}
+        <div className="section-shell p-6">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-indigo-600" />
-              <span className="font-semibold text-indigo-900 border bg-white px-3 py-1 rounded-full text-xs tracking-wide uppercase">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                <Target className="w-4 h-4" />
+              </div>
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                  isCompleted
+                    ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                    : isArchived
+                    ? 'border border-zinc-700 bg-zinc-800/80 text-zinc-400'
+                    : 'border border-teal-500/30 bg-teal-500/10 text-teal-300'
+                }`}
+              >
                 {goal.status}
               </span>
             </div>
+
             {goal.target_date && (
-              <span className="text-sm font-medium text-neutral-500">
+              <span className="text-xs font-medium text-zinc-400 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-zinc-500" />
                 Target: {new Date(goal.target_date).toLocaleDateString()}
               </span>
             )}
           </div>
 
-          <div className="flex items-center justify-between mt-6">
-            <p className="text-sm text-neutral-500">
-              Created by{" "}
-              <span className="font-medium text-neutral-900">
-                {partnerMap[goal.created_by_user_id] || "You"}
-              </span>
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/5">
+            <p className="text-xs text-zinc-400">
+              Created by <span className="font-medium text-white">{partnerMap[goal.created_by_user_id] || 'You'}</span>
             </p>
-            {goal.status === "active" && !goal.archived_for_current_user && (
+            {!isCompleted && !isArchived && (
               <button
                 onClick={() => setShowProgressForm(!showProgressForm)}
-                className="btn-primary flex items-center gap-2"
+                className="btn-primary flex items-center gap-2 text-xs"
               >
-                <PlusCircle className="w-4 h-4" />
-                {goalActionLabel}
+                <PlusCircle className="w-3.5 h-3.5" />
+                Add More Momentum
               </button>
             )}
           </div>
         </div>
 
-        <div className="section-shell p-6 bg-white">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-500">
-                Shared Journey
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-neutral-950">
-                {goal.next_action_title}
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-neutral-600">
-                {goal.next_action_description}
-              </p>
-            </div>
-            <div
-              className={`rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] ${
-                goal.needs_user_progress
-                  ? "border border-amber-200 bg-amber-50 text-amber-700"
-                  : goal.momentum_state === "completed"
-                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border border-indigo-200 bg-indigo-50 text-indigo-700"
-              }`}
-            >
-              {goal.needs_user_progress
-                ? "Your move"
-                : goal.momentum_state.replace(/_/g, " ")}
-            </div>
-          </div>
-          {goal.latest_progress_by_user_id && (
-            <div className="mt-5 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
-              <p className="text-sm text-neutral-700">
-                Latest momentum came from{" "}
-                <span className="font-semibold text-neutral-950">
-                  {partnerMap[goal.latest_progress_by_user_id] ||
-                    "your partner"}
-                </span>
-                .
-                {goal.latest_progress_by_user_id !== user?.id &&
-                !goal.latest_progress_acknowledged_by_current_user
-                  ? " You have not acknowledged that update yet."
-                  : " The shared loop is currently visible to both of you."}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {(goal.latest_progress_note ||
-          goal.latest_progress_value !== undefined) && (
-          <div className="section-shell p-6 bg-white">
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-500">
-              Latest Shared Move
-            </p>
-            <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
-              <p className="text-sm font-medium text-neutral-900">
-                {partnerMap[goal.latest_progress_by_user_id || ""] ||
-                  "Your partner"}{" "}
-                moved this goal last
-                {goal.latest_progress_at
-                  ? ` on ${new Date(goal.latest_progress_at).toLocaleDateString()}`
-                  : ""}
-                .
-              </p>
-              {goal.latest_progress_note ? (
-                <p className="mt-3 text-sm leading-relaxed text-neutral-700">
-                  {goal.latest_progress_note}
+        {/* Shared Journey Next Action */}
+        {!isCompleted && !isArchived && goal.next_action_title && (
+          <div className="section-shell p-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-400">
+                  Shared Journey
                 </p>
-              ) : null}
-              {goal.latest_progress_value !== undefined &&
-              goal.latest_progress_value !== null ? (
-                <div className="mt-4">
-                  <div className="mb-1 flex justify-between text-xs font-semibold text-indigo-700">
-                    <span>Progress pulse</span>
-                    <span>{Math.round(goal.latest_progress_value * 100)}%</span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-indigo-100">
-                    <div
-                      className="h-2 rounded-full bg-indigo-500 transition-all duration-1000 ease-out"
-                      style={{ width: `${goal.latest_progress_value * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ) : null}
+                <h2 className="mt-2 text-xl font-semibold text-white">
+                  {goal.next_action_title}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                  {goal.next_action_description}
+                </p>
+              </div>
+              <div className="shrink-0">
+                <span
+                  className={`rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider ${
+                    goal.needs_user_progress
+                      ? 'border border-amber-500/30 bg-amber-500/10 text-amber-300'
+                      : 'border border-indigo-500/30 bg-indigo-500/10 text-indigo-300'
+                  }`}
+                >
+                  {goal.needs_user_progress ? 'Your move' : 'Waiting on partner'}
+                </span>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Create Progress Form */}
+        {/* Latest Progress Highlight */}
+        {goal.latest_progress_note && (
+          <div className="section-shell p-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-400">
+              Latest Shared Move
+            </p>
+            <div className="mt-3 rounded-xl border border-white/5 bg-black/30 p-4">
+              <p className="text-xs text-zinc-400">
+                <span className="font-semibold text-white">
+                  {goal.latest_progress_by_user_id
+                    ? partnerMap[goal.latest_progress_by_user_id] || 'Partner'
+                    : 'A partner'}{' '}
+                </span>
+                {goal.latest_progress_at
+                  ? `on ${new Date(goal.latest_progress_at).toLocaleDateString()}`
+                  : ''}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-200">
+                {goal.latest_progress_note}
+              </p>
+              {typeof goal.latest_progress_value === 'number' && (
+                <div className="mt-4">
+                  <div className="mb-1.5 flex justify-between text-xs font-semibold text-teal-400">
+                    <span>Progress Pulse</span>
+                    <span>{Math.round(goal.latest_progress_value * 100)}%</span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
+                    <div
+                      className="h-1.5 rounded-full bg-gradient-to-r from-teal-400 to-indigo-500 transition-all duration-700"
+                      style={{ width: `${Math.max(5, goal.latest_progress_value * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Progress Form */}
         {showProgressForm && (
           <form
-            onSubmit={handleUpdateProgress}
-            className="section-shell p-6 animate-slide-up bg-white"
+            onSubmit={handleAddProgress}
+            className="section-shell p-6 animate-in fade-in slide-in-from-top-4 duration-300"
           >
-            <h3 className="font-semibold text-neutral-900 text-lg mb-4">
-              {goal.needs_user_progress
-                ? "Add Your Side of the Momentum"
-                : "Extend the Shared Momentum"}
+            <h3 className="font-semibold text-white text-base mb-4">
+              Share Progress or Reflection
             </h3>
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
-                <label className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-                  Update Notes
+                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                  Update Note
                 </label>
                 <textarea
-                  value={progressNotes}
-                  onChange={(e) => setProgressNotes(e.target.value)}
-                  className="input-field mt-2"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
                   rows={3}
-                  placeholder={
-                    goal.needs_user_progress
-                      ? "What is your next concrete move on this shared goal?"
-                      : "Add more context, support, or momentum around this goal."
-                  }
+                  className="input-field mt-1.5 resize-none"
+                  placeholder="What is your next concrete move or thought on this goal?"
                   required
                 />
               </div>
+
               <div>
-                <label className="text-sm font-semibold uppercase tracking-wide text-neutral-500 mb-2 block">
-                  How complete is this goal now? ({progressValue}%)
-                </label>
+                <div className="flex justify-between text-xs font-semibold text-zinc-400 mb-2">
+                  <span>How complete does this goal feel?</span>
+                  <span className="text-teal-400">{progressValue}%</span>
+                </div>
                 <input
                   type="range"
                   min="0"
                   max="100"
                   value={progressValue}
                   onChange={(e) => setProgressValue(parseInt(e.target.value))}
-                  className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-teal-400"
                 />
               </div>
+
               <div className="flex gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn-primary"
-                >
-                  {submitting ? "Posting..." : goalActionLabel}
+                <button type="submit" disabled={submitting} className="btn-primary text-xs">
+                  {submitting ? 'Posting…' : 'Post Momentum Update'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowProgressForm(false)}
-                  className="btn-secondary"
+                  className="btn-secondary text-xs"
                 >
                   Cancel
                 </button>
@@ -404,111 +378,100 @@ export default function GoalDetailPage() {
           </form>
         )}
 
-        {/* Social Timeline */}
-        <div className="space-y-6">
-          <h3 className="text-xl font-bold text-neutral-900">Timeline</h3>
+        {/* Timeline */}
+        <div className="space-y-4 pt-2">
+          <h3 className="text-lg font-semibold text-white">Timeline</h3>
 
           {goal.progress.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed border-neutral-200 rounded-2xl">
-              <MessageCircle className="w-8 h-8 mx-auto text-neutral-300 mb-3" />
-              <p className="text-neutral-500">No progress logged yet.</p>
-              <p className="text-sm text-neutral-400 mt-1">
-                Be the first to share an update!
-              </p>
+            <div className="text-center py-10 border border-dashed border-white/10 rounded-2xl bg-white/[0.01]">
+              <MessageCircle className="w-8 h-8 mx-auto text-zinc-600 mb-3" />
+              <p className="text-sm text-zinc-400">No updates logged yet.</p>
+              <p className="text-xs text-zinc-600 mt-1">Be the first to share an update!</p>
             </div>
           ) : (
-            <div className="relative pl-6 space-y-8 border-l-2 border-indigo-100 pb-4">
-              {/* Reverse to show newest first */}
+            <div className="relative pl-6 space-y-6 border-l border-teal-500/20 pb-4">
               {[...goal.progress].reverse().map((p, idx) => (
-                <div key={p.id || idx} className="relative animate-fade-in">
-                  {/* Timeline Node */}
-                  <div className="absolute -left-[31px] w-4 h-4 rounded-full bg-white border-4 border-indigo-500 shadow-sm" />
+                <div key={p.id || idx} className="relative">
+                  {/* Timeline bullet */}
+                  <div className="absolute -left-[31px] top-1.5 w-3.5 h-3.5 rounded-full bg-[#050505] border-2 border-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.5)]" />
 
-                  <div className="bg-white border border-neutral-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-3">
+                  <div className="rounded-2xl border border-white/10 bg-zinc-900/60 p-5 backdrop-blur-md">
+                    <div className="flex justify-between items-start mb-2">
                       <div>
-                        <span className="font-bold text-neutral-900">
-                          {partnerMap[p.user_id] || "You"}
+                        <span className="font-semibold text-white text-sm">
+                          {partnerMap[p.user_id] || 'You'}
                         </span>
-                        <span className="text-neutral-500 text-sm ml-2">
-                          logged an update
-                        </span>
+                        <span className="text-zinc-500 text-xs ml-2">logged an update</span>
                       </div>
-                      <span className="text-xs text-neutral-400 font-medium">
+                      <span className="text-xs text-zinc-500">
                         {new Date(p.date).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
+                          month: 'short',
+                          day: 'numeric',
                         })}
                       </span>
                     </div>
 
                     {p.notes && (
-                      <p className="text-neutral-700 bg-neutral-50 rounded-xl p-4 text-sm mt-3 mb-4">
+                      <p className="text-zinc-300 bg-black/30 rounded-xl p-3.5 text-xs leading-relaxed mt-3 mb-3 border border-white/5">
                         {p.notes}
                       </p>
                     )}
 
                     {p.progress_value !== undefined && (
-                      <div className="flex flex-col gap-1.5 mt-4">
-                        <div className="flex justify-between text-xs font-semibold text-indigo-700">
+                      <div className="flex flex-col gap-1.5 mt-3">
+                        <div className="flex justify-between text-xs font-semibold text-teal-400">
                           <span>Goal Progress</span>
                           <span>{Math.round(p.progress_value * 100)}%</span>
                         </div>
-                        <div className="w-full bg-indigo-100 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
                           <div
-                            className="bg-indigo-500 h-2 rounded-full transition-all duration-1000 ease-out"
+                            className="bg-gradient-to-r from-teal-400 to-indigo-500 h-1.5 rounded-full"
                             style={{ width: `${p.progress_value * 100}%` }}
                           />
                         </div>
                       </div>
                     )}
 
-                    {/* Reactions Bar - Social Feature! */}
-                    <div className="mt-5 pt-4 border-t border-neutral-100 flex flex-wrap gap-2 items-center">
-                      {/* Render existing reactions grouped by emoji */}
+                    {/* Reactions Bar */}
+                    <div className="mt-4 pt-3 border-t border-white/5 flex flex-wrap gap-2 items-center">
                       {p.reactions && p.reactions.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mr-2">
-                          {Array.from(
-                            new Set(p.reactions.map((r) => r.emoji)),
-                          ).map((emoji) => {
-                            const count = p.reactions.filter(
-                              (r) => r.emoji === emoji,
-                            ).length;
+                        <div className="flex flex-wrap gap-1.5 mr-2">
+                          {Array.from(new Set(p.reactions.map((r) => r.emoji))).map((emoji) => {
+                            const count = p.reactions.filter((r) => r.emoji === emoji).length;
                             const hasReacted = p.reactions.some(
-                              (r) =>
-                                r.emoji === emoji && r.user_id === user?.id,
+                              (r) => r.emoji === emoji && r.user_id === user?.id
                             );
                             return (
                               <button
                                 key={emoji}
                                 onClick={() => handleReact(p.id, emoji)}
-                                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm transition-colors border ${hasReacted ? "bg-indigo-50 border-indigo-200 text-indigo-700" : "bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50"}`}
+                                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs transition-colors border ${
+                                  hasReacted
+                                    ? 'bg-teal-500/20 border-teal-500/40 text-teal-300'
+                                    : 'bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10'
+                                }`}
                               >
                                 <span>{emoji}</span>
-                                <span className="font-medium text-xs">
-                                  {count}
-                                </span>
+                                <span className="font-semibold text-[11px]">{count}</span>
                               </button>
                             );
                           })}
                         </div>
                       )}
 
-                      {/* "React" Add button - only if not completed */}
-                      {p.id && goal.status === "active" && (
+                      {p.id && goal.status === 'active' && (
                         <div className="relative group">
-                          <button className="flex items-center gap-1.5 px-3 py-1 rounded-full text-sm bg-neutral-50 border border-neutral-200 text-neutral-500 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 transition-colors">
-                            <Star className="w-3.5 h-3.5" />
-                            <span className="font-medium text-xs">React</span>
+                          <button className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors">
+                            <Star className="w-3 h-3 text-amber-400" />
+                            <span>React</span>
                           </button>
 
-                          {/* Floating Emoji Picker Drawer */}
-                          <div className="absolute top-full left-0 mt-2 bg-white rounded-xl shadow-lg border border-neutral-200 p-2 flex gap-1 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-10 w-[170px]">
+                          <div className="absolute top-full left-0 mt-1.5 bg-zinc-900/95 rounded-xl shadow-2xl border border-white/10 p-1.5 flex gap-1 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-10 backdrop-blur-xl">
                             {EMOJI_OPTIONS.map((opt) => (
                               <button
                                 key={opt.emoji}
                                 onClick={() => handleReact(p.id, opt.emoji)}
-                                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-indigo-50 text-xl transition-transform hover:scale-110"
+                                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-base transition-transform hover:scale-125"
                                 title={opt.label}
                               >
                                 {opt.emoji}
