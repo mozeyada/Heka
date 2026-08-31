@@ -106,9 +106,9 @@ class Settings(BaseSettings):
                 raise ValueError('Production MongoDB must have authentication configured')
             if not self.FRONTEND_URL.startswith('https://'):
                 raise ValueError(f'Production FRONTEND_URL must use HTTPS: {self.FRONTEND_URL}')
-            if not self.FIELD_ENCRYPTION_KEY:
+            if not self.FIELD_ENCRYPTION_KEY and not self.SECRET_KEY:
                 raise ValueError(
-                    'Production requires FIELD_ENCRYPTION_KEY for encrypting argument/perspective '
+                    'Production requires FIELD_ENCRYPTION_KEY or SECRET_KEY for encrypting argument/perspective '
                     'content at rest. Generate one with: python -c "from cryptography.fernet import '
                     'Fernet; print(Fernet.generate_key().decode())"'
                 )

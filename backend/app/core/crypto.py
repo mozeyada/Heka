@@ -37,6 +37,12 @@ def _get_fernet() -> Fernet:
 
     key = settings.FIELD_ENCRYPTION_KEY
     if not key:
+        if settings.SECRET_KEY:
+            import base64, hashlib
+            logger.warning("FIELD_ENCRYPTION_KEY not set; using deterministic key derived from SECRET_KEY")
+            derived = base64.urlsafe_b64encode(hashlib.sha256(settings.SECRET_KEY.encode("utf-8")).digest())
+            _fernet = Fernet(derived)
+            return _fernet
         raise RuntimeError(
             "FIELD_ENCRYPTION_KEY is not configured. Generate one with:\n"
             '  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"\n'

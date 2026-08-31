@@ -81,6 +81,11 @@ def _build_dashboard_argument_response(
     archived_for_current_user = str(current_user.id) in (
         getattr(argument, "archived_for_user_ids", None) or []
     )
+    resolution_acknowledgements = set(
+        getattr(argument, "resolution_acknowledged_by_user_ids", None) or []
+    )
+    resolution_acknowledged_by_current_user = str(current_user.id) in resolution_acknowledgements
+    resolution_acknowledged_by_partner = partner_id in resolution_acknowledgements
     effective_status = "archived" if archived_for_current_user else argument.status.value
     awaiting_response_from_user_id = None
     if not archived_for_current_user:
@@ -107,6 +112,14 @@ def _build_dashboard_argument_response(
         can_generate_insight=insight_status in {"ready", "stale"},
         insight_generated_at=insight_generated_at,
         latest_context_at=latest_context_at,
+        resolution_acknowledged_by_current_user=resolution_acknowledged_by_current_user,
+        resolution_acknowledged_by_partner=resolution_acknowledged_by_partner,
+        resolution_pending=(
+            not archived_for_current_user
+            and argument.status.value != "resolved"
+            and resolution_acknowledged_by_current_user
+            and not resolution_acknowledged_by_partner
+        ),
         created_at=argument.created_at,
         updated_at=argument.updated_at,
     )
