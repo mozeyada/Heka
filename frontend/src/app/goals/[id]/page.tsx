@@ -108,7 +108,7 @@ export default function GoalDetailPage() {
     try {
       setSubmitting(true);
       setError(null);
-      await goalsAPI.addProgress(goalId, {
+      await goalsAPI.updateProgress(goalId, {
         notes,
         progress_value: progressValue / 100,
       });
