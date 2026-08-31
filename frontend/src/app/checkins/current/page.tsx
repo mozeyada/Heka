@@ -43,7 +43,7 @@ export default function CheckInPage() {
         setResponses(data.responses);
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to load check-in. Please try again.');
+      setError(err.response?.data?.detail || err.message || 'We're having trouble loading your check-in right now. Try again in a moment.');
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export default function CheckInPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!responses.question1 || !responses.question2) {
-      setError('Please answer both questions before submitting the check-in.');
+      setError('Share something for each question — even a short answer is enough.');
       return;
     }
 

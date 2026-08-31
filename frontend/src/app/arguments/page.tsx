@@ -230,14 +230,14 @@ export default function ArgumentsPage() {
                         </div>
                         <p className="mt-2 text-xs text-zinc-500 line-clamp-2">
                           {arg.needs_user_response
-                            ? 'Your partner logged this issue. Add your perspective so Heka can move the conversation forward.'
+                            ? 'Your partner started a conversation. Add your side so Heka can help you both.'
                             : arg.status === 'archived'
                               ? 'Your partner stepped away from this issue. It stays here as archived context unless you remove it too.'
                               : arg.can_generate_insight
-                                ? 'Both sides are in. Open this issue and generate the mediation insight.'
+                                ? 'Both sides are in. Open this conversation to get Heka's mediation.'
                               : arg.insight_status === 'current'
                                 ? 'This issue already has a current insight. Add more context only if the situation changed.'
-                                : 'Your side is logged. The next move belongs to your partner.'}
+                                : 'Your side is in. Waiting for your partner to share their perspective.'}
                         </p>
                       </div>
                       <ChevronRight className="h-5 w-5 shrink-0 text-zinc-700 transition group-hover:text-white group-hover:translate-x-0.5" />

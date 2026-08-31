@@ -195,7 +195,7 @@ export default function DashboardPage() {
         {/* Dynamic Bento Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
           
-          {/* Smart Check-in Telemetry */}
+          {/* Smart Check-in Check-in */}
           <div className={`${glassCardClasses} flex flex-col`}>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">Weekly Check-in</h3>
@@ -242,7 +242,7 @@ export default function DashboardPage() {
                 <div className="py-4">
                   <p className="text-3xl font-light text-white mb-2">—</p>
                   <p className="text-sm font-medium text-zinc-500">
-                    {currentCheckin?.next_step_title || 'Pending Alignment Check'}
+                    {currentCheckin?.next_step_title || 'Your weekly check-in is ready'}
                   </p>
                 </div>
               )}
@@ -252,14 +252,14 @@ export default function DashboardPage() {
               onClick={() => router.push('/checkins/current')}
               className="mt-8 w-full rounded-xl border border-white/20 bg-white/[0.08] py-3 text-xs font-bold text-white transition hover:bg-white/[0.14] hover:border-white/30"
             >
-              {currentCheckin?.status === 'completed' ? 'View Full Telemetry →' : 'Complete Sync →'}
+              {currentCheckin?.status === 'completed' ? 'View this week's check-in → →' : 'Do your weekly check-in → →'}
             </button>
           </div>
 
           {/* Proactive Goals Module */}
           <div className={`${glassCardClasses} flex flex-col`}>
              <div className="flex items-center justify-between mb-6">
-              <h3 className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">Growth Objectives</h3>
+              <h3 className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">Shared Goals</h3>
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white">
                 <Target className="h-4 w-4" />
               </div>
@@ -271,13 +271,13 @@ export default function DashboardPage() {
                 <p className="text-xs text-zinc-500">
                   {goalsNeedingMyMove > 0
                     ? `${goalsNeedingMyMove} goal${goalsNeedingMyMove === 1 ? '' : 's'} need your next move.`
-                    : 'Active relationship goals being tracked.'}
+                    : 'You're working on these together. Keep going.'}
                 </p>
               </div>
 
               {goals.length > 0 && (
                 <div className="rounded-2xl border border-white/5 bg-black/20 p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Next shared move</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Your next move together</p>
                   <p className="mt-3 text-sm font-medium text-white">{goals[0].next_action_title}</p>
                   <p className="mt-2 text-xs leading-relaxed text-zinc-500">{goals[0].next_action_description}</p>
                 </div>
@@ -291,10 +291,10 @@ export default function DashboardPage() {
                      <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-300">AI PROACTIVE SUGGESTION</h4>
                   </div>
                   <p className="text-xs text-zinc-400 leading-relaxed mb-4">
-                    Couples who establish micro-goals resolve conflicts 40% faster. Try setting a goal to dedicate 10 minutes to active listening this week.
+                    Couples who set small, shared goals feel more connected — even during hard weeks. Try setting one goal together this week.
                   </p>
                   <Link href="/goals" className="inline-flex text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition">
-                    Enable Goal Tracking →
+                    Set your first goal together →
                   </Link>
                 </div>
               )}
@@ -304,7 +304,7 @@ export default function DashboardPage() {
               onClick={() => router.push('/goals')}
               className="mt-8 w-full rounded-xl border border-white/20 bg-white/[0.08] py-3 text-xs font-bold text-white transition hover:bg-white/[0.14] hover:border-white/30"
             >
-               Manage Objectives →
+               See all goals → →
             </button>
           </div>
         </div>
@@ -312,17 +312,18 @@ export default function DashboardPage() {
         {/* Active Issues Engine */}
         <div className={`${glassCardClasses} animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300`}>
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">Active Mediation Logs</h3>
+            <h3 className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase">Open Conversations</h3>
             {hasCouple && activeIssuesCount > 0 && (
-              <Link href="/arguments" className="text-xs font-semibold text-teal-400 hover:text-teal-300 transition">View Archive</Link>
+              <Link href="/arguments" className="text-xs font-semibold text-teal-400 hover:text-teal-300 transition">See all</Link>
             )}
           </div>
 
           {activeIssuesCount === 0 ? (
              <div className="rounded-2xl bg-black/20 border border-white/5 p-8 text-center flex flex-col items-center">
                  <Shield className="h-10 w-10 text-emerald-500/50 mb-4" />
-                 <p className="text-sm font-medium text-white">No active conflicts detected.</p>
-                 <p className="text-xs text-zinc-500 mt-2">Your relationship vector is fundamentally aligned.</p>
+                 <p className="text-2xl mb-2">🌿</p>
+                 <p className="text-sm font-medium text-white">You're all caught up.</p>
+                 <p className="text-xs text-zinc-500 mt-2">No open conversations right now. That's a good sign.</p>
              </div>
           ) : (
             <div className="space-y-3">
@@ -368,12 +369,12 @@ export default function DashboardPage() {
         {/* Coupling CTA */}
         {!hasCouple && (
           <div className="relative rounded-3xl border border-orange-500/30 bg-orange-500/10 p-8 backdrop-blur-2xl">
-            <h3 className="text-sm font-semibold text-white mb-2">Initialize Partner Sync</h3>
+            <h3 className="text-sm font-semibold text-white mb-2">Invite your partner</h3>
             <p className="text-xs text-orange-200/70 mb-5 max-w-sm">
-              The AI Engine requires two perspectives. Connect with your partner to enable collaborative empathy alignment.
+              Heka works best with two people. Invite your partner — it takes 10 seconds and makes all the difference.
             </p>
             <button onClick={() => router.push('/couples/create')} className="rounded-xl bg-orange-500 px-5 py-2.5 text-xs font-bold text-black shadow-[0_0_20px_rgba(249,115,22,0.3)] transition hover:scale-105">
-               Link Your Partner
+               Send an invite →
             </button>
           </div>
         )}
