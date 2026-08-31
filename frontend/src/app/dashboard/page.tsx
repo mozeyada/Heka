@@ -252,7 +252,7 @@ export default function DashboardPage() {
               onClick={() => router.push('/checkins/current')}
               className="mt-8 w-full rounded-xl border border-white/20 bg-white/[0.08] py-3 text-xs font-bold text-white transition hover:bg-white/[0.14] hover:border-white/30"
             >
-              {currentCheckin?.status === 'completed' ? 'View this week's check-in → →' : 'Do your weekly check-in → →'}
+              {currentCheckin?.status === 'completed' ? "View this week's check-in →" : "Do your weekly check-in →"}
             </button>
           </div>
 
