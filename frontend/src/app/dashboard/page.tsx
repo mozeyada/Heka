@@ -271,7 +271,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-zinc-500">
                   {goalsNeedingMyMove > 0
                     ? `${goalsNeedingMyMove} goal${goalsNeedingMyMove === 1 ? '' : 's'} need your next move.`
-                    : 'You're working on these together. Keep going.'}
+                    : "You're working on these together. Keep going."}
                 </p>
               </div>
 
